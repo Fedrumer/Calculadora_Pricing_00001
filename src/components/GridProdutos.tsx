@@ -181,7 +181,9 @@ export function GridProdutos({
                               ? 'América do Norte'
                               : dest === 'EUROPE'
                                 ? 'Europa'
-                                : dest}
+                                : dest === 'DOMESTIC'
+                                  ? 'Nacional'
+                                  : dest}
                         </TableHead>
                       ))}
                     <TableHead className="text-right font-bold whitespace-nowrap text-xs">

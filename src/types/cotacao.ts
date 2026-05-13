@@ -1,5 +1,5 @@
 export type FormaPagamentoId = 'TRANSFER' | 'CARD_1X' | 'CARD_2X' | 'CARD_3X'
-export type DestinoId = 'WORLD' | 'NORTH_AMERICA' | 'EUROPE'
+export type DestinoId = 'WORLD' | 'NORTH_AMERICA' | 'EUROPE' | 'DOMESTIC'
 export type FaixaEtariaId = 'ate_75' | 'de_76_a_85'
 
 export interface Produto {
