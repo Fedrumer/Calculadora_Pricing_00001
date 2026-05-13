@@ -17,6 +17,10 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
   const qtd85 = input.viajantes_por_faixa?.de_76_a_85 || 0
   if (qtd75 + qtd85 === 0) erros.push('Adicione pelo menos um viajante')
 
+  if (erros.length > 0 && import.meta.env.DEV) {
+    console.error('Calculation errors:', erros)
+  }
+
   if (erros.length > 0 || !input.produtos || !input.forma_pagamento || !input.destino) {
     return {
       produtos_calculados: [],
@@ -36,33 +40,38 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
   const comissao = input.comissao || 0
   const isGross = comissao > 0
 
-  const produtos_calculados = input.produtos.map((produto) => {
-    const preco_net_base = produto.precos_base_por_forma_pagamento[input.forma_pagamento!]
-    const preco_bruto = preco_net_base / (1 - comissao)
-    const agravo = produto.destinos[input.destino!].agravo_percentual
+  const produtos_calculados = input.produtos.reduce<CotacaoState['produtos_calculados']>(
+    (acc, produto) => {
+      const preco_net_base = produto.precos_base_por_forma_pagamento[input.forma_pagamento!]
+      const preco_bruto = isGross ? preco_net_base / (1 - comissao) : preco_net_base
+      const agravo = produto.destinos[input.destino!].agravo_percentual
 
-    const calcFaixa = (faixa: FaixaEtariaId, qtd: number) => {
-      const fator = produto.faixas_etarias[faixa].fator_multiplicador
-      const preco_unitario = preco_bruto * (1 + agravo) * fator * dias
-      return {
-        preco_unitario,
-        preco_total: preco_unitario * qtd,
-        quantidade: qtd,
+      const calcFaixa = (faixa: FaixaEtariaId, qtd: number) => {
+        const fator = produto.faixas_etarias[faixa].fator_multiplicador
+        const preco_unitario = preco_bruto * (1 + agravo) * fator * dias
+        return {
+          preco_unitario,
+          preco_total: preco_unitario * qtd,
+          quantidade: qtd,
+        }
       }
-    }
 
-    const breakdown = {
-      ate_75: calcFaixa('ate_75', qtd75),
-      de_76_a_85: calcFaixa('de_76_a_85', qtd85),
-    }
+      const breakdown = {
+        ate_75: calcFaixa('ate_75', qtd75),
+        de_76_a_85: calcFaixa('de_76_a_85', qtd85),
+      }
 
-    return {
-      id: produto.id,
-      nome: produto.nome,
-      breakdown,
-      preco_total_produto: breakdown.ate_75.preco_total + breakdown.de_76_a_85.preco_total,
-    }
-  })
+      acc.push({
+        id: produto.id,
+        nome: produto.nome,
+        breakdown,
+        preco_total_produto: breakdown.ate_75.preco_total + breakdown.de_76_a_85.preco_total,
+      })
+
+      return acc
+    },
+    [],
+  )
 
   const fatura_total = produtos_calculados.reduce((acc, p) => acc + p.preco_total_produto, 0)
   const total_viajantes = qtd75 + qtd85
