@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, Plane } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { AlertCircle, Plane, CheckCircle2 } from 'lucide-react'
 import { Produto, FormaPagamentoId, FaixaEtariaId, DestinoId } from '@/types/cotacao'
 import { useCalculadoraCotacao } from '@/hooks/use-calculadora-cotacao'
 import { cn } from '@/lib/utils'
@@ -82,7 +83,7 @@ export function GridProdutos({
     return (
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i} className="animate-pulse flex flex-col">
+          <Card key={i} className="animate-pulse flex flex-col shadow-sm">
             <CardHeader className="pb-4">
               <Skeleton className="h-6 w-3/4 mb-2" />
               <Skeleton className="h-4 w-1/4" />
@@ -119,11 +120,19 @@ export function GridProdutos({
             key={prodCalc.id}
             className={cn(
               'animate-fade-in-up transition-all duration-300 relative flex flex-col',
-              isSelected ? 'ring-2 ring-primary border-primary' : 'hover:border-primary/50',
+              'hover:shadow-xl hover:-translate-y-1',
+              isSelected
+                ? 'ring-2 ring-primary border-primary shadow-md scale-[1.02]'
+                : 'hover:border-primary/50 border-border',
             )}
             style={{ animationDelay: `${index * 50}ms` }}
           >
-            <CardHeader className="bg-muted/30 pb-4 flex flex-row items-start justify-between space-y-0">
+            <CardHeader
+              className={cn(
+                'pb-4 flex flex-row items-start justify-between space-y-0 rounded-t-lg transition-colors',
+                isSelected ? 'bg-primary/5' : 'bg-muted/30',
+              )}
+            >
               <div className="flex items-start space-x-3">
                 <Checkbox
                   checked={isSelected}
@@ -131,27 +140,37 @@ export function GridProdutos({
                   className="mt-1"
                 />
                 <div>
-                  <CardTitle className="text-xl text-primary leading-tight">
+                  <CardTitle className="text-xl text-primary leading-tight flex items-center gap-2">
                     {prodCalc.nome}
+                    {isSelected && (
+                      <CheckCircle2 className="w-5 h-5 text-primary animate-in zoom-in duration-300" />
+                    )}
                   </CardTitle>
                   <p className="text-xs text-muted-foreground font-mono mt-1">ID: {prodCalc.id}</p>
                 </div>
               </div>
-              <span
-                className={cn(
-                  'text-[10px] font-bold px-2 py-1 rounded-sm tracking-wider',
-                  tipo_preco === 'NET'
-                    ? 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
-                    : 'bg-emerald-200 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
+              <div className="flex flex-col gap-1 items-end">
+                {isSelected && (
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-sm tracking-wider bg-primary text-primary-foreground animate-in fade-in slide-in-from-top-1">
+                    SELECIONADO
+                  </span>
                 )}
-              >
-                {tipo_preco}
-              </span>
+                <span
+                  className={cn(
+                    'text-[10px] font-bold px-2 py-1 rounded-sm tracking-wider',
+                    tipo_preco === 'NET'
+                      ? 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
+                      : 'bg-emerald-200 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
+                  )}
+                >
+                  {tipo_preco}
+                </span>
+              </div>
             </CardHeader>
-            <CardContent className="pt-6 flex-grow overflow-x-auto">
+            <CardContent className="pt-6 flex-grow overflow-x-auto w-full">
               <Table className="min-w-full">
                 <TableHeader>
-                  <TableRow className="hover:bg-transparent">
+                  <TableRow className="hover:bg-transparent border-b-muted">
                     <TableHead className="whitespace-nowrap text-xs">Faixa Etária</TableHead>
                     {originalProduto &&
                       Object.keys(originalProduto.destinos).map((dest) => (
@@ -176,7 +195,10 @@ export function GridProdutos({
                     const faixaLabel = faixa === 'ate_75' ? 'Até 75' : '76-85'
 
                     return (
-                      <TableRow key={faixa} className="hover:bg-muted/50">
+                      <TableRow
+                        key={faixa}
+                        className="hover:bg-muted/50 even:bg-muted/20 transition-colors border-b-muted/50"
+                      >
                         <TableCell className="font-medium whitespace-nowrap text-xs">
                           {faixaLabel}
                           <span className="ml-1 text-muted-foreground">({data.quantidade}x)</span>
@@ -206,7 +228,28 @@ export function GridProdutos({
                                     : 'text-muted-foreground',
                                 )}
                               >
-                                {formatCurrency(unitPrice, moeda)}
+                                <Tooltip>
+                                  <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-2 hover:text-primary transition-colors">
+                                    {formatCurrency(unitPrice, moeda)}
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-xs flex flex-col gap-1 font-mono">
+                                    <p>
+                                      <strong>Fórmula:</strong> tarifa × dias × fator
+                                    </p>
+                                    <p>Base (Tarifa × Dias): {formatCurrency(base, moeda)}</p>
+                                    <p>Fator Idade: {fator}x</p>
+                                    {agravo > 0 && (
+                                      <p>Fator Destino: +{(agravo * 100).toFixed(0)}%</p>
+                                    )}
+                                    {comissao > 0 && (
+                                      <p>Comissão: {(comissao * 100).toFixed(0)}%</p>
+                                    )}
+                                    <div className="border-t my-1 border-muted-foreground/20"></div>
+                                    <p className="font-bold">
+                                      Total Unitário: {formatCurrency(unitPrice, moeda)}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </TableCell>
                             )
                           })}
@@ -220,9 +263,16 @@ export function GridProdutos({
                 </TableBody>
               </Table>
             </CardContent>
-            <CardFooter className="bg-muted/10 border-t flex justify-between items-center py-4 mt-auto">
-              <span className="text-sm text-muted-foreground font-medium">Subtotal</span>
-              <span className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
+            <CardFooter
+              className={cn(
+                'border-t flex justify-between items-center py-4 mt-auto transition-colors rounded-b-lg',
+                isSelected ? 'bg-primary/5' : 'bg-muted/10',
+              )}
+            >
+              <span className="text-sm text-muted-foreground font-medium">
+                Preço total do produto
+              </span>
+              <span className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 drop-shadow-sm">
                 {formatCurrency(prodCalc.preco_total_produto, moeda)}
               </span>
             </CardFooter>
