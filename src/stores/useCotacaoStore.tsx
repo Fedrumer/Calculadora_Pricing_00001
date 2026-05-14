@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react'
 import { CalculoInput, CotacaoState } from '@/types/cotacao'
 import { useCalculadoraCotacao } from '@/hooks/use-calculadora-cotacao'
-import { fetchProdutos } from '@/services/api'
+import { fetchProdutos, fetchFormasPagamento } from '@/services/api'
 
 interface CotacaoContextType {
   input: Partial<CalculoInput>
   setInput: React.Dispatch<React.SetStateAction<Partial<CalculoInput>>>
   resultado: CotacaoState
   carregandoProdutos: boolean
+  formasPagamento: Array<{ id: string; codigo: string; nome: string }>
 }
 
 const defaultInput: Partial<CalculoInput> = {
@@ -25,16 +26,20 @@ const CotacaoContext = createContext<CotacaoContextType | null>(null)
 export function CotacaoProvider({ children }: { children: ReactNode }) {
   const [input, setInput] = useState<Partial<CalculoInput>>(defaultInput)
   const [carregandoProdutos, setCarregandoProdutos] = useState(true)
+  const [formasPagamento, setFormasPagamento] = useState<
+    Array<{ id: string; codigo: string; nome: string }>
+  >([])
   const resultado = useCalculadoraCotacao(input)
 
   React.useEffect(() => {
-    fetchProdutos()
-      .then((produtos) => {
+    Promise.all([fetchProdutos(), fetchFormasPagamento()])
+      .then(([produtos, fps]) => {
         setInput((prev) => ({ ...prev, produtos }))
+        setFormasPagamento(fps)
         setCarregandoProdutos(false)
       })
       .catch((err) => {
-        console.error('Failed to load products:', err)
+        console.error('Failed to load initial data:', err)
         setCarregandoProdutos(false)
       })
   }, [])
@@ -45,8 +50,9 @@ export function CotacaoProvider({ children }: { children: ReactNode }) {
       setInput,
       resultado,
       carregandoProdutos,
+      formasPagamento,
     }),
-    [input, resultado, carregandoProdutos],
+    [input, resultado, carregandoProdutos, formasPagamento],
   )
 
   return React.createElement(CotacaoContext.Provider, { value }, children)

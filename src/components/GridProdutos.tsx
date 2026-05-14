@@ -165,6 +165,15 @@ export function GridProdutos({
                       </Badge>
                     </div>
                   )}
+
+                  <div className="mt-2 mb-3 bg-muted/30 rounded-md p-2 flex items-center justify-between border border-border/40">
+                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                      Total Fatura
+                    </span>
+                    <span className="font-bold text-primary">
+                      {formatCurrency(prodCalc.preco_total_produto, moeda)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mt-auto pt-3 border-t border-border/50">

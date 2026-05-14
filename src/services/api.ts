@@ -8,6 +8,13 @@ import {
   CotacaoState,
 } from '@/types/cotacao'
 
+export async function fetchFormasPagamento() {
+  const records = await pb
+    .collection('formas_pagamento')
+    .getFullList({ filter: 'ativo=true', sort: 'created' })
+  return records.map((r) => ({ id: r.id, codigo: r.codigo, nome: r.nome }))
+}
+
 export async function fetchProdutos(): Promise<Produto[]> {
   const produtosRec = await pb
     .collection('produtos')
@@ -51,6 +58,7 @@ export async function salvarCotacao(
   input: Partial<CalculoInput>,
   resultado: CotacaoState,
   produtosSelecionadosIds: string[],
+  status: 'RASCUNHO' | 'PROPOSTA_ENVIADA' = 'RASCUNHO',
 ) {
   if (!pb.authStore.record?.id) throw new Error('Usuário não autenticado')
 
@@ -75,7 +83,7 @@ export async function salvarCotacao(
 
   const cotacao = await pb.collection('cotacoes').create({
     usuario_id: pb.authStore.record.id,
-    status: 'RASCUNHO',
+    status: status,
     forma_pagamento_id: fpId,
     comissao: input.comissao || 0,
     data_inicio,

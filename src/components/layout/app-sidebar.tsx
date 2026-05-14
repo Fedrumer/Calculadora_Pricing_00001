@@ -3,8 +3,15 @@ import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Separator } from '@/components/ui/separator'
 import { DatePicker } from '@/components/ui/date-picker'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import useCotacaoStore from '@/stores/useCotacaoStore'
-import { FormaPagamentoId } from '@/types/cotacao'
+import { FormaPagamentoId, DestinoId } from '@/types/cotacao'
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +23,7 @@ import {
 import { ShieldAlert } from 'lucide-react'
 
 export function AppSidebar() {
-  const { input, setInput } = useCotacaoStore()
+  const { input, setInput, formasPagamento } = useCotacaoStore()
 
   const updateTravelers = (key: 'ate_75' | 'de_76_a_85', value: number) => {
     setInput((prev) => ({
@@ -37,6 +44,28 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Destino</SidebarGroupLabel>
+          <SidebarGroupContent className="pt-2 pb-4 px-1">
+            <Select
+              value={input.destino}
+              onValueChange={(v) => setInput((p) => ({ ...p, destino: v as DestinoId }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o destino" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="WORLD">Mundo (exceto EUA/Canadá)</SelectItem>
+                <SelectItem value="NORTH_AMERICA">EUA e Canadá</SelectItem>
+                <SelectItem value="EUROPE">Europa (Tratado Schengen)</SelectItem>
+                <SelectItem value="DOMESTIC">Nacional</SelectItem>
+              </SelectContent>
+            </Select>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <Separator className="my-2 mx-4 w-auto" />
+
         <SidebarGroup>
           <SidebarGroupLabel>Período da Viagem</SidebarGroupLabel>
           <SidebarGroupContent className="flex flex-col gap-3 pt-2">
@@ -100,18 +129,11 @@ export function AppSidebar() {
                 if (v) setInput((p) => ({ ...p, forma_pagamento: v as FormaPagamentoId }))
               }}
             >
-              <ToggleGroupItem value="TRANSFER" aria-label="Transferência">
-                PIX/Transf
-              </ToggleGroupItem>
-              <ToggleGroupItem value="CARD_1X" aria-label="Cartão 1x">
-                1x
-              </ToggleGroupItem>
-              <ToggleGroupItem value="CARD_2X" aria-label="Cartão 2x">
-                2x
-              </ToggleGroupItem>
-              <ToggleGroupItem value="CARD_3X" aria-label="Cartão 3x">
-                3x
-              </ToggleGroupItem>
+              {formasPagamento.map((fp) => (
+                <ToggleGroupItem key={fp.codigo} value={fp.codigo} aria-label={fp.nome}>
+                  {fp.nome}
+                </ToggleGroupItem>
+              ))}
             </ToggleGroup>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -1,23 +1,15 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
 
 export type Role = 'ADMIN' | 'COMERCIAL'
 
-export interface Usuario {
-  id: string
-  email: string
-  nome: string
-  role: Role
-}
-
 interface AuthContextType {
-  usuario: Usuario | null
-  token: string | null
+  user: any
   status: 'loading' | 'authenticated' | 'unauthenticated'
-  login: (email: string, password: string) => Promise<{ error: any }>
-  logout: () => void
   isAutenticado: () => boolean
   temRole: (role: Role) => boolean
+  signIn: (email: string, password: string) => Promise<{ error: any }>
+  signOut: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -29,39 +21,21 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [usuario, setUsuario] = useState<Usuario | null>(null)
-  const [token, setToken] = useState<string | null>(null)
+  const [user, setUser] = useState<any>(pb.authStore.record)
   const [status, setStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading')
 
-  const updateStateFromStore = useCallback(() => {
-    if (pb.authStore.isValid && pb.authStore.record) {
-      setUsuario({
-        id: pb.authStore.record.id,
-        email: pb.authStore.record.email,
-        nome: pb.authStore.record.name || '',
-        role: pb.authStore.record.role as Role,
-      })
-      setToken(pb.authStore.token)
-      setStatus('authenticated')
-    } else {
-      setUsuario(null)
-      setToken(null)
-      setStatus('unauthenticated')
-    }
-  }, [])
-
   useEffect(() => {
-    updateStateFromStore()
-    const unsubscribe = pb.authStore.onChange(() => {
-      updateStateFromStore()
-    }, true)
-
+    setStatus(pb.authStore.isValid ? 'authenticated' : 'unauthenticated')
+    const unsubscribe = pb.authStore.onChange((_token, record) => {
+      setUser(record)
+      setStatus(pb.authStore.isValid ? 'authenticated' : 'unauthenticated')
+    })
     return () => {
       unsubscribe()
     }
-  }, [updateStateFromStore])
+  }, [])
 
-  const login = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
       await pb.collection('users').authWithPassword(email, password)
       return { error: null }
@@ -70,30 +44,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const logout = () => {
+  const signOut = () => {
     pb.authStore.clear()
   }
-
-  const isAutenticado = () => {
-    return pb.authStore.isValid
-  }
-
-  const temRole = (role: Role) => {
-    return isAutenticado() && pb.authStore.record?.role === role
-  }
+  const isAutenticado = () => pb.authStore.isValid
+  const temRole = (role: Role) => user?.role === role
 
   return (
-    <AuthContext.Provider
-      value={{
-        usuario,
-        token,
-        status,
-        login,
-        logout,
-        isAutenticado,
-        temRole,
-      }}
-    >
+    <AuthContext.Provider value={{ user, status, isAutenticado, temRole, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

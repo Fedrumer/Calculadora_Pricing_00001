@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 interface DatePickerProps {
   date?: Date
   setDate: (date?: Date) => void
-  label: string
+  label?: string
 }
 
 export function DatePicker({ date, setDate, label }: DatePickerProps) {
@@ -26,11 +26,15 @@ export function DatePicker({ date, setDate, label }: DatePickerProps) {
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, 'PPP', { locale: ptBR }) : <span>{label}</span>}
+          {date ? (
+            format(date, 'PPP', { locale: ptBR })
+          ) : (
+            <span>{label || 'Escolha uma data'}</span>
+          )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar mode="single" selected={date} onSelect={setDate} initialFocus locale={ptBR} />
+      <PopoverContent className="w-auto p-0 z-50" align="start">
+        <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
       </PopoverContent>
     </Popover>
   )
