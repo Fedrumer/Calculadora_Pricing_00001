@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button'
 
 export function AppHeader() {
   const { resultado } = useCotacaoStore()
-  const { user, signOut } = useAuth()
+  const { usuario, logout, temRole } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = () => {
-    signOut()
+    logout()
     navigate('/login')
   }
 
@@ -23,9 +23,17 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-4">
-        <Link to="/" className="text-sm font-medium hover:underline text-muted-foreground">
+        <Link to="/cotacao" className="text-sm font-medium hover:underline text-muted-foreground">
           Simulador
         </Link>
+        {temRole('ADMIN') && (
+          <Link
+            to="/admin"
+            className="text-sm font-medium hover:underline text-muted-foreground hidden md:block"
+          >
+            Admin
+          </Link>
+        )}
         <Link
           to="/testes"
           className="text-sm font-medium hover:underline text-muted-foreground hidden md:block"
@@ -41,10 +49,10 @@ export function AppHeader() {
         >
           Preço: {resultado.tipo_preco}
         </Badge>
-        {user && (
+        {usuario && (
           <div className="flex items-center gap-2 ml-2 pl-4 border-l">
             <span className="text-sm font-medium text-muted-foreground hidden md:block">
-              {user.email}
+              {usuario.email}
             </span>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               Sair
