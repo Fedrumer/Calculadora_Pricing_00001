@@ -38,21 +38,21 @@ export function gerarPDFProposta(
   <html lang="pt-BR">
   <head>
     <meta charset="UTF-8">
-    <title>Proposta de Cotação</title>
+    <title>Proposta de Cotação - ${cotacao.id}</title>
     <style>
-      body { font-family: Arial, sans-serif; font-size: 11px; color: #333; margin: 40px; }
-      .header-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
-      .header-title { color: #2563eb; font-size: 20px; font-weight: bold; }
-      .logo-placeholder { width: 120px; height: 40px; background-color: #f3f4f6; border: 1px dashed #9ca3af; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 10px; font-weight: bold; }
-      .section-title { font-size: 14px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; color: #4b5563; }
-      .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-      .info-item span { font-weight: bold; }
-      table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
-      th, td { border: 1px solid #9ca3af; padding: 8px; text-align: left; }
-      th { background-color: #f3f4f6; color: #1f2937; }
-      .total-value { color: #16a34a; font-size: 14px; font-weight: bold; }
-      .validity { margin-top: 30px; font-style: italic; color: #4b5563; }
-      .footer { margin-top: 50px; font-size: 9px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 10px; display: flex; justify-content: space-between; }
+      body { font-family: Arial, sans-serif; font-size: 12px; color: #333; margin: 40px; }
+      .header-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 20px; }
+      .header-title { color: #1e3a8a; font-size: 24px; font-weight: bold; letter-spacing: 1px; }
+      .logo-placeholder { width: 140px; height: 50px; background-color: #f8fafc; border: 1px dashed #94a3b8; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 11px; font-weight: bold; }
+      .section-title { font-size: 16px; font-weight: bold; margin-top: 25px; margin-bottom: 15px; color: #1e3a8a; border-left: 4px solid #3b82f6; padding-left: 8px; }
+      .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 6px; }
+      .info-item span { font-weight: bold; color: #475569; }
+      table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 25px; border: 1px solid #cbd5e1; }
+      th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
+      th { background-color: #f1f5f9; color: #1e293b; font-weight: bold; }
+      .total-value { color: #16a34a; font-size: 16px; font-weight: bold; }
+      .validity { margin-top: 30px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 10px; border-radius: 4px; display: inline-block; }
+      .footer { margin-top: 50px; font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; display: flex; justify-content: space-between; }
     </style>
   </head>
   <body>
@@ -99,7 +99,7 @@ export function gerarPDFProposta(
             <td>${p.qtd_ate_75}</td>
             <td>${p.qtd_76_a_85}</td>
             <td>${p.qtd_ate_75 + p.qtd_76_a_85}</td>
-            <td>${cotacao.moeda} ${p.preco_total_produto.toFixed(2)}</td>
+            <td>${cotacao.moeda || 'USD'} ${p.preco_total_produto.toFixed(2)}</td>
           </tr>
         `,
           )
@@ -111,25 +111,25 @@ export function gerarPDFProposta(
     <table>
       <tr>
         <td style="width: 70%;"><strong>Moeda Base:</strong></td>
-        <td>${cotacao.moeda}</td>
+        <td>${cotacao.moeda || 'USD'}</td>
       </tr>
       <tr>
         <td><strong>Fatura Total:</strong></td>
-        <td class="total-value">${cotacao.moeda} ${cotacao.fatura_total.toFixed(2)}</td>
+        <td class="total-value">${cotacao.moeda || 'USD'} ${cotacao.fatura_total.toFixed(2)}</td>
       </tr>
       <tr>
         <td><strong>Status da Proposta:</strong></td>
-        <td>${cotacao.status || 'N/A'}</td>
+        <td>${cotacao.status?.replace('_', ' ') || 'N/A'}</td>
       </tr>
     </table>
 
     <div class="section-title">4. Validade</div>
     <div class="validity">
-      Validade de 30 dias a partir de ${
+      Validade: 30 dias (a partir de ${
         cotacao.created_at
           ? new Date(cotacao.created_at).toLocaleDateString('pt-BR')
           : new Date().toLocaleDateString('pt-BR')
-      }.
+      })
     </div>
 
     <div class="footer">
@@ -140,6 +140,5 @@ export function gerarPDFProposta(
   </html>
   `
 
-  // We return the content wrapped as an application/pdf blob per specification.
   return new Blob([html], { type: 'application/pdf' })
 }

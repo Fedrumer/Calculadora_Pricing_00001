@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Index from './pages/Index'
+import Historico from './pages/Historico'
 import Testes from './pages/Testes'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
@@ -72,6 +73,14 @@ const App = () => (
               element={
                 <RequireRole role={['COMERCIAL', 'ADMIN']}>
                   <Index />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/historico"
+              element={
+                <RequireRole role={['COMERCIAL', 'ADMIN']}>
+                  <Historico />
                 </RequireRole>
               }
             />
