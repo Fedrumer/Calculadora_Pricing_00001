@@ -27,118 +27,88 @@ export interface ProdutoDetalhePDF {
   }[]
 }
 
+function buildSimplePDF(lines: string[]) {
+  // A raw PDF generator that strictly generates a valid binary application/pdf.
+  const streamLines = lines.map(
+    (l, i) => `BT /F1 12 Tf 40 ${760 - i * 16} Td (${l.replace(/[()\\]/g, '')}) Tj ET`,
+  )
+  const stream = streamLines.join('\n')
+  const streamLen = new Blob([stream]).size
+
+  const header = '%PDF-1.4\n'
+  const obj1 = '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n'
+  const obj2 = '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n'
+  const obj3 =
+    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n'
+  const obj4 = `4 0 obj\n<< /Length ${streamLen} >>\nstream\n${stream}\nendstream\nendobj\n`
+  const obj5 = '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n'
+
+  const loc1 = header.length
+  const loc2 = loc1 + obj1.length
+  const loc3 = loc2 + obj2.length
+  const loc4 = loc3 + obj3.length
+  const loc5 = loc4 + obj4.length
+  const xrefLoc = loc5 + obj5.length
+
+  const pad = (n: number) => n.toString().padStart(10, '0')
+
+  const xref = `xref\n0 6\n0000000000 65535 f \n${pad(loc1)} 00000 n \n${pad(loc2)} 00000 n \n${pad(loc3)} 00000 n \n${pad(loc4)} 00000 n \n${pad(loc5)} 00000 n \n`
+  const trailer = `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefLoc}\n%%EOF`
+
+  return new Blob([header + obj1 + obj2 + obj3 + obj4 + obj5 + xref + trailer], {
+    type: 'application/pdf',
+  })
+}
+
 export function gerarPDFProposta(
   cotacao: CotacaoPDFData,
   produtos_detalhes: ProdutoDetalhePDF[],
 ): Blob {
-  const totalViajantes = produtos_detalhes.reduce((acc, p) => acc + p.qtd_ate_75 + p.qtd_76_a_85, 0)
+  const lines: string[] = []
+  lines.push('PROPOSTA DE COTACAO - SEGUROS VIAGEM')
+  lines.push('================================================')
+  lines.push('')
+  lines.push(`Codigo da Proposta: ${cotacao.id}`)
+  lines.push(`Data de Geracao: ${new Date().toLocaleDateString('pt-BR')}`)
+  lines.push('')
 
-  const html = `
-  <!DOCTYPE html>
-  <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8">
-    <title>Proposta de Cotação - ${cotacao.id}</title>
-    <style>
-      body { font-family: Arial, sans-serif; font-size: 12px; color: #333; margin: 40px; }
-      .header-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 20px; }
-      .header-title { color: #1e3a8a; font-size: 24px; font-weight: bold; letter-spacing: 1px; }
-      .logo-placeholder { width: 140px; height: 50px; background-color: #f8fafc; border: 1px dashed #94a3b8; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 11px; font-weight: bold; }
-      .section-title { font-size: 16px; font-weight: bold; margin-top: 25px; margin-bottom: 15px; color: #1e3a8a; border-left: 4px solid #3b82f6; padding-left: 8px; }
-      .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 6px; }
-      .info-item span { font-weight: bold; color: #475569; }
-      table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 25px; border: 1px solid #cbd5e1; }
-      th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
-      th { background-color: #f1f5f9; color: #1e293b; font-weight: bold; }
-      .total-value { color: #16a34a; font-size: 16px; font-weight: bold; }
-      .validity { margin-top: 30px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 10px; border-radius: 4px; display: inline-block; }
-      .footer { margin-top: 50px; font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; display: flex; justify-content: space-between; }
-    </style>
-  </head>
-  <body>
-    <div class="header-container">
-      <div class="header-title">PROPOSTA DE COTAÇÃO</div>
-      <div class="logo-placeholder">LOGO AQUI</div>
-    </div>
-    
-    <p><strong>Data da Geração:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+  const dInicio = cotacao.data_inicio
+    ? new Date(cotacao.data_inicio).toLocaleDateString('pt-BR')
+    : 'N/A'
+  const dFim = cotacao.data_fim ? new Date(cotacao.data_fim).toLocaleDateString('pt-BR') : 'N/A'
 
-    <div class="section-title">1. Dados da Cotação</div>
-    <div class="info-grid">
-      <div class="info-item"><span>Período:</span> ${
-        cotacao.data_inicio ? new Date(cotacao.data_inicio).toLocaleDateString('pt-BR') : ''
-      } a ${cotacao.data_fim ? new Date(cotacao.data_fim).toLocaleDateString('pt-BR') : ''}</div>
-      <div class="info-item"><span>Total de Dias:</span> ${cotacao.qtd_dias || 0} dias</div>
-      <div class="info-item"><span>Total de Viajantes:</span> ${totalViajantes}</div>
-      <div class="info-item"><span>Forma de Pagamento:</span> ${
-        cotacao.forma_pagamento || 'N/A'
-      }</div>
-      <div class="info-item"><span>Tipo de Preço:</span> ${cotacao.tipo_preco || 'N/A'}</div>
-      <div class="info-item"><span>Comissão:</span> ${
-        cotacao.comissao ? (cotacao.comissao * 100).toFixed(2) + '%' : '0%'
-      }</div>
-    </div>
+  lines.push(`Periodo da Viagem: ${dInicio} a ${dFim}`)
+  lines.push(`Total de Dias: ${cotacao.qtd_dias || 0} dias`)
+  lines.push(`Forma de Pagamento: ${cotacao.forma_pagamento || 'N/A'}`)
+  lines.push(
+    `Comissao Aplicada: ${cotacao.comissao ? (cotacao.comissao * 100).toFixed(0) + '%' : '0%'}`,
+  )
+  lines.push('')
+  lines.push('================================================')
+  lines.push('PRODUTOS SELECIONADOS')
+  lines.push('================================================')
+  lines.push('')
 
-    <div class="section-title">2. Produtos Selecionados</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Produto</th>
-          <th>Até 75 anos</th>
-          <th>76 a 85 anos</th>
-          <th>Qtd Viajantes</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${produtos_detalhes
-          .map(
-            (p) => `
-          <tr>
-            <td>${p.produto_nome}</td>
-            <td>${p.qtd_ate_75}</td>
-            <td>${p.qtd_76_a_85}</td>
-            <td>${p.qtd_ate_75 + p.qtd_76_a_85}</td>
-            <td>${cotacao.moeda || 'USD'} ${p.preco_total_produto.toFixed(2)}</td>
-          </tr>
-        `,
-          )
-          .join('')}
-      </tbody>
-    </table>
+  let totalViajantes = 0
 
-    <div class="section-title">3. Resumo Financeiro</div>
-    <table>
-      <tr>
-        <td style="width: 70%;"><strong>Moeda Base:</strong></td>
-        <td>${cotacao.moeda || 'USD'}</td>
-      </tr>
-      <tr>
-        <td><strong>Fatura Total:</strong></td>
-        <td class="total-value">${cotacao.moeda || 'USD'} ${cotacao.fatura_total.toFixed(2)}</td>
-      </tr>
-      <tr>
-        <td><strong>Status da Proposta:</strong></td>
-        <td>${cotacao.status?.replace('_', ' ') || 'N/A'}</td>
-      </tr>
-    </table>
+  produtos_detalhes.forEach((p) => {
+    lines.push(`${p.produto_nome.substring(0, 50)}`)
+    lines.push(`   - Viajantes ate 75 anos: ${p.qtd_ate_75}`)
+    lines.push(`   - Viajantes 76 a 85 anos: ${p.qtd_76_a_85}`)
+    lines.push(
+      `   - Subtotal do Produto: ${cotacao.moeda || 'USD'} ${p.preco_total_produto.toFixed(2)}`,
+    )
+    lines.push('')
+    totalViajantes += p.qtd_ate_75 + p.qtd_76_a_85
+  })
 
-    <div class="section-title">4. Validade</div>
-    <div class="validity">
-      Validade: 30 dias (a partir de ${
-        cotacao.created_at
-          ? new Date(cotacao.created_at).toLocaleDateString('pt-BR')
-          : new Date().toLocaleDateString('pt-BR')
-      })
-    </div>
+  lines.push('================================================')
+  lines.push('RESUMO FINANCEIRO')
+  lines.push('================================================')
+  lines.push('')
+  lines.push(`Status da Proposta: ${cotacao.status?.replace('_', ' ') || 'N/A'}`)
+  lines.push(`Total de Viajantes: ${totalViajantes}`)
+  lines.push(`FATURA TOTAL: ${cotacao.moeda || 'USD'} ${cotacao.fatura_total.toFixed(2)}`)
 
-    <div class="footer">
-      <div>Código da Proposta: ${cotacao.id}</div>
-      <div>Contato: atendimento@segurosviagem.com | +55 11 9999-9999</div>
-    </div>
-  </body>
-  </html>
-  `
-
-  return new Blob([html], { type: 'application/pdf' })
+  return buildSimplePDF(lines)
 }

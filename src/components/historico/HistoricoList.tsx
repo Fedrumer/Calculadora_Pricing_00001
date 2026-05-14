@@ -40,9 +40,25 @@ const StatusBadge = ({ status }: { status: string }) => {
   )
 }
 
-export function HistoricoList({ data, onDuplicate, onDelete, onDownload }: any) {
+import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
+import { useToast } from '@/hooks/use-toast'
+
+export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdate }: any) {
   const isMobile = useIsMobile()
   const [viewItem, setViewItem] = useState<any>(null)
+  const { user } = useAuth()
+  const { toast } = useToast()
+
+  const handleStatusChange = async (id: string, status: string) => {
+    try {
+      await pb.collection('cotacoes').update(id, { status })
+      toast({ title: 'Sucesso', description: 'Status atualizado com sucesso.' })
+      if (onUpdate) onUpdate()
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao atualizar status.' })
+    }
+  }
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const ActionsMenu = ({ item }: { item: any }) => (
@@ -123,7 +139,23 @@ export function HistoricoList({ data, onDuplicate, onDelete, onDownload }: any) 
                     {item.moeda || 'USD'} {item.fatura_total?.toFixed(2)}
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={item.status} />
+                    {user?.role === 'ADMIN' ? (
+                      <Select
+                        defaultValue={item.status}
+                        onValueChange={(v) => handleStatusChange(item.id, v)}
+                      >
+                        <SelectTrigger className="h-8 text-xs w-[140px] bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="RASCUNHO">Rascunho</SelectItem>
+                          <SelectItem value="PROPOSTA_ENVIADA">Proposta Enviada</SelectItem>
+                          <SelectItem value="APROVADA">Aprovada</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <StatusBadge status={item.status} />
+                    )}
                   </TableCell>
                   <TableCell>{format(new Date(item.created), 'dd/MM/yyyy')}</TableCell>
                   <TableCell>

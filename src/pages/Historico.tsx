@@ -84,6 +84,7 @@ export default function Historico() {
           onDuplicate={duplicateCotacao}
           onDelete={deleteCotacao}
           onDownload={downloadPDF}
+          onUpdate={fetchData}
         />
       )}
     </div>
