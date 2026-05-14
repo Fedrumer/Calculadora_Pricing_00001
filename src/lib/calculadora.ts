@@ -42,31 +42,55 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
 
   const produtos_calculados = input.produtos.reduce<CotacaoState['produtos_calculados']>(
     (acc, produto) => {
-      const preco_net_base = produto.precos_base_por_forma_pagamento[input.forma_pagamento!]
-      const preco_bruto = isGross ? preco_net_base / (1 - comissao) : preco_net_base
-      const agravo = produto.destinos[input.destino!].agravo_percentual
-
-      const calcFaixa = (faixa: FaixaEtariaId, qtd: number) => {
-        const fator = produto.faixas_etarias[faixa].fator_multiplicador
-        const preco_unitario = preco_bruto * (1 + agravo) * fator * dias
-        return {
-          preco_unitario,
-          preco_total: preco_unitario * qtd,
-          quantidade: qtd,
+      try {
+        const preco_net_base =
+          produto.precos_base_por_forma_pagamento?.[input.forma_pagamento!] ?? 0
+        if (produto.precos_base_por_forma_pagamento?.[input.forma_pagamento!] === undefined) {
+          console.warn(
+            `Preço base não encontrado para a forma de pagamento ${input.forma_pagamento} no produto ${produto.id}. Usando 0.`,
+          )
         }
-      }
 
-      const breakdown = {
-        ate_75: calcFaixa('ate_75', qtd75),
-        de_76_a_85: calcFaixa('de_76_a_85', qtd85),
-      }
+        const preco_bruto = isGross ? preco_net_base / (1 - comissao) : preco_net_base
 
-      acc.push({
-        id: produto.id,
-        nome: produto.nome,
-        breakdown,
-        preco_total_produto: breakdown.ate_75.preco_total + breakdown.de_76_a_85.preco_total,
-      })
+        const destinoData = produto.destinos?.[input.destino!]
+        if (!destinoData) {
+          console.warn(
+            `Destino ${input.destino} não encontrado para o produto ${produto.id}. Usando agravo 0.`,
+          )
+        }
+        const agravo = destinoData?.agravo_percentual ?? 0
+
+        const calcFaixa = (faixa: FaixaEtariaId, qtd: number) => {
+          const faixaData = produto.faixas_etarias?.[faixa]
+          if (!faixaData && qtd > 0) {
+            console.warn(
+              `Faixa etária ${faixa} não encontrada para o produto ${produto.id}. Usando fator multiplicador 1.0.`,
+            )
+          }
+          const fator = faixaData?.fator_multiplicador ?? 1.0
+          const preco_unitario = preco_bruto * (1 + agravo) * fator * dias
+          return {
+            preco_unitario,
+            preco_total: preco_unitario * qtd,
+            quantidade: qtd,
+          }
+        }
+
+        const breakdown = {
+          ate_75: calcFaixa('ate_75', qtd75),
+          de_76_a_85: calcFaixa('de_76_a_85', qtd85),
+        }
+
+        acc.push({
+          id: produto.id,
+          nome: produto.nome,
+          breakdown,
+          preco_total_produto: breakdown.ate_75.preco_total + breakdown.de_76_a_85.preco_total,
+        })
+      } catch (err) {
+        console.error(`Erro ao calcular produto ${produto.id}:`, err)
+      }
 
       return acc
     },
