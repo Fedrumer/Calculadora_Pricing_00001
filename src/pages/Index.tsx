@@ -33,6 +33,7 @@ import {
 import { salvarCotacao } from '@/services/api'
 import { useToast } from '@/hooks/use-toast'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { gerarPDFProposta } from '@/lib/pdf'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CotacaoForm } from '@/components/CotacaoForm'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -71,6 +72,58 @@ export default function Index() {
     (acc, pc) => acc + pc.preco_total_produto,
     0,
   )
+
+  const handleDownloadPDF = () => {
+    if (selecionados.length === 0) return
+
+    const dataInicio = input.data_inicio ? new Date(input.data_inicio) : new Date()
+    const dataFim = input.data_fim ? new Date(input.data_fim) : new Date()
+    const diffTime = Math.abs(dataFim.getTime() - dataInicio.getTime())
+    const qtd_dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1
+
+    const cotacaoData = {
+      id: `COT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      data_inicio: input.data_inicio,
+      data_fim: input.data_fim,
+      qtd_dias,
+      forma_pagamento: input.forma_pagamento,
+      comissao: input.comissao,
+      fatura_total: faturaTotalSelecionados,
+      tipo_preco: resultado.tipo_preco,
+      moeda: resultado.moeda,
+      created_at: new Date(),
+      status: 'GERADA',
+    }
+
+    const produtosDetalhes = selectedCalculated.map((pc) => ({
+      produto_nome: pc.nome,
+      qtd_ate_75: pc.breakdown.ate_75.quantidade,
+      qtd_76_a_85: pc.breakdown.de_76_a_85.quantidade,
+      preco_total_produto: pc.preco_total_produto,
+      detalhes: [],
+    }))
+
+    const blob = gerarPDFProposta(cotacaoData, produtosDetalhes)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const dateStr = new Date().toISOString().split('T')[0]
+    a.download = `proposta_${cotacaoData.id}_${dateStr}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    toast({
+      title: 'PDF gerado com sucesso',
+      description: 'O download iniciou.',
+      action: (
+        <div className="flex items-center text-green-500">
+          <CheckCircle2 className="w-5 h-5" />
+        </div>
+      ),
+    })
+  }
 
   const handleSave = async (acao: 'RASCUNHO' | 'PROPOSTA_ENVIADA') => {
     if (selecionados.length === 0) {
@@ -328,14 +381,8 @@ export default function Index() {
                   variant="secondary"
                   size="lg"
                   className="bg-secondary/80 hover:bg-secondary transition-colors"
-                  disabled={isSaving || resultado.erros.length > 0}
-                  onClick={() => {
-                    toast({
-                      title: 'PDF gerado com sucesso',
-                      description: 'O download iniciará em instantes.',
-                      action: <CheckCircle2 className="w-5 h-5 text-green-500" />,
-                    })
-                  }}
+                  disabled={isSaving || resultado.erros.length > 0 || selecionados.length === 0}
+                  onClick={handleDownloadPDF}
                 >
                   <Download className="w-5 h-5 mr-2" />
                   Baixar PDF
