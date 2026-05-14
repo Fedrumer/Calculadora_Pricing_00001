@@ -10,6 +10,7 @@ import Login from './pages/Login'
 import { AuthProvider, useAuth, Role } from '@/hooks/use-auth'
 import Admin from './pages/Admin'
 import Forbidden from './pages/Forbidden'
+import { CotacaoProvider } from '@/stores/useCotacaoStore'
 
 const RequireAuth = ({ children }: { children: React.ReactNode }) => {
   const { isAutenticado, status } = useAuth()
@@ -59,7 +60,9 @@ const App = () => (
           <Route
             element={
               <RequireAuth>
-                <Layout />
+                <CotacaoProvider>
+                  <Layout />
+                </CotacaoProvider>
               </RequireAuth>
             }
           >
