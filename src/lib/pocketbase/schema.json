@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-14T03:28:21.971Z",
+  "generatedAt": "2026-05-14T03:39:27.761Z",
   "collections": [
     {
       "name": "users",
@@ -545,6 +545,46 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "rate_limits",
+      "type": "base",
+      "apiRules": {
+        "list": null,
+        "view": null,
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "ip",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "endpoint",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_rate_limits_ip_end ON rate_limits (ip, endpoint)"]
     }
   ]
 }

@@ -39,7 +39,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils'
 
 export default function Index() {
-  const { input, resultado, carregandoProdutos } = useCotacaoStore()
+  const { input, resultado, carregandoProdutos, erroCarregamento, recarregarDados } =
+    useCotacaoStore()
   const { toast } = useToast()
 
   const [search, setSearch] = useState('')
@@ -168,7 +169,8 @@ export default function Index() {
         destino={input.destino}
         produtosSelecionados={selecionados}
         onSelecaoMudou={handleSelecao}
-        isError={false}
+        isError={erroCarregamento}
+        onRetry={recarregarDados}
       />
 
       <Card className="shadow-lg border-primary/20 overflow-hidden bg-card/50 backdrop-blur-sm">

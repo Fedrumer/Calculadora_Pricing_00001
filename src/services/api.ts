@@ -1,132 +1,97 @@
 import pb from '@/lib/pocketbase/client'
-import {
-  Produto,
-  FormaPagamentoId,
-  DestinoId,
-  FaixaEtariaId,
-  CalculoInput,
-  CotacaoState,
-} from '@/types/cotacao'
+import { CalculoInput, CotacaoState } from '@/types/cotacao'
+import { differenceInDays } from 'date-fns'
 
-export async function fetchFormasPagamento() {
-  const records = await pb
-    .collection('formas_pagamento')
-    .getFullList({ filter: 'ativo=true', sort: 'created' })
-  return records.map((r) => ({ id: r.id, codigo: r.codigo, nome: r.nome }))
+export const fetchProdutos = async () => {
+  return pb.send('/backend/v1/produtos', { method: 'GET' })
 }
 
-export async function fetchProdutos(): Promise<Produto[]> {
-  const produtosRec = await pb
-    .collection('produtos')
-    .getFullList({ filter: 'ativo=true', sort: 'ordem_exibicao' })
-  const precosRec = await pb.collection('produto_precos_forma_pagamento').getFullList()
-  const destinosRec = await pb.collection('produto_destinos').getFullList()
-  const faixasRec = await pb.collection('produto_faixas_etarias').getFullList()
-
-  return produtosRec.map((p) => {
-    const precos = precosRec.filter((pr) => pr.produto_id === p.id)
-    const destinos = destinosRec.filter((d) => d.produto_id === p.id)
-    const faixas = faixasRec.filter((f) => f.produto_id === p.id)
-
-    const precos_base: Record<string, number> = {}
-    precos.forEach((pr) => {
-      precos_base[pr.forma_pagamento_codigo] = pr.preco_base_net
-    })
-
-    const destinosObj: Record<string, { agravo_percentual: number }> = {}
-    destinos.forEach((d) => {
-      destinosObj[d.destino_codigo] = { agravo_percentual: d.agravo_percentual }
-    })
-
-    const faixasObj: Record<string, { fator_multiplicador: number }> = {}
-    faixas.forEach((f) => {
-      const fType = f.faixa_nome === 'até 75' ? 'ate_75' : 'de_76_a_85'
-      faixasObj[fType] = { fator_multiplicador: f.fator_multiplicador }
-    })
-
-    return {
-      id: p.id,
-      nome: p.nome,
-      precos_base_por_forma_pagamento: precos_base as Record<FormaPagamentoId, number>,
-      destinos: destinosObj as Record<DestinoId, { agravo_percentual: number }>,
-      faixas_etarias: faixasObj as Record<FaixaEtariaId, { fator_multiplicador: number }>,
-    }
-  })
+export const fetchFormasPagamento = async () => {
+  return pb.send('/backend/v1/formas-pagamento', { method: 'GET' })
 }
 
-export async function salvarCotacao(
+export const salvarCotacao = async (
   input: Partial<CalculoInput>,
   resultado: CotacaoState,
-  produtosSelecionadosIds: string[],
-  status: 'RASCUNHO' | 'PROPOSTA_ENVIADA' = 'RASCUNHO',
-) {
-  if (!pb.authStore.record?.id) throw new Error('Usuário não autenticado')
+  selecionados: string[],
+  acao: 'RASCUNHO' | 'PROPOSTA_ENVIADA',
+) => {
+  const usuario_id = pb.authStore.record?.id
+  if (!usuario_id) throw new Error('Usuário não autenticado')
 
-  const fpList = await pb
-    .collection('formas_pagamento')
-    .getFullList({ filter: `codigo="${input.forma_pagamento}"` })
-  const fpId = fpList[0]?.id
+  const formas = await fetchFormasPagamento()
+  const forma_pagamento_id = formas.find((f: any) => f.codigo === input.forma_pagamento)?.id
+  if (!forma_pagamento_id) throw new Error('Forma de pagamento inválida')
 
-  if (!fpId) throw new Error('Forma de pagamento inválida')
+  const produtosSelecionados = resultado.produtos_calculados.filter((p) =>
+    selecionados.includes(p.id),
+  )
 
-  const data_inicio = input.data_inicio ? input.data_inicio.toISOString().split('T')[0] : ''
-  const data_fim = input.data_fim ? input.data_fim.toISOString().split('T')[0] : ''
+  const fatura_total = produtosSelecionados.reduce((acc, p) => acc + p.preco_total_produto, 0)
+
+  const qtd_75 = input.viajantes_por_faixa?.ate_75 || 0
+  const qtd_85 = input.viajantes_por_faixa?.de_76_a_85 || 0
+  const total_viajantes = qtd_75 + qtd_85
+  const preco_unitario_total = total_viajantes > 0 ? fatura_total / total_viajantes : 0
+
   const qtd_dias =
     input.data_inicio && input.data_fim
-      ? Math.max(
-          1,
-          Math.floor(
-            (input.data_fim.getTime() - input.data_inicio.getTime()) / (1000 * 3600 * 24),
-          ) + 1,
-        )
-      : 0
+      ? Math.max(1, differenceInDays(input.data_fim, input.data_inicio) + 1)
+      : 1
 
-  const cotacao = await pb.collection('cotacoes').create({
-    usuario_id: pb.authStore.record.id,
-    status: status,
-    forma_pagamento_id: fpId,
+  const payload = {
+    usuario_id,
+    status: acao,
+    forma_pagamento_id,
     comissao: input.comissao || 0,
-    data_inicio,
-    data_fim,
+    data_inicio: input.data_inicio?.toISOString(),
+    data_fim: input.data_fim?.toISOString(),
     qtd_dias,
-    fatura_total: resultado.fatura_total,
-    preco_unitario_total: resultado.preco_unitario_total,
+    fatura_total,
+    preco_unitario_total,
     tipo_preco: resultado.tipo_preco,
     moeda: resultado.moeda,
-  })
-
-  for (const p of resultado.produtos_calculados) {
-    if (produtosSelecionadosIds.length > 0 && !produtosSelecionadosIds.includes(p.id)) {
-      continue
-    }
-    const cp = await pb.collection('cotacao_produtos').create({
-      cotacao_id: cotacao.id,
+    produtos: produtosSelecionados.map((p) => ({
       produto_id: p.id,
       qtd_ate_75: p.breakdown.ate_75.quantidade,
       qtd_76_a_85: p.breakdown.de_76_a_85.quantidade,
       preco_total_produto: p.preco_total_produto,
-    })
-
-    if (p.breakdown.ate_75.quantidade > 0) {
-      await pb.collection('cotacao_produto_detalhes').create({
-        cotacao_produto_id: cp.id,
-        destino_codigo: input.destino,
-        faixa_etaria: 'até 75',
-        preco_unitario_dia: p.breakdown.ate_75.preco_unitario / qtd_dias,
-        preco_total_faixa: p.breakdown.ate_75.preco_total,
-      })
-    }
-
-    if (p.breakdown.de_76_a_85.quantidade > 0) {
-      await pb.collection('cotacao_produto_detalhes').create({
-        cotacao_produto_id: cp.id,
-        destino_codigo: input.destino,
-        faixa_etaria: '76-85',
-        preco_unitario_dia: p.breakdown.de_76_a_85.preco_unitario / qtd_dias,
-        preco_total_faixa: p.breakdown.de_76_a_85.preco_total,
-      })
-    }
+      detalhes: [
+        {
+          destino_codigo: input.destino,
+          faixa_etaria: 'ate_75',
+          preco_unitario_dia:
+            qtd_dias > 0
+              ? p.breakdown.ate_75.preco_unitario /
+                (qtd_dias * (p.breakdown.ate_75.quantidade || 1))
+              : 0,
+          preco_total_faixa: p.breakdown.ate_75.preco_total,
+        },
+        {
+          destino_codigo: input.destino,
+          faixa_etaria: 'de_76_a_85',
+          preco_unitario_dia:
+            qtd_dias > 0
+              ? p.breakdown.de_76_a_85.preco_unitario /
+                (qtd_dias * (p.breakdown.de_76_a_85.quantidade || 1))
+              : 0,
+          preco_total_faixa: p.breakdown.de_76_a_85.preco_total,
+        },
+      ].filter((d) => d.preco_total_faixa > 0),
+    })),
   }
 
-  return cotacao
+  return pb.send('/backend/v1/cotacoes', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export const getCotacoes = async () => {
+  return pb.send('/backend/v1/cotacoes', { method: 'GET' })
+}
+
+export const getCotacao = async (id: string) => {
+  return pb.send(`/backend/v1/cotacoes/${id}`, { method: 'GET' })
 }

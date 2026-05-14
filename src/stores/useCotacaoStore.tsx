@@ -8,6 +8,8 @@ interface CotacaoContextType {
   setInput: React.Dispatch<React.SetStateAction<Partial<CalculoInput>>>
   resultado: CotacaoState
   carregandoProdutos: boolean
+  erroCarregamento: boolean
+  recarregarDados: () => void
   formasPagamento: Array<{ id: string; codigo: string; nome: string }>
 }
 
@@ -26,12 +28,15 @@ const CotacaoContext = createContext<CotacaoContextType | null>(null)
 export function CotacaoProvider({ children }: { children: ReactNode }) {
   const [input, setInput] = useState<Partial<CalculoInput>>(defaultInput)
   const [carregandoProdutos, setCarregandoProdutos] = useState(true)
+  const [erroCarregamento, setErroCarregamento] = useState(false)
   const [formasPagamento, setFormasPagamento] = useState<
     Array<{ id: string; codigo: string; nome: string }>
   >([])
   const resultado = useCalculadoraCotacao(input)
 
-  React.useEffect(() => {
+  const carregarDados = () => {
+    setCarregandoProdutos(true)
+    setErroCarregamento(false)
     Promise.all([fetchProdutos(), fetchFormasPagamento()])
       .then(([produtos, fps]) => {
         setInput((prev) => ({ ...prev, produtos }))
@@ -40,8 +45,13 @@ export function CotacaoProvider({ children }: { children: ReactNode }) {
       })
       .catch((err) => {
         console.error('Failed to load initial data:', err)
+        setErroCarregamento(true)
         setCarregandoProdutos(false)
       })
+  }
+
+  React.useEffect(() => {
+    carregarDados()
   }, [])
 
   const value = useMemo(
@@ -50,9 +60,11 @@ export function CotacaoProvider({ children }: { children: ReactNode }) {
       setInput,
       resultado,
       carregandoProdutos,
+      erroCarregamento,
+      recarregarDados: carregarDados,
       formasPagamento,
     }),
-    [input, resultado, carregandoProdutos, formasPagamento],
+    [input, resultado, carregandoProdutos, erroCarregamento, formasPagamento],
   )
 
   return React.createElement(CotacaoContext.Provider, { value }, children)
