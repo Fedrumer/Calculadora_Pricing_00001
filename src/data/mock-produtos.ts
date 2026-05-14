@@ -4,6 +4,8 @@ export const mockProdutos: Produto[] = [
   {
     id: 'prod-1',
     nome: 'Now VIP 500',
+    categoria: 'Premium',
+    tags: ['Mundo + EUA'],
     precos_base_por_forma_pagamento: {
       TRANSFER: 19.55,
       CARD_1X: 20.0,
@@ -24,6 +26,8 @@ export const mockProdutos: Produto[] = [
   {
     id: 'prod-2',
     nome: 'Now Infinity 300',
+    categoria: 'Intermediário',
+    tags: ['Mundo'],
     precos_base_por_forma_pagamento: {
       TRANSFER: 15.5,
       CARD_1X: 16.0,
@@ -44,6 +48,8 @@ export const mockProdutos: Produto[] = [
   {
     id: 'prod-3',
     nome: 'Now Premium 200',
+    categoria: 'Intermediário',
+    tags: ['Mundo'],
     precos_base_por_forma_pagamento: {
       TRANSFER: 12.0,
       CARD_1X: 12.5,
@@ -64,6 +70,8 @@ export const mockProdutos: Produto[] = [
   {
     id: 'prod-4',
     nome: 'Now Total 100',
+    categoria: 'Básico',
+    tags: ['Nacional'],
     precos_base_por_forma_pagamento: {
       TRANSFER: 9.0,
       CARD_1X: 9.5,

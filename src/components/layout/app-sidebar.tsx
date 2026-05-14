@@ -1,18 +1,10 @@
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Slider } from '@/components/ui/slider'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { DatePicker } from '@/components/ui/date-picker'
 import useCotacaoStore from '@/stores/useCotacaoStore'
-import { DestinoId, FormaPagamentoId } from '@/types/cotacao'
+import { FormaPagamentoId } from '@/types/cotacao'
 import {
   Sidebar,
   SidebarContent,
@@ -64,27 +56,6 @@ export function AppSidebar() {
                 setDate={(d) => setInput((p) => ({ ...p, data_fim: d }))}
               />
             </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <Separator className="my-2 mx-4 w-auto" />
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Destino</SidebarGroupLabel>
-          <SidebarGroupContent className="pt-2">
-            <Select
-              value={input.destino}
-              onValueChange={(v) => setInput((p) => ({ ...p, destino: v as DestinoId }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o destino" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="WORLD">Mundo (Excl. EUA/CAN)</SelectItem>
-                <SelectItem value="NORTH_AMERICA">América do Norte</SelectItem>
-                <SelectItem value="EUROPE">Europa</SelectItem>
-              </SelectContent>
-            </Select>
           </SidebarGroupContent>
         </SidebarGroup>
 
@@ -148,18 +119,21 @@ export function AppSidebar() {
         <Separator className="my-2 mx-4 w-auto" />
 
         <SidebarGroup>
-          <SidebarGroupLabel className="flex justify-between w-full">
-            Comissão
-            <span className="text-primary font-bold">
-              {((input.comissao || 0) * 100).toFixed(0)}%
-            </span>
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="pt-4 pb-6">
-            <Slider
-              value={[input.comissao || 0]}
-              max={0.98}
-              step={0.01}
-              onValueChange={([val]) => setInput((p) => ({ ...p, comissao: val }))}
+          <SidebarGroupLabel>Comissão (%)</SidebarGroupLabel>
+          <SidebarGroupContent className="pt-2 pb-6 px-1">
+            <Input
+              type="number"
+              min={0}
+              max={99}
+              value={((input.comissao || 0) * 100).toFixed(0)}
+              onChange={(e) => {
+                let val = parseInt(e.target.value)
+                if (isNaN(val)) val = 0
+                if (val > 99) val = 99
+                if (val < 0) val = 0
+                setInput((p) => ({ ...p, comissao: val / 100 }))
+              }}
+              className="w-full font-mono font-medium bg-background"
             />
           </SidebarGroupContent>
         </SidebarGroup>

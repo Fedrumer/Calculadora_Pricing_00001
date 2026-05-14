@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-14T00:12:58.240Z",
+  "generatedAt": "2026-05-14T02:59:06.215Z",
   "collections": [
     {
       "name": "users",
@@ -124,6 +124,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "tags",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_produtos_codigo ON produtos (codigo)"]

@@ -5,6 +5,8 @@ export type FaixaEtariaId = 'ate_75' | 'de_76_a_85'
 export interface Produto {
   id: string
   nome: string
+  categoria?: string
+  tags?: string[]
   precos_base_por_forma_pagamento: Record<FormaPagamentoId, number>
   destinos: Record<DestinoId, { agravo_percentual: number }>
   faixas_etarias: Record<FaixaEtariaId, { fator_multiplicador: number }>
