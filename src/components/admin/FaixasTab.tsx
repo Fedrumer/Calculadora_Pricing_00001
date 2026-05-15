@@ -28,7 +28,7 @@ import {
 import { Edit, Trash, Plus } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 
-export function FaixasTab() {
+export function FaixasTab({ produtoId = 'all' }: { produtoId?: string }) {
   const { data, loading, create, update, remove } = useAdmin('produto_faixas_etarias', 'produto_id')
   const [produtos, setProdutos] = useState<any[]>([])
   const [open, setOpen] = useState(false)
@@ -39,9 +39,18 @@ export function FaixasTab() {
   }, [])
 
   const handleOpen = (item?: any) => {
-    setForm(item || { produto_id: '', faixa_nome: '', fator_multiplicador: 1.0 })
+    setForm(
+      item || {
+        produto_id: produtoId !== 'all' ? produtoId : '',
+        faixa_nome: '',
+        fator_multiplicador: 1.0,
+      },
+    )
     setOpen(true)
   }
+
+  const filteredData =
+    produtoId === 'all' ? data : data.filter((d: any) => d.produto_id === produtoId)
 
   const handleSave = async () => {
     const success = form.id ? await update(form.id, form) : await create(form)
@@ -69,7 +78,7 @@ export function FaixasTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((item: any) => (
+            {filteredData.map((item: any) => (
               <TableRow key={item.id}>
                 <TableCell>{item.expand?.produto_id?.nome}</TableCell>
                 <TableCell>
@@ -95,24 +104,26 @@ export function FaixasTab() {
             <DialogTitle>{form.id ? 'Editar Faixa' : 'Nova Faixa'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid gap-2">
-              <Label>Produto</Label>
-              <Select
-                value={form.produto_id}
-                onValueChange={(v) => setForm({ ...form, produto_id: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um produto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {produtos.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {produtoId === 'all' && (
+              <div className="grid gap-2">
+                <Label>Produto</Label>
+                <Select
+                  value={form.produto_id}
+                  onValueChange={(v) => setForm({ ...form, produto_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um produto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {produtos.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid gap-2">
               <Label>Faixa Etária</Label>
               <Select

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { FileText, Copy, Trash2, Eye, MoreVertical } from 'lucide-react'
+import { FileText, Copy, Trash2, Eye, MoreVertical, Send } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,6 +33,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
+import { useToast } from '@/hooks/use-toast'
 
 const StatusBadge = ({ status }: { status: string }) => {
   const colors: any = {
@@ -47,15 +50,12 @@ const StatusBadge = ({ status }: { status: string }) => {
   )
 }
 
-import { useAuth } from '@/hooks/use-auth'
-import pb from '@/lib/pocketbase/client'
-import { useToast } from '@/hooks/use-toast'
-
 export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdate }: any) {
   const isMobile = useIsMobile()
   const [viewItem, setViewItem] = useState<any>(null)
   const { user } = useAuth()
   const { toast } = useToast()
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const handleStatusChange = async (id: string, status: string) => {
     try {
@@ -66,7 +66,6 @@ export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdat
       toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao atualizar status.' })
     }
   }
-  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const ActionsMenu = ({ item }: { item: any }) => (
     <DropdownMenu>
@@ -82,6 +81,11 @@ export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdat
         <DropdownMenuItem onClick={() => onDownload(item)}>
           <FileText className="w-4 h-4 mr-2" /> Baixar PDF
         </DropdownMenuItem>
+        {item.status === 'RASCUNHO' && (
+          <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'PROPOSTA_ENVIADA')}>
+            <Send className="w-4 h-4 mr-2" /> Salvar como Enviada
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => onDuplicate(item)}>
           <Copy className="w-4 h-4 mr-2" /> Duplicar
         </DropdownMenuItem>
@@ -115,7 +119,23 @@ export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdat
                   <span className="text-sm font-medium">
                     {item.moeda || 'USD'} {item.fatura_total?.toFixed(2)}
                   </span>
-                  <StatusBadge status={item.status} />
+                  {user?.role === 'ADMIN' ? (
+                    <Select
+                      defaultValue={item.status}
+                      onValueChange={(v) => handleStatusChange(item.id, v)}
+                    >
+                      <SelectTrigger className="h-8 text-xs w-[140px] bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="RASCUNHO">Rascunho</SelectItem>
+                        <SelectItem value="PROPOSTA_ENVIADA">Proposta Enviada</SelectItem>
+                        <SelectItem value="APROVADA">Aprovada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <StatusBadge status={item.status} />
+                  )}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Pagamento: {item.expand?.forma_pagamento_id?.nome || 'N/A'}

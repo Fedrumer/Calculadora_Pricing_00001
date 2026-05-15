@@ -28,7 +28,7 @@ import {
 import { Edit, Trash, Plus } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 
-export function DestinosTab() {
+export function DestinosTab({ produtoId = 'all' }: { produtoId?: string }) {
   const { data, loading, create, update, remove } = useAdmin('produto_destinos', 'produto_id')
   const [produtos, setProdutos] = useState<any[]>([])
   const [open, setOpen] = useState(false)
@@ -39,9 +39,19 @@ export function DestinosTab() {
   }, [])
 
   const handleOpen = (item?: any) => {
-    setForm(item || { produto_id: '', destino_codigo: '', destino_nome: '', agravo_percentual: 0 })
+    setForm(
+      item || {
+        produto_id: produtoId !== 'all' ? produtoId : '',
+        destino_codigo: '',
+        destino_nome: '',
+        agravo_percentual: 0,
+      },
+    )
     setOpen(true)
   }
+
+  const filteredData =
+    produtoId === 'all' ? data : data.filter((d: any) => d.produto_id === produtoId)
 
   const handleSave = async () => {
     const nomes: Record<string, string> = {
@@ -75,7 +85,7 @@ export function DestinosTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((item: any) => (
+            {filteredData.map((item: any) => (
               <TableRow key={item.id}>
                 <TableCell>{item.expand?.produto_id?.nome}</TableCell>
                 <TableCell>{item.destino_nome}</TableCell>
@@ -101,24 +111,26 @@ export function DestinosTab() {
             <DialogTitle>{form.id ? 'Editar Destino' : 'Novo Destino'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid gap-2">
-              <Label>Produto</Label>
-              <Select
-                value={form.produto_id}
-                onValueChange={(v) => setForm({ ...form, produto_id: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um produto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {produtos.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {produtoId === 'all' && (
+              <div className="grid gap-2">
+                <Label>Produto</Label>
+                <Select
+                  value={form.produto_id}
+                  onValueChange={(v) => setForm({ ...form, produto_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um produto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {produtos.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid gap-2">
               <Label>Destino</Label>
               <Select

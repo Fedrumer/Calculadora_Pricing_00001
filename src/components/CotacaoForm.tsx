@@ -101,11 +101,11 @@ export function CotacaoForm({ className }: { className?: string }) {
         />
       </div>
 
-      <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
+      <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50 overflow-hidden">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
           4. Período da Viagem
         </Label>
-        <div className="grid gap-2 [&>button]:bg-white [&>button]:text-slate-900 [&>button]:h-9">
+        <div className="flex flex-col gap-2 w-full overflow-hidden [&>button]:w-full [&>button]:bg-white [&>button]:text-slate-900 [&>button]:h-9">
           <DatePicker
             label="Início"
             date={input.data_inicio}
