@@ -3,12 +3,29 @@ import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { DatePicker } from '@/components/ui/date-picker'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import useCotacaoStore from '@/stores/useCotacaoStore'
 import { FormaPagamentoId, DestinoId } from '@/types/cotacao'
 import { cn } from '@/lib/utils'
+import { useMemo } from 'react'
 
 export function CotacaoForm({ className }: { className?: string }) {
   const { input, setInput, formasPagamento } = useCotacaoStore()
+
+  const produtosDisponiveis = useMemo(() => {
+    let prods = input.produtos || []
+    if (input.filtro_tag) {
+      prods = prods.filter((p) => p.tags?.includes(input.filtro_tag!))
+    }
+    const uniqueNames = Array.from(new Set(prods.map((p) => p.nome)))
+    return uniqueNames.sort()
+  }, [input.produtos, input.filtro_tag])
 
   const updateTravelers = (key: 'ate_75' | 'de_76_a_85', value: number) => {
     setInput((prev) => ({
@@ -22,6 +39,72 @@ export function CotacaoForm({ className }: { className?: string }) {
 
   return (
     <div className={cn('flex flex-col gap-4', className)}>
+      <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
+        <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
+          Filtros de Produtos
+        </Label>
+        <ToggleGroup
+          type="single"
+          className="flex flex-wrap justify-start gap-1 pt-1"
+          value={input.filtro_tag || 'TODOS'}
+          onValueChange={(v) => {
+            if (v) {
+              setInput((p) => ({
+                ...p,
+                filtro_tag: v === 'TODOS' ? undefined : v,
+                filtro_nome: undefined, // reseta nome ao mudar tag
+              }))
+            }
+          }}
+        >
+          <ToggleGroupItem
+            value="TODOS"
+            className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
+          >
+            Exibir Todos
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="B2B"
+            className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
+          >
+            Folheto B2B
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="B2C"
+            className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
+          >
+            Folheto B2C
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="Acordo"
+            className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
+          >
+            Acordo
+          </ToggleGroupItem>
+        </ToggleGroup>
+
+        <div className="pt-2">
+          <Select
+            value={input.filtro_nome || 'TODOS'}
+            onValueChange={(v) =>
+              setInput((p) => ({ ...p, filtro_nome: v === 'TODOS' ? undefined : v }))
+            }
+          >
+            <SelectTrigger className="w-full h-9 bg-white text-slate-900 border-white/20 shadow-sm focus-visible:ring-blue-400">
+              <SelectValue placeholder="Filtrar por nome do produto..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="TODOS">Todos os produtos</SelectItem>
+              {produtosDisponiveis.map((nome) => (
+                <SelectItem key={nome} value={nome}>
+                  {nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
           1. Destino

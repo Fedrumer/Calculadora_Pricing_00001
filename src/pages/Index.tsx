@@ -42,6 +42,17 @@ export default function Index() {
     }
   }
 
+  const produtosFiltrados = (input.produtos || []).filter((p) => {
+    let match = true
+    if (input.filtro_tag) {
+      match = match && !!p.tags?.includes(input.filtro_tag)
+    }
+    if (input.filtro_nome) {
+      match = match && p.nome === input.filtro_nome
+    }
+    return match
+  })
+
   return (
     <div className="p-6 max-w-7xl mx-auto w-full flex flex-col h-full gap-6 animate-in fade-in zoom-in duration-300">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
@@ -69,7 +80,7 @@ export default function Index() {
       </div>
 
       <GridProdutos
-        produtos={input.produtos || []}
+        produtos={produtosFiltrados}
         forma_pagamento={input.forma_pagamento}
         comissao={input.comissao || 0}
         viajantes_por_faixa={input.viajantes_por_faixa!}
