@@ -1,7 +1,6 @@
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { DatePicker } from '@/components/ui/date-picker'
 import {
   Select,
@@ -11,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import useCotacaoStore from '@/stores/useCotacaoStore'
-import { FormaPagamentoId, DestinoId } from '@/types/cotacao'
+import { FormaPagamentoId } from '@/types/cotacao'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
 
@@ -107,45 +106,7 @@ export function CotacaoForm({ className }: { className?: string }) {
 
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
-          1. Destino
-        </Label>
-        <RadioGroup
-          value={input.destino}
-          onValueChange={(v) => setInput((p) => ({ ...p, destino: v as DestinoId }))}
-          className="flex flex-col gap-2 pt-1"
-        >
-          <div className="flex items-center space-x-2 text-blue-100">
-            <RadioGroupItem
-              value="DOMESTIC"
-              id="dest-dom"
-              className="border-blue-300 text-blue-400"
-            />
-            <Label htmlFor="dest-dom" className="font-normal cursor-pointer text-sm">
-              Nacional
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2 text-blue-100">
-            <RadioGroupItem value="WORLD" id="dest-wrl" className="border-blue-300 text-blue-400" />
-            <Label htmlFor="dest-wrl" className="font-normal cursor-pointer text-sm">
-              Mundo
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2 text-blue-100">
-            <RadioGroupItem
-              value="NORTH_AMERICA"
-              id="dest-na"
-              className="border-blue-300 text-blue-400"
-            />
-            <Label htmlFor="dest-na" className="font-normal cursor-pointer text-sm">
-              Mundo + EUA
-            </Label>
-          </div>
-        </RadioGroup>
-      </div>
-
-      <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
-        <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
-          2. Pagamento
+          1. Pagamento
         </Label>
         <ToggleGroup
           type="single"
@@ -169,7 +130,7 @@ export function CotacaoForm({ className }: { className?: string }) {
 
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
-          3. Comissão (%)
+          2. Comissões
         </Label>
         <Input
           type="number"
@@ -186,7 +147,7 @@ export function CotacaoForm({ className }: { className?: string }) {
 
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50 overflow-hidden">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
-          4. Período da Viagem
+          3. Período
         </Label>
         <div className="flex flex-col gap-2 w-full overflow-hidden [&>button]:w-full [&>button]:bg-white [&>button]:text-slate-900 [&>button]:h-9">
           <DatePicker
@@ -204,7 +165,7 @@ export function CotacaoForm({ className }: { className?: string }) {
 
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
-          5. Viajantes (Idade)
+          4. Viajantes (Idade)
         </Label>
         <div className="grid grid-cols-2 gap-3 pt-1">
           <div>
