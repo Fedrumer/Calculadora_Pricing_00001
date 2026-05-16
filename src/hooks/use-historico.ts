@@ -54,7 +54,7 @@ export function useHistorico() {
         moeda: cotacao.moeda,
         produtos:
           cotacao.expand?.cotacao_produtos_via_cotacao_id?.map((cp: any) => ({
-            produto_id: cp.produto_id,
+            produto_id: cp.produto_id || cp.expand?.produto_id?.id,
             qtd_ate_75: cp.qtd_ate_75,
             qtd_76_a_85: cp.qtd_76_a_85,
             preco_total_produto: cp.preco_total_produto,
