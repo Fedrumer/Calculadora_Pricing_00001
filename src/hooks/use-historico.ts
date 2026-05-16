@@ -53,19 +53,25 @@ export function useHistorico() {
         tipo_preco: cotacao.tipo_preco,
         moeda: cotacao.moeda,
         produtos:
-          cotacao.expand?.cotacao_produtos_via_cotacao_id?.map((cp: any) => ({
-            produto_id: cp.produto_id || cp.expand?.produto_id?.id,
-            qtd_ate_75: cp.qtd_ate_75,
-            qtd_76_a_85: cp.qtd_76_a_85,
-            preco_total_produto: cp.preco_total_produto,
-            detalhes:
-              cp.expand?.cotacao_produto_detalhes_via_cotacao_produto_id?.map((det: any) => ({
-                destino_codigo: det.destino_codigo,
-                faixa_etaria: det.faixa_etaria,
-                preco_unitario_dia: det.preco_unitario_dia,
-                preco_total_faixa: det.preco_total_faixa,
-              })) || [],
-          })) || [],
+          cotacao.expand?.cotacao_produtos_via_cotacao_id?.map((cp: any) => {
+            const pid = cp.produto_id || cp.expand?.produto_id?.id
+            if (!pid) {
+              throw new Error('Produto ID ausente ou inválido em um dos itens da cotação.')
+            }
+            return {
+              produto_id: pid,
+              qtd_ate_75: cp.qtd_ate_75,
+              qtd_76_a_85: cp.qtd_76_a_85,
+              preco_total_produto: cp.preco_total_produto,
+              detalhes:
+                cp.expand?.cotacao_produto_detalhes_via_cotacao_produto_id?.map((det: any) => ({
+                  destino_codigo: det.destino_codigo,
+                  faixa_etaria: det.faixa_etaria,
+                  preco_unitario_dia: det.preco_unitario_dia,
+                  preco_total_faixa: det.preco_total_faixa,
+                })) || [],
+            }
+          }) || [],
       }
 
       await pb.send('/backend/v1/cotacoes', {
@@ -78,7 +84,8 @@ export function useHistorico() {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: err?.response?.message || 'Não foi possível duplicar a cotação.',
+        description:
+          err?.response?.message || err?.message || 'Não foi possível duplicar a cotação.',
       })
     }
   }

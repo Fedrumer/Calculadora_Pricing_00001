@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { AlertCircle, Plane } from 'lucide-react'
 import { Produto, FormaPagamentoId, FaixaEtariaId, DestinoId } from '@/types/cotacao'
 import { useCalculadoraCotacao } from '@/hooks/use-calculadora-cotacao'
+import useCotacaoStore from '@/stores/useCotacaoStore'
 import { cn } from '@/lib/utils'
 
 export interface GridProdutosProps {
@@ -43,9 +44,25 @@ export function GridProdutos({
   isError = false,
   onRetry,
 }: GridProdutosProps) {
+  const { input: storeInput } = useCotacaoStore()
+
+  const produtosFiltrados = useMemo(() => {
+    return produtos.filter((p) => {
+      const matchTag =
+        storeInput.filtro_tag && storeInput.filtro_tag !== 'TODOS'
+          ? p.tags?.includes(storeInput.filtro_tag)
+          : true
+      const matchNome =
+        storeInput.filtro_nome && storeInput.filtro_nome !== 'TODOS'
+          ? p.nome === storeInput.filtro_nome
+          : true
+      return matchTag && matchNome
+    })
+  }, [produtos, storeInput.filtro_tag, storeInput.filtro_nome])
+
   const input = useMemo(
     () => ({
-      produtos,
+      produtos: produtosFiltrados,
       forma_pagamento,
       comissao,
       viajantes_por_faixa,
@@ -53,7 +70,15 @@ export function GridProdutos({
       data_fim,
       destino,
     }),
-    [produtos, forma_pagamento, comissao, viajantes_por_faixa, data_inicio, data_fim, destino],
+    [
+      produtosFiltrados,
+      forma_pagamento,
+      comissao,
+      viajantes_por_faixa,
+      data_inicio,
+      data_fim,
+      destino,
+    ],
   )
 
   const { produtos_calculados, tipo_preco, moeda, carregando, erros } = useCalculadoraCotacao(input)
