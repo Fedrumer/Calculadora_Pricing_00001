@@ -70,16 +70,15 @@ export function useHistorico() {
 
       await pb.send('/backend/v1/cotacoes', {
         method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'application/json' },
+        body: payload,
       })
       toast({ title: 'Sucesso', description: 'Cotação duplicada com sucesso.' })
       fetchData()
-    } catch (err) {
+    } catch (err: any) {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: 'Não foi possível duplicar a cotação.',
+        description: err?.response?.message || 'Não foi possível duplicar a cotação.',
       })
     }
   }
