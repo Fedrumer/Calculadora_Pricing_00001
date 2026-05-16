@@ -14,7 +14,11 @@ routerAdd(
     rl.set('endpoint', '/backend/v1/produtos')
     $app.saveNoValidate(rl)
 
-    const produtos = $app.findRecordsByFilter('produtos', 'ativo = true', '-created', 1000, 0)
+    let sortParam = e.requestInfo().query.sort || 'ordem_exibicao'
+    const validSorts = ['ordem_exibicao', '-ordem_exibicao', 'created', '-created', 'nome', '-nome']
+    const sortStr = validSorts.includes(sortParam) ? sortParam : 'ordem_exibicao'
+
+    const produtos = $app.findRecordsByFilter('produtos', 'ativo = true', sortStr, 1000, 0)
 
     const result = []
     for (const p of produtos) {
@@ -62,6 +66,7 @@ routerAdd(
         nome: p.getString('nome'),
         categoria: p.getString('categoria'),
         tags: p.get('tags') || [],
+        ordem_exibicao: p.getInt('ordem_exibicao'),
         precos_base_por_forma_pagamento: precosObj,
         destinos: destinosObj,
         faixas_etarias: faixasObj,

@@ -47,17 +47,19 @@ export function GridProdutos({
   const { input: storeInput } = useCotacaoStore()
 
   const produtosFiltrados = useMemo(() => {
-    return produtos.filter((p) => {
-      const matchTag =
-        storeInput.filtro_tag && storeInput.filtro_tag !== 'TODOS'
-          ? p.tags?.includes(storeInput.filtro_tag)
-          : true
-      const matchNome =
-        storeInput.filtro_nome && storeInput.filtro_nome !== 'TODOS'
-          ? p.nome === storeInput.filtro_nome
-          : true
-      return matchTag && matchNome
-    })
+    return produtos
+      .filter((p) => {
+        const matchTag =
+          storeInput.filtro_tag && storeInput.filtro_tag !== 'TODOS'
+            ? p.tags?.includes(storeInput.filtro_tag)
+            : true
+        const matchNome =
+          storeInput.filtro_nome && storeInput.filtro_nome !== 'TODOS'
+            ? p.nome === storeInput.filtro_nome
+            : true
+        return matchTag && matchNome
+      })
+      .sort((a, b) => (a.ordem_exibicao || 999) - (b.ordem_exibicao || 999))
   }, [produtos, storeInput.filtro_tag, storeInput.filtro_nome])
 
   const input = useMemo(

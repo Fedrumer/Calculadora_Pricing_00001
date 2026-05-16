@@ -7,6 +7,7 @@ export interface Produto {
   nome: string
   categoria?: string
   tags?: string[]
+  ordem_exibicao?: number
   precos_base_por_forma_pagamento: Record<FormaPagamentoId, number>
   destinos: Record<DestinoId, { agravo_percentual: number }>
   faixas_etarias: Record<FaixaEtariaId, { fator_multiplicador: number }>

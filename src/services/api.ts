@@ -3,7 +3,7 @@ import { CalculoInput, CotacaoState } from '@/types/cotacao'
 import { differenceInDays } from 'date-fns'
 
 export const fetchProdutos = async () => {
-  return pb.send('/backend/v1/produtos', { method: 'GET' })
+  return pb.send('/backend/v1/produtos?sort=ordem_exibicao', { method: 'GET' })
 }
 
 export const fetchFormasPagamento = async () => {
