@@ -2,11 +2,36 @@ import { Produto } from '@/types/cotacao'
 
 export const mockProdutos: Produto[] = [
   {
+    id: 'prod-0',
+    nome: 'Now Multi 1MM',
+    categoria: 'Premium',
+    tags: ['Mundo', 'Anual'],
+    ordem_exibicao: 1,
+    tipo_cobranca: 'anual',
+    precos_base_por_forma_pagamento: {
+      TRANSFER: 290.0,
+      CARD_1X: 300.0,
+      CARD_2X: 310.0,
+      CARD_3X: 320.0,
+    },
+    destinos: {
+      WORLD: { agravo_percentual: 0 },
+      NORTH_AMERICA: { agravo_percentual: 0.15 },
+      EUROPE: { agravo_percentual: 0 },
+      DOMESTIC: { agravo_percentual: 0 },
+    },
+    faixas_etarias: {
+      ate_75: { fator_multiplicador: 1.0 },
+      de_76_a_85: { fator_multiplicador: 1.5 },
+    },
+  },
+  {
     id: 'prod-1',
     nome: 'Now VIP 500',
     categoria: 'Premium',
     tags: ['Mundo + EUA'],
     ordem_exibicao: 2,
+    tipo_cobranca: 'dia',
     precos_base_por_forma_pagamento: {
       TRANSFER: 19.55,
       CARD_1X: 20.0,
@@ -30,6 +55,7 @@ export const mockProdutos: Produto[] = [
     categoria: 'Intermediário',
     tags: ['Mundo'],
     ordem_exibicao: 3,
+    tipo_cobranca: 'dia',
     precos_base_por_forma_pagamento: {
       TRANSFER: 15.5,
       CARD_1X: 16.0,
@@ -53,6 +79,7 @@ export const mockProdutos: Produto[] = [
     categoria: 'Intermediário',
     tags: ['Mundo'],
     ordem_exibicao: 4,
+    tipo_cobranca: 'dia',
     precos_base_por_forma_pagamento: {
       TRANSFER: 12.0,
       CARD_1X: 12.5,
@@ -76,6 +103,7 @@ export const mockProdutos: Produto[] = [
     categoria: 'Básico',
     tags: ['Nacional'],
     ordem_exibicao: 5,
+    tipo_cobranca: 'dia',
     precos_base_por_forma_pagamento: {
       TRANSFER: 9.0,
       CARD_1X: 9.5,

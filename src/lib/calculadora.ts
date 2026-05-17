@@ -21,7 +21,13 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
     console.error('Calculation errors:', erros)
   }
 
-  if (erros.length > 0 || !input.produtos || !input.forma_pagamento || !input.destino) {
+  const bloqueiaCalculo =
+    !input.produtos ||
+    !input.forma_pagamento ||
+    !input.destino ||
+    (input.comissao !== undefined && input.comissao >= 0.99)
+
+  if (bloqueiaCalculo) {
     return {
       produtos_calculados: [],
       fatura_total: 0,
@@ -34,8 +40,11 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
   }
 
   // Calculate days (minimum 1)
-  const diasRaw = differenceInDays(input.data_fim!, input.data_inicio!) + 1
-  const dias = Math.max(1, diasRaw)
+  let dias = 1
+  if (input.data_inicio && input.data_fim && input.data_fim >= input.data_inicio) {
+    const diasRaw = differenceInDays(input.data_fim, input.data_inicio) + 1
+    dias = Math.max(1, diasRaw)
+  }
 
   const comissao = input.comissao || 0
   const isGross = comissao > 0
@@ -61,6 +70,8 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
         }
         const agravo = destinoData?.agravo_percentual ?? 0
 
+        const diasParaCalculo = produto.tipo_cobranca === 'anual' ? 1 : dias
+
         const calcFaixa = (faixa: FaixaEtariaId, qtd: number) => {
           const faixaData = produto.faixas_etarias?.[faixa]
           if (!faixaData && qtd > 0) {
@@ -69,7 +80,7 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
             )
           }
           const fator = faixaData?.fator_multiplicador ?? 1.0
-          const preco_unitario = preco_bruto * (1 + agravo) * fator * dias
+          const preco_unitario = preco_bruto * (1 + agravo) * fator * diasParaCalculo
           return {
             preco_unitario,
             preco_total: preco_unitario * qtd,
