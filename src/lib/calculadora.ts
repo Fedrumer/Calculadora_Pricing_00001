@@ -72,15 +72,15 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
 
         console.log(`Produto: ${produto.nome}, tipo_cobranca: ${produto.tipo_cobranca}`)
 
-        let diasParaCalculo = dias
-        if (produto.tipo_cobranca === 'anual') {
-          diasParaCalculo = 1
-          console.log(`ANNUAL PRODUCT - Using 1 day`)
-        } else {
-          console.log(`DAILY PRODUCT - Using ${dias} days`)
-        }
-
         const calcFaixa = (faixa: FaixaEtariaId, qtd: number) => {
+          let diasParaEstaFaixa = dias
+          if (produto.tipo_cobranca === 'anual') {
+            diasParaEstaFaixa = 1
+            console.log(`ANNUAL PRODUCT - Faixa ${faixa} using 1 day`)
+          } else {
+            console.log(`DAILY PRODUCT - Faixa ${faixa} using ${dias} days`)
+          }
+
           const faixaData = produto.faixas_etarias?.[faixa]
           if (!faixaData && qtd > 0) {
             console.warn(
@@ -90,7 +90,7 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
           const fator = faixaData?.fator_multiplicador ?? 1.0
 
           const preco_dia = preco_bruto * (1 + agravo) * fator
-          let preco_faixa = preco_dia * diasParaCalculo
+          let preco_faixa = preco_dia * diasParaEstaFaixa
 
           if (qtd > 0) {
             preco_faixa = preco_faixa * qtd
@@ -99,11 +99,11 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
           }
 
           console.log(
-            `Produto ${produto.nome}, Destino ${input.destino}, Faixa ${faixa}, preco_faixa: ${preco_faixa}`,
+            `Produto ${produto.nome}, Destino ${input.destino}, Faixa ${faixa}, diasParaEstaFaixa: ${diasParaEstaFaixa}, preco_faixa: ${preco_faixa}`,
           )
 
           return {
-            preco_unitario: preco_dia * diasParaCalculo,
+            preco_unitario: preco_dia * diasParaEstaFaixa,
             preco_total: preco_faixa,
             quantidade: qtd,
           }
