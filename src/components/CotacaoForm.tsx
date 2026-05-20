@@ -135,7 +135,7 @@ export function CotacaoForm({ className }: { className?: string }) {
         <Input
           type="number"
           min={0}
-          max={99}
+          max={60}
           value={((input.comissao || 0) * 100).toFixed(0)}
           onChange={(e) => {
             let val = parseInt(e.target.value) || 0
