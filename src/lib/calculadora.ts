@@ -70,7 +70,15 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
         }
         const agravo = destinoData?.agravo_percentual ?? 0
 
-        const diasParaCalculo = produto.tipo_cobranca?.trim().toLowerCase() === 'anual' ? 1 : dias
+        console.log(`Produto: ${produto.nome}, tipo_cobranca: ${produto.tipo_cobranca}`)
+
+        let diasParaCalculo = dias
+        if (produto.tipo_cobranca === 'anual') {
+          diasParaCalculo = 1
+          console.log(`ANNUAL PRODUCT - Using 1 day`)
+        } else {
+          console.log(`DAILY PRODUCT - Using ${dias} days`)
+        }
 
         const calcFaixa = (faixa: FaixaEtariaId, qtd: number) => {
           const faixaData = produto.faixas_etarias?.[faixa]
@@ -80,10 +88,23 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
             )
           }
           const fator = faixaData?.fator_multiplicador ?? 1.0
-          const preco_unitario = preco_bruto * (1 + agravo) * fator * diasParaCalculo
+
+          const preco_dia = preco_bruto * (1 + agravo) * fator
+          let preco_faixa = preco_dia * diasParaCalculo
+
+          if (qtd > 0) {
+            preco_faixa = preco_faixa * qtd
+          } else {
+            preco_faixa = 0
+          }
+
+          console.log(
+            `Produto ${produto.nome}, Destino ${input.destino}, Faixa ${faixa}, preco_faixa: ${preco_faixa}`,
+          )
+
           return {
-            preco_unitario,
-            preco_total: preco_unitario * qtd,
+            preco_unitario: preco_dia * diasParaCalculo,
+            preco_total: preco_faixa,
             quantidade: qtd,
           }
         }
