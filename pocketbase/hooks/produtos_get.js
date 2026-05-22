@@ -55,8 +55,8 @@ routerAdd(
         }
 
       const faixasObj = {
-        ate_75: { fator_multiplicador: 1.0 },
-        de_76_a_85: { fator_multiplicador: 1.0 },
+        ate_75: { fator_multiplicador: null },
+        de_76_a_85: { fator_multiplicador: null },
       }
       for (const f of faixas) {
         const nomeFaixa = f.getString('faixa_nome')

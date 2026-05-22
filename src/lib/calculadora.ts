@@ -65,8 +65,9 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
         const faixaAte75Data = produto.faixas_etarias?.['ate_75']
         const faixaDe76a85Data = produto.faixas_etarias?.['de_76_a_85']
 
-        console.log(`[CALC VALIDATION] Product Name: ${produto.nome}`)
-        console.log(`[CALC VALIDATION] tipo_cobranca: ${produto.tipo_cobranca}`)
+        console.log(`[API AUDIT] Product ${produto.id} (${produto.nome}) faixas_etarias:`, JSON.stringify(produto.faixas_etarias));
+
+        console.log(`[CALC VALIDATION] Product Name: ${produto.nome}`)        console.log(`[CALC VALIDATION] tipo_cobranca: ${produto.tipo_cobranca}`)
         console.log(`[CALC VALIDATION] preco_net_base: ${preco_net_base}`)
         console.log(`[CALC VALIDATION] destinoData:`, destinoData, `agravo_percentual: ${agravo}`)
         console.log(
@@ -103,7 +104,11 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
           }
 
           const faixaData = produto.faixas_etarias?.[faixa]
-          if (!faixaData && qtd > 0) {
+          if (faixaData?.fator_multiplicador === null && qtd > 0) {
+            console.warn(
+              `Faixa etária ${faixa} não possui fator_multiplicador definido no banco para o produto ${produto.id}. Usando fallback 1.0.`,
+            )
+          } else if (!faixaData && qtd > 0) {
             console.warn(
               `Faixa etária ${faixa} não encontrada para o produto ${produto.id}. Usando fator multiplicador 1.0.`,
             )
