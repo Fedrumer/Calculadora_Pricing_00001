@@ -59,10 +59,30 @@ routerAdd(
         de_76_a_85: { fator_multiplicador: null },
       }
       for (const f of faixas) {
+        let debugData = {}
+        try {
+          debugData =
+            typeof f.exportJson === 'function'
+              ? f.exportJson()
+              : typeof f.export === 'function'
+                ? f.export()
+                : {}
+        } catch (err) {}
+        console.log(`[DIAGNOSTIC] Faixa Record exportJson: ${JSON.stringify(debugData)}`)
+        console.log(
+          `[DIAGNOSTIC] getFloat('fator_multiplicador'): ${f.getFloat('fator_multiplicador')}`,
+        )
+        console.log(`[DIAGNOSTIC] get('fator_multiplicador'): ${f.get('fator_multiplicador')}`)
+
         const nomeFaixa = f.getString('faixa_nome')
         if (nomeFaixa === 'ate_75' || nomeFaixa === 'de_76_a_85') {
+          const rawVal = f.get('fator_multiplicador')
+          let finalFator = null
+          if (rawVal !== null && rawVal !== undefined && rawVal !== '') {
+            finalFator = f.getFloat('fator_multiplicador')
+          }
           faixasObj[nomeFaixa] = {
-            fator_multiplicador: f.getFloat('fator_multiplicador'),
+            fator_multiplicador: finalFator,
           }
         }
       }
