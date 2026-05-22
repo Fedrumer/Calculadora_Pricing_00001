@@ -65,6 +65,7 @@ routerAdd(
         codigo: p.getString('codigo'),
         nome: p.getString('nome'),
         categoria: p.getString('categoria'),
+        tipo_cobranca: p.getString('tipo_cobranca'),
         tags: p.get('tags') || [],
         ordem_exibicao: p.getInt('ordem_exibicao'),
         precos_base_por_forma_pagamento: precosObj,

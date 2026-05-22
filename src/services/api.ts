@@ -3,11 +3,15 @@ import { CalculoInput, CotacaoState } from '@/types/cotacao'
 import { differenceInDays } from 'date-fns'
 
 export const fetchProdutos = async () => {
-  const response = await pb.send('/backend/v1/produtos?sort=ordem_exibicao', { method: 'GET' })
+  const fields =
+    'id,nome,categoria,codigo,ordem_exibicao,tags,precos_base_por_forma_pagamento,destinos,faixas_etarias,tipo_cobranca'
+  const response = await pb.send(`/backend/v1/produtos?sort=ordem_exibicao&fields=${fields}`, {
+    method: 'GET',
+  })
   console.log('[API] Raw API response (/backend/v1/produtos):', response)
   if (response && response.length > 0) {
-    console.log('[API] First product:', response[0])
-    console.log('[API] First product tipo_cobranca:', response[0].tipo_cobranca)
+    console.log('API Response - First product keys', Object.keys(response[0]))
+    console.log('API Response - First product tipo_cobranca', response[0].tipo_cobranca)
   }
   return response
 }
