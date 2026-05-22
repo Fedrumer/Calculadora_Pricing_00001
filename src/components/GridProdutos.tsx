@@ -44,6 +44,15 @@ export function GridProdutos({
   isError = false,
   onRetry,
 }: GridProdutosProps) {
+  console.log('[COMPONENT] GridProdutos received produtos:', produtos)
+  if (produtos && produtos.length > 0) {
+    console.log('[COMPONENT] First product in GridProdutos:', produtos[0])
+    console.log(
+      '[COMPONENT] First product tipo_cobranca in GridProdutos:',
+      produtos[0].tipo_cobranca,
+    )
+  }
+
   const { input: storeInput } = useCotacaoStore()
 
   const produtosFiltrados = useMemo(() => {

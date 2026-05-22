@@ -52,6 +52,11 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
   const produtos_calculados = input.produtos.reduce<CotacaoState['produtos_calculados']>(
     (acc, produto) => {
       try {
+        console.log(
+          `[ENGINE] Processing product: ${produto.nome}, tipo_cobranca: ${produto.tipo_cobranca}`,
+        )
+        console.log(`[ENGINE] Product keys for ${produto.nome}:`, Object.keys(produto))
+
         const preco_net_base =
           produto.precos_base_por_forma_pagamento?.[input.forma_pagamento!] ?? 0
         if (produto.precos_base_por_forma_pagamento?.[input.forma_pagamento!] === undefined) {

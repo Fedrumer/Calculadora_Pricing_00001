@@ -39,6 +39,11 @@ export function CotacaoProvider({ children }: { children: ReactNode }) {
     setErroCarregamento(false)
     Promise.all([fetchProdutos(), fetchFormasPagamento()])
       .then(([produtos, fps]) => {
+        console.log('[STORE] First produto in store, entire array:', produtos)
+        if (produtos && produtos.length > 0) {
+          console.log('[STORE] First produto in store:', produtos[0])
+          console.log('[STORE] First produto tipo_cobranca:', produtos[0].tipo_cobranca)
+        }
         setInput((prev) => ({ ...prev, produtos }))
         setFormasPagamento(fps)
         setCarregandoProdutos(false)

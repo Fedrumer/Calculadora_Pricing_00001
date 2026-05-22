@@ -3,7 +3,13 @@ import { CalculoInput, CotacaoState } from '@/types/cotacao'
 import { differenceInDays } from 'date-fns'
 
 export const fetchProdutos = async () => {
-  return pb.send('/backend/v1/produtos?sort=ordem_exibicao', { method: 'GET' })
+  const response = await pb.send('/backend/v1/produtos?sort=ordem_exibicao', { method: 'GET' })
+  console.log('[API] Raw API response (/backend/v1/produtos):', response)
+  if (response && response.length > 0) {
+    console.log('[API] First product:', response[0])
+    console.log('[API] First product tipo_cobranca:', response[0].tipo_cobranca)
+  }
+  return response
 }
 
 export const fetchFormasPagamento = async () => {
