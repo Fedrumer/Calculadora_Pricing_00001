@@ -226,98 +226,117 @@ export function GridProdutos({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-auto pt-4 border-t border-border/60">
-                  <div className={cn('flex flex-col', qtdAte75 === 0 && 'opacity-40 grayscale')}>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1 flex flex-wrap items-center">
-                      Até 75{' '}
-                      <span className="lowercase normal-case ml-1 font-normal text-muted-foreground/70 bg-muted px-1 rounded-sm">
-                        {qtdAte75}x
-                      </span>
-                    </span>
-                    {qtdAte75 > 0 ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="font-mono text-[15px] font-bold text-green-600 dark:text-green-500 cursor-help decoration-green-600/30 underline decoration-dotted underline-offset-4 w-max">
-                            {formatCurrency(prodCalc.breakdown['ate_75'].preco_unitario, moeda)}
+                {(() => {
+                  const hasAte75 = (prodCalc.breakdown['ate_75']?.preco_total || 0) > 0
+                  const has76a85 = (prodCalc.breakdown['de_76_a_85']?.preco_total || 0) > 0
+
+                  if (!hasAte75 && !has76a85) {
+                    return (
+                      <div className="mt-auto pt-4 border-t border-border/60 flex items-center justify-center">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Nenhuma faixa etária disponível para este produto
+                        </span>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div
+                      className={cn(
+                        'grid gap-4 mt-auto pt-4 border-t border-border/60',
+                        hasAte75 && has76a85 ? 'grid-cols-2' : 'grid-cols-1',
+                      )}
+                    >
+                      {hasAte75 && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1 flex flex-wrap items-center">
+                            Até 75{' '}
+                            <span className="lowercase normal-case ml-1 font-normal text-muted-foreground/70 bg-muted px-1 rounded-sm">
+                              {qtdAte75}x
+                            </span>
                           </span>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-xs font-mono p-3 z-50 shadow-xl border-green-200 dark:border-green-900">
-                          <p className="text-green-600 dark:text-green-400 font-bold mb-1">
-                            Preço Base:{' '}
-                            {formatCurrency(prodCalc.breakdown['ate_75'].preco_unitario, moeda)}
-                          </p>
-                          <p className="text-muted-foreground">
-                            Total: {formatCurrency(prodCalc.breakdown['ate_75'].preco_total, moeda)}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <span className="font-mono text-sm text-muted-foreground font-medium">-</span>
-                    )}
-                  </div>
-
-                  <div
-                    className={cn(
-                      'flex flex-col border-l border-border/50 pl-4',
-                      qtd76a85 === 0 && 'opacity-40 grayscale',
-                    )}
-                  >
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1 flex flex-wrap items-center">
-                      76-85{' '}
-                      <span className="lowercase normal-case ml-1 font-normal text-muted-foreground/70 bg-muted px-1 rounded-sm">
-                        {qtd76a85}x
-                      </span>
-                    </span>
-                    {qtd76a85 > 0 ? (
-                      (() => {
-                        const basePrice = prodCalc.breakdown['ate_75']?.preco_unitario || 0
-                        const thisPrice = prodCalc.breakdown['de_76_a_85'].preco_unitario
-                        const isAgravo = thisPrice > basePrice
-                        const textColorClass = isAgravo
-                          ? 'text-red-600 dark:text-red-500'
-                          : 'text-blue-600 dark:text-blue-400'
-
-                        return (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span
-                                className={cn(
-                                  'font-mono text-[15px] font-bold cursor-help underline decoration-dotted underline-offset-4 w-max',
-                                  textColorClass,
-                                  isAgravo ? 'decoration-red-600/30' : 'decoration-blue-600/30',
-                                )}
-                              >
-                                {formatCurrency(thisPrice, moeda)}
+                              <span className="font-mono text-[15px] font-bold text-green-600 dark:text-green-500 cursor-help decoration-green-600/30 underline decoration-dotted underline-offset-4 w-max">
+                                {formatCurrency(prodCalc.breakdown['ate_75'].preco_unitario, moeda)}
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent
-                              className={cn(
-                                'text-xs font-mono p-3 z-50 shadow-xl',
-                                isAgravo
-                                  ? 'border-red-200 dark:border-red-900'
-                                  : 'border-blue-200 dark:border-blue-900',
-                              )}
-                            >
-                              <p className={cn('font-bold mb-1', textColorClass)}>
-                                {isAgravo ? 'Preço com Agravo:' : 'Preço Unitário:'}{' '}
-                                {formatCurrency(thisPrice, moeda)}
+                            <TooltipContent className="text-xs font-mono p-3 z-50 shadow-xl border-green-200 dark:border-green-900">
+                              <p className="text-green-600 dark:text-green-400 font-bold mb-1">
+                                Preço Base:{' '}
+                                {formatCurrency(prodCalc.breakdown['ate_75'].preco_unitario, moeda)}
                               </p>
                               <p className="text-muted-foreground">
                                 Total:{' '}
-                                {formatCurrency(
-                                  prodCalc.breakdown['de_76_a_85'].preco_total,
-                                  moeda,
-                                )}
+                                {formatCurrency(prodCalc.breakdown['ate_75'].preco_total, moeda)}
                               </p>
                             </TooltipContent>
                           </Tooltip>
-                        )
-                      })()
-                    ) : (
-                      <span className="font-mono text-sm text-muted-foreground font-medium">-</span>
-                    )}
-                  </div>
-                </div>
+                        </div>
+                      )}
+
+                      {has76a85 && (
+                        <div
+                          className={cn(
+                            'flex flex-col',
+                            hasAte75 && 'border-l border-border/50 pl-4',
+                          )}
+                        >
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1 flex flex-wrap items-center">
+                            76-85{' '}
+                            <span className="lowercase normal-case ml-1 font-normal text-muted-foreground/70 bg-muted px-1 rounded-sm">
+                              {qtd76a85}x
+                            </span>
+                          </span>
+                          {(() => {
+                            const basePrice = prodCalc.breakdown['ate_75']?.preco_unitario || 0
+                            const thisPrice = prodCalc.breakdown['de_76_a_85'].preco_unitario
+                            const isAgravo = thisPrice > basePrice
+                            const textColorClass = isAgravo
+                              ? 'text-red-600 dark:text-red-500'
+                              : 'text-blue-600 dark:text-blue-400'
+
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span
+                                    className={cn(
+                                      'font-mono text-[15px] font-bold cursor-help underline decoration-dotted underline-offset-4 w-max',
+                                      textColorClass,
+                                      isAgravo ? 'decoration-red-600/30' : 'decoration-blue-600/30',
+                                    )}
+                                  >
+                                    {formatCurrency(thisPrice, moeda)}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                  className={cn(
+                                    'text-xs font-mono p-3 z-50 shadow-xl',
+                                    isAgravo
+                                      ? 'border-red-200 dark:border-red-900'
+                                      : 'border-blue-200 dark:border-blue-900',
+                                  )}
+                                >
+                                  <p className={cn('font-bold mb-1', textColorClass)}>
+                                    {isAgravo ? 'Preço com Agravo:' : 'Preço Unitário:'}{' '}
+                                    {formatCurrency(thisPrice, moeda)}
+                                  </p>
+                                  <p className="text-muted-foreground">
+                                    Total:{' '}
+                                    {formatCurrency(
+                                      prodCalc.breakdown['de_76_a_85'].preco_total,
+                                      moeda,
+                                    )}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             </div>
           </Card>

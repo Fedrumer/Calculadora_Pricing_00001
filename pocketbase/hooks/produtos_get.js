@@ -54,11 +54,18 @@ routerAdd(
           agravo_percentual: d.getFloat('agravo_percentual'),
         }
 
-      const faixasObj = {}
-      for (const f of faixas)
-        faixasObj[f.getString('faixa_nome')] = {
-          fator_multiplicador: f.getFloat('fator_multiplicador'),
+      const faixasObj = {
+        ate_75: { fator_multiplicador: 1.0 },
+        de_76_a_85: { fator_multiplicador: 1.0 },
+      }
+      for (const f of faixas) {
+        const nomeFaixa = f.getString('faixa_nome')
+        if (nomeFaixa === 'ate_75' || nomeFaixa === 'de_76_a_85') {
+          faixasObj[nomeFaixa] = {
+            fator_multiplicador: f.getFloat('fator_multiplicador'),
+          }
         }
+      }
 
       result.push({
         id: p.id,
