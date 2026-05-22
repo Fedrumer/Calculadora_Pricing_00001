@@ -91,13 +91,7 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
           const fator = faixaData?.fator_multiplicador ?? 1.0
 
           const preco_dia = preco_bruto * (1 + agravo) * fator
-          let preco_faixa = preco_dia * diasParaEstaFaixa
-
-          if (qtd > 0) {
-            preco_faixa = preco_faixa * qtd
-          } else {
-            preco_faixa = 0
-          }
+          const preco_faixa = preco_dia * diasParaEstaFaixa * qtd
 
           console.log(
             `Produto ${produto.nome}, Destino ${input.destino}, Faixa ${faixa}, diasParaEstaFaixa: ${diasParaEstaFaixa}, preco_faixa: ${preco_faixa}`,

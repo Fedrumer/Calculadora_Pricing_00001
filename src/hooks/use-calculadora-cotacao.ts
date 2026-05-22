@@ -32,14 +32,8 @@ export function useCalculadoraCotacao(input: Partial<CalculoInput>): CotacaoStat
   }, [])
 
   useEffect(() => {
-    setState((prev) => ({ ...prev, carregando: true }))
-
-    const timer = setTimeout(() => {
-      const result = calculate(currentInput)
-      setState({ ...result, carregando: false })
-    }, 300)
-
-    return () => clearTimeout(timer)
+    const result = calculate(currentInput)
+    setState(result)
   }, [currentInput, calculate])
 
   return state
