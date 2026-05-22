@@ -70,11 +70,12 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
         }
         const agravo = destinoData?.agravo_percentual ?? 0
 
-        console.log(`Produto: ${produto.nome}, tipo_cobranca: ${produto.tipo_cobranca}`)
+        const tipoCobranca = produto.tipo_cobranca || 'dia'
+        console.log(`Produto: ${produto.nome}, tipo_cobranca: ${tipoCobranca}`)
 
         const calcFaixa = (faixa: FaixaEtariaId, qtd: number) => {
           let diasParaEstaFaixa = dias
-          if (produto.tipo_cobranca === 'anual') {
+          if (tipoCobranca === 'anual') {
             diasParaEstaFaixa = 1
             console.log(`ANNUAL PRODUCT - Faixa ${faixa} using 1 day`)
           } else {
