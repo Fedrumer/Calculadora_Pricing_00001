@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T14:35:17.825Z",
+  "generatedAt": "2026-05-27T15:55:32.010Z",
   "collections": [
     {
       "name": "users",
@@ -591,6 +591,128 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_rate_limits_ip_end ON rate_limits (ip, endpoint)"]
+    },
+    {
+      "name": "coberturas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.role = 'ADMIN'",
+        "update": "@request.auth.role = 'ADMIN'",
+        "delete": "@request.auth.role = 'ADMIN'"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem_exibicao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_coberturas_ordem ON coberturas (ordem_exibicao)"]
+    },
+    {
+      "name": "produto_coberturas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.role = 'ADMIN'",
+        "update": "@request.auth.role = 'ADMIN'",
+        "delete": "@request.auth.role = 'ADMIN'"
+      },
+      "fields": [
+        {
+          "name": "produto_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "produtos"
+        },
+        {
+          "name": "cobertura_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "coberturas"
+        },
+        {
+          "name": "valor",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao_customizada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem_exibicao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_produto_coberturas_unique ON produto_coberturas (produto_id, cobertura_id)",
+        "CREATE INDEX idx_produto_coberturas_produto_id ON produto_coberturas (produto_id)",
+        "CREATE INDEX idx_produto_coberturas_cobertura_id ON produto_coberturas (cobertura_id)"
+      ]
     }
   ]
 }

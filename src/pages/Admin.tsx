@@ -4,6 +4,8 @@ import { PrecosTab } from '@/components/admin/PrecosTab'
 import { DestinosTab } from '@/components/admin/DestinosTab'
 import { FaixasTab } from '@/components/admin/FaixasTab'
 import { FormasPagamentoTab } from '@/components/admin/FormasPagamentoTab'
+import { CoberturasTab } from '@/components/admin/CoberturasTab'
+import { ProdutoCoberturasTab } from '@/components/admin/ProdutoCoberturasTab'
 import { ShieldAlert } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
@@ -55,12 +57,14 @@ export default function Admin() {
       </div>
 
       <Tabs defaultValue="produtos" className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full h-auto gap-2 p-2">
+        <TabsList className="flex flex-wrap w-full h-auto gap-2 p-2 justify-start bg-muted">
           <TabsTrigger value="produtos">Produtos</TabsTrigger>
           <TabsTrigger value="precos">Preços</TabsTrigger>
           <TabsTrigger value="destinos">Destinos</TabsTrigger>
           <TabsTrigger value="faixas">Faixas</TabsTrigger>
           <TabsTrigger value="formas">Formas Pagto</TabsTrigger>
+          <TabsTrigger value="coberturas">Coberturas</TabsTrigger>
+          <TabsTrigger value="produto_coberturas">Cob. Produto</TabsTrigger>
         </TabsList>
 
         <div className="mt-6 bg-white p-6 rounded-lg shadow-sm border">
@@ -78,6 +82,12 @@ export default function Admin() {
           </TabsContent>
           <TabsContent value="formas">
             <FormasPagamentoTab />
+          </TabsContent>
+          <TabsContent value="coberturas">
+            <CoberturasTab />
+          </TabsContent>
+          <TabsContent value="produto_coberturas">
+            <ProdutoCoberturasTab produtoId={produtoSelecionado} />
           </TabsContent>
         </div>
       </Tabs>
