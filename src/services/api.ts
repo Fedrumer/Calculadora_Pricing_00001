@@ -21,6 +21,7 @@ export const salvarCotacao = async (
   resultado: CotacaoState,
   selecionados: string[],
   acao: 'RASCUNHO' | 'PROPOSTA_ENVIADA',
+  nome_agencia?: string,
 ) => {
   const usuario_id = pb.authStore.record?.id
   if (!usuario_id) throw new Error('Usuário não autenticado')
@@ -57,6 +58,7 @@ export const salvarCotacao = async (
     preco_unitario_total,
     tipo_preco: resultado.tipo_preco,
     moeda: resultado.moeda,
+    nome_agencia,
     produtos: produtosSelecionados.map((p) => ({
       produto_id: p.id,
       qtd_ate_75: p.breakdown.ate_75.quantidade,

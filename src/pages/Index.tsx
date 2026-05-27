@@ -6,15 +6,28 @@ import { salvarCotacao } from '@/services/api'
 import { useToast } from '@/hooks/use-toast'
 import { useNavigate } from 'react-router-dom'
 import { Save, Send } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export default function Index() {
   const { input, resultado, carregandoProdutos, erroCarregamento, recarregarDados } =
     useCotacaoStore()
   const [selecionados, setSelecionados] = useState<string[]>([])
+  const [modalAcao, setModalAcao] = useState<'RASCUNHO' | 'PROPOSTA_ENVIADA' | null>(null)
+  const [nomeAgencia, setNomeAgencia] = useState('')
+  const [salvando, setSalvando] = useState(false)
   const { toast } = useToast()
   const navigate = useNavigate()
 
-  const handleSave = async (status: 'RASCUNHO' | 'PROPOSTA_ENVIADA') => {
+  const openModal = (status: 'RASCUNHO' | 'PROPOSTA_ENVIADA') => {
     if (selecionados.length === 0) {
       toast({
         variant: 'destructive',
@@ -23,12 +36,19 @@ export default function Index() {
       })
       return
     }
+    setModalAcao(status)
+    setNomeAgencia('')
+  }
+
+  const handleConfirmSave = async () => {
+    if (!modalAcao) return
+    setSalvando(true)
     try {
-      await salvarCotacao(input, resultado, selecionados, status)
+      await salvarCotacao(input, resultado, selecionados, modalAcao, nomeAgencia)
       toast({
         title: 'Sucesso',
         description:
-          status === 'PROPOSTA_ENVIADA'
+          modalAcao === 'PROPOSTA_ENVIADA'
             ? 'Proposta salva e marcada como enviada.'
             : 'Rascunho salvo com sucesso.',
       })
@@ -39,6 +59,9 @@ export default function Index() {
         title: 'Erro',
         description: 'Não foi possível salvar a cotação.',
       })
+    } finally {
+      setSalvando(false)
+      setModalAcao(null)
     }
   }
 
@@ -66,13 +89,13 @@ export default function Index() {
           <Button
             variant="outline"
             className="flex-1 sm:flex-none border-gray-300 text-gray-700"
-            onClick={() => handleSave('RASCUNHO')}
+            onClick={() => openModal('RASCUNHO')}
           >
             <Save className="w-4 h-4 mr-2" /> Salvar Rascunho
           </Button>
           <Button
             className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 shadow-sm"
-            onClick={() => handleSave('PROPOSTA_ENVIADA')}
+            onClick={() => openModal('PROPOSTA_ENVIADA')}
           >
             <Send className="w-4 h-4 mr-2" /> Salvar como Enviada
           </Button>
@@ -94,6 +117,40 @@ export default function Index() {
         isError={erroCarregamento}
         onRetry={recarregarDados}
       />
+
+      <Dialog open={!!modalAcao} onOpenChange={(open) => !open && setModalAcao(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Salvar Cotação</DialogTitle>
+            <DialogDescription>
+              Informe o nome da agência para identificar esta cotação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="nome_agencia" className="text-right">
+                Agência
+              </Label>
+              <Input
+                id="nome_agencia"
+                value={nomeAgencia}
+                onChange={(e) => setNomeAgencia(e.target.value)}
+                className="col-span-3"
+                placeholder="Ex: Agência Viagens Inc"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalAcao(null)} disabled={salvando}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmSave} disabled={salvando}>
+              {salvando ? 'Salvando...' : 'Confirmar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
