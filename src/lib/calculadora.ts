@@ -1,4 +1,4 @@
-import { differenceInDays } from 'date-fns'
+import { differenceInDays, startOfDay } from 'date-fns'
 import { CalculoInput, CotacaoState, FaixaEtariaId } from '@/types/cotacao'
 
 export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
@@ -16,10 +16,6 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
   const qtd75 = input.viajantes_por_faixa?.ate_75 || 0
   const qtd85 = input.viajantes_por_faixa?.de_76_a_85 || 0
   if (qtd75 + qtd85 === 0) erros.push('Adicione pelo menos um viajante')
-
-  if (erros.length > 0 && import.meta.env.DEV) {
-    console.error('Calculation errors:', erros)
-  }
 
   const bloqueiaCalculo =
     !input.produtos ||
@@ -41,8 +37,12 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
 
   // Calculate days (minimum 1)
   let dias = 1
-  if (input.data_inicio && input.data_fim && input.data_fim >= input.data_inicio) {
-    const diasRaw = differenceInDays(input.data_fim, input.data_inicio) + 1
+  if (
+    input.data_inicio &&
+    input.data_fim &&
+    startOfDay(input.data_fim) >= startOfDay(input.data_inicio)
+  ) {
+    const diasRaw = differenceInDays(startOfDay(input.data_fim), startOfDay(input.data_inicio)) + 1
     dias = Math.max(1, diasRaw)
   }
 
@@ -56,7 +56,20 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
           produto.precos_base_por_forma_pagamento?.[input.forma_pagamento!] ?? 0
 
         const destinoData = produto.destinos?.[input.destino!]
-        const agravo = destinoData?.agravo_percentual ?? 0
+        if (!destinoData) {
+          acc.push({
+            id: produto.id,
+            nome: produto.nome,
+            breakdown: {
+              ate_75: { preco_unitario: 0, preco_total: 0, quantidade: qtd75 },
+              de_76_a_85: { preco_unitario: 0, preco_total: 0, quantidade: qtd85 },
+            },
+            preco_total_produto: 0,
+          })
+          return acc
+        }
+
+        const agravo = destinoData.agravo_percentual ?? 0
 
         const preco_bruto = isGross ? preco_net_base / (1 - comissao) : preco_net_base
         const tipoCobranca = produto.tipo_cobranca || 'dia'
@@ -104,7 +117,7 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
           preco_total_produto: breakdown.ate_75.preco_total + breakdown.de_76_a_85.preco_total,
         })
       } catch (err) {
-        console.error(`Error processing product: ${produto.id}`, err)
+        // Ignored for resilience
       }
 
       return acc

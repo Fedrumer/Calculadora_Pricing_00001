@@ -1,6 +1,6 @@
 import pb from '@/lib/pocketbase/client'
 import { CalculoInput, CotacaoState } from '@/types/cotacao'
-import { differenceInDays } from 'date-fns'
+import { differenceInDays, startOfDay } from 'date-fns'
 
 export const fetchProdutos = async () => {
   const fields =
@@ -42,7 +42,7 @@ export const salvarCotacao = async (
 
   const qtd_dias =
     input.data_inicio && input.data_fim
-      ? Math.max(1, differenceInDays(input.data_fim, input.data_inicio) + 1)
+      ? Math.max(1, differenceInDays(startOfDay(input.data_fim), startOfDay(input.data_inicio)) + 1)
       : 1
 
   const payload = {

@@ -59,10 +59,10 @@ routerAdd(
         de_76_a_85: { fator_multiplicador: null },
       }
       for (const f of faixas) {
-        const rawNome = f.getString('faixa_nome')
+        const rawNome = f.getString('faixa_nome').toLowerCase().trim()
         let nomeFaixa = null
-        if (rawNome === 'até 75' || rawNome === 'ate_75') nomeFaixa = 'ate_75'
-        else if (rawNome === '76-85' || rawNome === 'de_76_a_85') nomeFaixa = 'de_76_a_85'
+        if (rawNome.includes('75')) nomeFaixa = 'ate_75'
+        else if (rawNome.includes('76') || rawNome.includes('85')) nomeFaixa = 'de_76_a_85'
 
         if (nomeFaixa) {
           const rawVal = f.get('fator_multiplicador')
