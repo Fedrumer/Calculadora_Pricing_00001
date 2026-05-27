@@ -64,6 +64,9 @@ routerAdd(
     cotacao.set('preco_unitario_total', body.preco_unitario_total)
     cotacao.set('tipo_preco', body.tipo_preco)
     cotacao.set('moeda', body.moeda)
+    if (body.nome_agencia !== undefined) {
+      cotacao.set('nome_agencia', body.nome_agencia)
+    }
 
     $app.runInTransaction((txApp) => {
       txApp.save(cotacao)

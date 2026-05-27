@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { DatePicker } from '@/components/ui/date-picker'
 import { useHistorico } from '@/hooks/use-historico'
 import { HistoricoList } from '@/components/historico/HistoricoList'
 
@@ -19,10 +20,17 @@ export default function Historico() {
     fetchData,
     searchId,
     setSearchId,
+    searchAgencia,
+    setSearchAgencia,
     statusFilter,
     setStatusFilter,
+    dataInicio,
+    setDataInicio,
+    dataFim,
+    setDataFim,
     duplicateCotacao,
     deleteCotacao,
+    updateAgencia,
     downloadPDF,
   } = useHistorico()
 
@@ -35,8 +43,8 @@ export default function Historico() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-lg shadow-sm border">
-        <div className="flex-1 relative">
+      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-lg shadow-sm border items-end">
+        <div className="flex-1 min-w-[200px] relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Buscar por ID..."
@@ -45,7 +53,22 @@ export default function Historico() {
             className="pl-9"
           />
         </div>
-        <div className="w-full md:w-64">
+        <div className="flex-1 min-w-[200px] relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Buscar por Agência..."
+            value={searchAgencia}
+            onChange={(e) => setSearchAgencia(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="w-full md:w-auto min-w-[150px]">
+          <DatePicker date={dataInicio} setDate={setDataInicio} label="Data Inicial" />
+        </div>
+        <div className="w-full md:w-auto min-w-[150px]">
+          <DatePicker date={dataFim} setDate={setDataFim} label="Data Final" />
+        </div>
+        <div className="w-full md:w-48">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger>
               <SelectValue placeholder="Filtrar por Status" />
@@ -85,6 +108,7 @@ export default function Historico() {
           onDelete={deleteCotacao}
           onDownload={downloadPDF}
           onUpdate={fetchData}
+          onUpdateAgencia={updateAgencia}
         />
       )}
     </div>

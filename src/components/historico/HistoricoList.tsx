@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { FileText, Copy, Trash2, Eye, MoreVertical, Send } from 'lucide-react'
+import { FileText, Copy, Trash2, Eye, MoreVertical, Send, Edit2 } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -50,12 +51,22 @@ const StatusBadge = ({ status }: { status: string }) => {
   )
 }
 
-export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdate }: any) {
+export function HistoricoList({
+  data,
+  onDuplicate,
+  onDelete,
+  onDownload,
+  onUpdate,
+  onUpdateAgencia,
+}: any) {
   const isMobile = useIsMobile()
   const [viewItem, setViewItem] = useState<any>(null)
   const { user } = useAuth()
   const { toast } = useToast()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  const [editAgenciaName, setEditAgenciaName] = useState('')
+  const [isEditingAgencia, setIsEditingAgencia] = useState(false)
 
   const handleStatusChange = async (id: string, status: string) => {
     try {
@@ -67,6 +78,23 @@ export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdat
     }
   }
 
+  const handleSaveAgencia = async () => {
+    if (!viewItem) return
+    try {
+      await onUpdateAgencia(viewItem.id, editAgenciaName)
+      setViewItem({ ...viewItem, nome_agencia: editAgenciaName })
+      setIsEditingAgencia(false)
+    } catch (err) {
+      // Error is handled in the hook
+    }
+  }
+
+  const openViewModal = (item: any) => {
+    setViewItem(item)
+    setEditAgenciaName(item.nome_agencia || '')
+    setIsEditingAgencia(false)
+  }
+
   const ActionsMenu = ({ item }: { item: any }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -75,7 +103,7 @@ export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdat
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setViewItem(item)}>
+        <DropdownMenuItem onClick={() => openViewModal(item)}>
           <Eye className="w-4 h-4 mr-2" /> Visualizar
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onDownload(item)}>
@@ -137,6 +165,9 @@ export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdat
                     <StatusBadge status={item.status} />
                   )}
                 </div>
+                <div className="text-xs text-muted-foreground mb-1">
+                  Agência: {item.nome_agencia || 'Não informada'}
+                </div>
                 <div className="text-xs text-muted-foreground">
                   Pagamento: {item.expand?.forma_pagamento_id?.nome || 'N/A'}
                 </div>
@@ -150,10 +181,11 @@ export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdat
             <TableHeader className="bg-gray-50">
               <TableRow>
                 <TableHead>ID da Cotação</TableHead>
+                <TableHead>Agência</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Pagamento</TableHead>
                 <TableHead>Fatura Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Data</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -161,10 +193,8 @@ export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdat
               {data.map((item: any) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-mono text-sm text-gray-600">{item.id}</TableCell>
-                  <TableCell>{item.expand?.forma_pagamento_id?.nome || 'N/A'}</TableCell>
-                  <TableCell className="font-medium text-gray-900">
-                    {item.moeda || 'USD'} {item.fatura_total?.toFixed(2)}
-                  </TableCell>
+                  <TableCell>{item.nome_agencia || 'Não informada'}</TableCell>
+                  <TableCell>{format(new Date(item.created), 'dd/MM/yyyy')}</TableCell>
                   <TableCell>
                     {user?.role === 'ADMIN' ? (
                       <Select
@@ -184,7 +214,10 @@ export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdat
                       <StatusBadge status={item.status} />
                     )}
                   </TableCell>
-                  <TableCell>{format(new Date(item.created), 'dd/MM/yyyy')}</TableCell>
+                  <TableCell>{item.expand?.forma_pagamento_id?.nome || 'N/A'}</TableCell>
+                  <TableCell className="font-medium text-gray-900">
+                    {item.moeda || 'USD'} {item.fatura_total?.toFixed(2)}
+                  </TableCell>
                   <TableCell>
                     <ActionsMenu item={item} />
                   </TableCell>
@@ -211,6 +244,46 @@ export function HistoricoList({ data, onDuplicate, onDelete, onDownload, onUpdat
               <strong>Data:</strong>{' '}
               <span className="block mt-1">
                 {viewItem?.created && format(new Date(viewItem.created), 'dd/MM/yyyy')}
+              </span>
+            </div>
+            <div className="col-span-2">
+              <strong>Agência:</strong>{' '}
+              <span className="block mt-1">
+                {isEditingAgencia ? (
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={editAgenciaName}
+                      onChange={(e) => setEditAgenciaName(e.target.value)}
+                      className="h-8 text-sm max-w-[200px]"
+                      placeholder="Nome da agência"
+                    />
+                    <Button size="sm" onClick={handleSaveAgencia}>
+                      Salvar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingAgencia(false)
+                        setEditAgenciaName(viewItem?.nome_agencia || '')
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 items-center">
+                    <span>{viewItem?.nome_agencia || 'Não informada'}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => setIsEditingAgencia(true)}
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
               </span>
             </div>
             <div>

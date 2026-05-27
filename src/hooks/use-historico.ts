@@ -9,7 +9,10 @@ export function useHistorico() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [searchId, setSearchId] = useState('')
+  const [searchAgencia, setSearchAgencia] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [dataInicio, setDataInicio] = useState<Date | undefined>(undefined)
+  const [dataFim, setDataFim] = useState<Date | undefined>(undefined)
 
   const fetchData = async () => {
     setLoading(true)
@@ -35,7 +38,27 @@ export function useHistorico() {
   const filteredData = data.filter((item) => {
     const matchId = searchId ? item.id.toLowerCase().includes(searchId.toLowerCase()) : true
     const matchStatus = statusFilter !== 'ALL' ? item.status === statusFilter : true
-    return matchId && matchStatus
+    const matchAgencia = searchAgencia
+      ? (item.nome_agencia || '').toLowerCase().includes(searchAgencia.toLowerCase())
+      : true
+
+    let matchDate = true
+    if (dataInicio || dataFim) {
+      const itemDate = new Date(item.created)
+      itemDate.setHours(0, 0, 0, 0)
+      if (dataInicio) {
+        const start = new Date(dataInicio)
+        start.setHours(0, 0, 0, 0)
+        if (itemDate < start) matchDate = false
+      }
+      if (dataFim) {
+        const end = new Date(dataFim)
+        end.setHours(23, 59, 59, 999)
+        if (itemDate > end) matchDate = false
+      }
+    }
+
+    return matchId && matchStatus && matchAgencia && matchDate
   })
 
   const duplicateCotacao = async (cotacao: any) => {
@@ -52,6 +75,7 @@ export function useHistorico() {
         preco_unitario_total: cotacao.preco_unitario_total,
         tipo_preco: cotacao.tipo_preco,
         moeda: cotacao.moeda,
+        nome_agencia: cotacao.nome_agencia,
         produtos:
           cotacao.expand?.cotacao_produtos_via_cotacao_id?.map((cp: any) => {
             const pid = cp.produto_id || cp.expand?.produto_id?.id
@@ -100,6 +124,17 @@ export function useHistorico() {
     }
   }
 
+  const updateAgencia = async (id: string, nomeAgencia: string) => {
+    try {
+      await pb.collection('cotacoes').update(id, { nome_agencia: nomeAgencia })
+      toast({ title: 'Sucesso', description: 'Agência atualizada com sucesso.' })
+      fetchData()
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao atualizar agência.' })
+      throw err
+    }
+  }
+
   const downloadPDF = (cotacao: any) => {
     const produtos_detalhes =
       cotacao.expand?.cotacao_produtos_via_cotacao_id?.map((cp: any) => ({
@@ -140,10 +175,17 @@ export function useHistorico() {
     fetchData,
     searchId,
     setSearchId,
+    searchAgencia,
+    setSearchAgencia,
     statusFilter,
     setStatusFilter,
+    dataInicio,
+    setDataInicio,
+    dataFim,
+    setDataFim,
     duplicateCotacao,
     deleteCotacao,
+    updateAgencia,
     downloadPDF,
   }
 }
