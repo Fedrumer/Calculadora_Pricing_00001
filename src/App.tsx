@@ -10,6 +10,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import { AuthProvider, useAuth, Role } from '@/hooks/use-auth'
 import Admin from './pages/Admin'
+import Coberturas from './pages/admin/Coberturas'
 import Forbidden from './pages/Forbidden'
 import { CotacaoProvider } from '@/stores/useCotacaoStore'
 
@@ -89,6 +90,14 @@ const App = () => (
               element={
                 <RequireRole role="ADMIN">
                   <Admin />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/admin/coberturas"
+              element={
+                <RequireRole role="ADMIN">
+                  <Coberturas />
                 </RequireRole>
               }
             />
