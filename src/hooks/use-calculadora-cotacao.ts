@@ -14,11 +14,6 @@ export function useCalculadoraCotacao(input: Partial<CalculoInput>): CotacaoStat
   })
 
   const currentInput = useMemo(() => {
-    console.log('[HOOK] useCalculadoraCotacao input.produtos state:', input.produtos)
-    if (input.produtos && input.produtos.length > 0) {
-      console.log('[HOOK] First product in hook:', input.produtos[0])
-      console.log('[HOOK] First product tipo_cobranca in hook:', input.produtos[0].tipo_cobranca)
-    }
     return input
   }, [
     input.produtos,

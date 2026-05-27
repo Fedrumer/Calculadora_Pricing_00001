@@ -9,68 +9,6 @@ export const fetchProdutos = async () => {
     method: 'GET',
   })
 
-  if (response && Array.isArray(response)) {
-    console.log(
-      `[API AUDIT] === RESPONSE VALIDATION === Total products received: ${response.length}`,
-    )
-    if (response.length > 0) {
-      const p = response[0]
-      console.log(`[API AUDIT] First Product ID: ${p.id}, Name: ${p.nome}`)
-      console.log('[API AUDIT] Product Keys:', Object.keys(p))
-
-      const tipoCobrancaValid = p.tipo_cobranca === 'anual' || p.tipo_cobranca === 'dia'
-      console.log(
-        `[API AUDIT] tipo_cobranca: value=${p.tipo_cobranca}, type=${typeof p.tipo_cobranca}, isValid=${tipoCobrancaValid}`,
-      )
-
-      console.log('[API AUDIT] precos_base_por_forma_pagamento:', p.precos_base_por_forma_pagamento)
-      if (p.precos_base_por_forma_pagamento) {
-        Object.entries(p.precos_base_por_forma_pagamento).forEach(([k, v]) => {
-          console.log(`[API AUDIT] - Payment Key: ${k}, Value: ${v}, Type: ${typeof v}`)
-        })
-      }
-
-      console.log('[API AUDIT] destinos:', p.destinos)
-      if (p.destinos) {
-        Object.entries(p.destinos).forEach(([k, v]: [string, any]) => {
-          console.log(
-            `[API AUDIT] - Destino Key: ${k}, agravo_percentual: ${v?.agravo_percentual}, Type: ${typeof v?.agravo_percentual}`,
-          )
-        })
-      }
-
-      console.log('[API AUDIT] faixas_etarias:', p.faixas_etarias)
-      if (p.faixas_etarias) {
-        Object.entries(p.faixas_etarias).forEach(([k, v]: [string, any]) => {
-          console.log(
-            `[API AUDIT] - Faixa Key: ${k}, fator_multiplicador: ${v?.fator_multiplicador}, Type: ${typeof v?.fator_multiplicador}`,
-          )
-        })
-      }
-
-      const hasRequired = !!(
-        p.id &&
-        p.nome &&
-        p.tipo_cobranca &&
-        p.precos_base_por_forma_pagamento &&
-        p.destinos &&
-        p.faixas_etarias
-      )
-      console.log(`[API AUDIT] Validation Summary - All required fields present: ${hasRequired}`)
-
-      if (!hasRequired) {
-        console.error('[API AUDIT] MISSING FIELDS DETECTED', {
-          id: !!p.id,
-          nome: !!p.nome,
-          tipo_cobranca: !!p.tipo_cobranca,
-          precos_base_por_forma_pagamento: !!p.precos_base_por_forma_pagamento,
-          destinos: !!p.destinos,
-          faixas_etarias: !!p.faixas_etarias,
-        })
-      }
-    }
-  }
-
   return response
 }
 

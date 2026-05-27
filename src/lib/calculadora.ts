@@ -52,53 +52,13 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
   const produtos_calculados = input.produtos.reduce<CotacaoState['produtos_calculados']>(
     (acc, produto) => {
       try {
-        console.log(
-          `[ENGINE] Processing product: ${produto.nome}, tipo_cobranca: ${produto.tipo_cobranca}`,
-        )
-
         const preco_net_base =
           produto.precos_base_por_forma_pagamento?.[input.forma_pagamento!] ?? 0
 
         const destinoData = produto.destinos?.[input.destino!]
         const agravo = destinoData?.agravo_percentual ?? 0
 
-        const faixaAte75Data = produto.faixas_etarias?.['ate_75']
-        const faixaDe76a85Data = produto.faixas_etarias?.['de_76_a_85']
-
-        console.log(
-          `[API AUDIT] Product ${produto.id} (${produto.nome}) faixas_etarias:`,
-          JSON.stringify(produto.faixas_etarias),
-        )
-
-        console.log(`[CALC VALIDATION] Product Name: ${produto.nome}`)
-        console.log(`[CALC VALIDATION] tipo_cobranca: ${produto.tipo_cobranca}`)
-        console.log(`[CALC VALIDATION] preco_net_base: ${preco_net_base}`)
-        console.log(`[CALC VALIDATION] destinoData:`, destinoData, `agravo_percentual: ${agravo}`)
-        console.log(
-          `[CALC VALIDATION] faixa_ate_75:`,
-          faixaAte75Data,
-          `fator_multiplicador: ${faixaAte75Data?.fator_multiplicador}`,
-        )
-        console.log(
-          `[CALC VALIDATION] faixa_de_76_a_85:`,
-          faixaDe76a85Data,
-          `fator_multiplicador: ${faixaDe76a85Data?.fator_multiplicador}`,
-        )
-
-        if (produto.precos_base_por_forma_pagamento?.[input.forma_pagamento!] === undefined) {
-          console.warn(
-            `Preço base não encontrado para a forma de pagamento ${input.forma_pagamento} no produto ${produto.id}. Usando 0.`,
-          )
-        }
-
         const preco_bruto = isGross ? preco_net_base / (1 - comissao) : preco_net_base
-
-        if (!destinoData) {
-          console.warn(
-            `Destino ${input.destino} não encontrado para o produto ${produto.id}. Usando agravo 0.`,
-          )
-        }
-
         const tipoCobranca = produto.tipo_cobranca || 'dia'
 
         const calcFaixa = (faixa: FaixaEtariaId, qtd: number) => {
@@ -108,16 +68,19 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
           }
 
           const faixaData = produto.faixas_etarias?.[faixa]
-          if (faixaData?.fator_multiplicador === null && qtd > 0) {
-            console.warn(
-              `Faixa etária ${faixa} não possui fator_multiplicador definido no banco para o produto ${produto.id}. Usando fallback 1.0.`,
-            )
-          } else if (!faixaData && qtd > 0) {
-            console.warn(
-              `Faixa etária ${faixa} não encontrada para o produto ${produto.id}. Usando fator multiplicador 1.0.`,
-            )
+
+          if (
+            faixaData?.fator_multiplicador === null ||
+            faixaData?.fator_multiplicador === undefined
+          ) {
+            return {
+              preco_unitario: 0,
+              preco_total: 0,
+              quantidade: qtd,
+            }
           }
-          const fator = faixaData?.fator_multiplicador ?? 1.0
+
+          const fator = faixaData.fator_multiplicador
 
           const preco_dia = preco_bruto * (1 + agravo) * fator
           const preco_faixa = preco_dia * diasParaEstaFaixa * qtd
@@ -141,7 +104,7 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
           preco_total_produto: breakdown.ate_75.preco_total + breakdown.de_76_a_85.preco_total,
         })
       } catch (err) {
-        console.error(`[CALC VALIDATION] Error processing product: ${produto.id}`, err)
+        console.error(`Error processing product: ${produto.id}`, err)
       }
 
       return acc

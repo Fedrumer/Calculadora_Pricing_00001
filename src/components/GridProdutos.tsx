@@ -44,15 +44,6 @@ export function GridProdutos({
   isError = false,
   onRetry,
 }: GridProdutosProps) {
-  console.log('[COMPONENT] GridProdutos received produtos:', produtos)
-  if (produtos && produtos.length > 0) {
-    console.log('[COMPONENT] First product in GridProdutos:', produtos[0])
-    console.log(
-      '[COMPONENT] First product tipo_cobranca in GridProdutos:',
-      produtos[0].tipo_cobranca,
-    )
-  }
-
   const { input: storeInput } = useCotacaoStore()
 
   const produtosFiltrados = useMemo(() => {
@@ -227,8 +218,10 @@ export function GridProdutos({
                 </div>
 
                 {(() => {
-                  const hasAte75 = (prodCalc.breakdown['ate_75']?.preco_total || 0) > 0
-                  const has76a85 = (prodCalc.breakdown['de_76_a_85']?.preco_total || 0) > 0
+                  const hasAte75 =
+                    qtdAte75 > 0 && (prodCalc.breakdown['ate_75']?.preco_unitario || 0) > 0
+                  const has76a85 =
+                    qtd76a85 > 0 && (prodCalc.breakdown['de_76_a_85']?.preco_unitario || 0) > 0
 
                   if (!hasAte75 && !has76a85) {
                     return (
