@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Edit, Trash, Plus } from 'lucide-react'
+import { Edit, Trash, Plus, ShieldAlert } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export function ProdutosTab() {
   const { data, loading, create, update, remove } = useAdmin('produtos')
@@ -86,10 +87,25 @@ export function ProdutosTab() {
                   />
                 </TableCell>
                 <TableCell className="flex gap-2 justify-end">
-                  <Button variant="ghost" size="icon" onClick={() => handleOpen(item)}>
+                  <Button variant="ghost" size="icon" asChild title="Gerenciar Coberturas">
+                    <Link to={`/admin/produtos/${item.id}/coberturas`}>
+                      <ShieldAlert className="w-4 h-4 text-purple-600" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleOpen(item)}
+                    title="Editar Produto"
+                  >
                     <Edit className="w-4 h-4 text-blue-600" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => remove(item.id)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => remove(item.id)}
+                    title="Excluir Produto"
+                  >
                     <Trash className="w-4 h-4 text-red-500" />
                   </Button>
                 </TableCell>
