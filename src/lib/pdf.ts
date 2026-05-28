@@ -30,17 +30,12 @@ class PDFBuilder {
     const str = String(text)
     for (let i = 0; i < str.length; i++) {
       const code = str.charCodeAt(i)
-      if (code === 40)
-        result += '\\(' // Escape '('
-      else if (code === 41)
-        result += '\\)' // Escape ')'
-      else if (code === 92)
-        result += '\\\\' // Escape '\'
+      if (code === 40) result += '\\('
+      else if (code === 41) result += '\\)'
+      else if (code === 92) result += '\\\\'
       else if (code > 127 && code < 256) {
-        // Encode extended ascii to octal to avoid UTF-8 mismatch via Blob
         result += '\\' + code.toString(8).padStart(3, '0')
       } else if (code >= 256) {
-        // Strip unicode outside WinAnsi
         result += '?'
       } else {
         result += str[i]
@@ -66,12 +61,28 @@ class PDFBuilder {
     )
   }
 
-  addRect(x: number, y: number, w: number, h: number, r = 0, g = 0, b = 0, fill = false) {
+  addRect(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    r = 0,
+    g = 0,
+    b = 0,
+    fill = false,
+    lineWidth = 1,
+  ) {
     if (this.pages.length === 0) this.addPage()
     const op = fill ? 'f' : 'S'
-    this.pages[this.pages.length - 1].push(
-      `${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} RG ${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} rg ${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re ${op} 0 0 0 RG 0 0 0 rg`,
-    )
+    const cmds = [
+      `${lineWidth.toFixed(2)} w`,
+      `${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} RG`,
+      `${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} rg`,
+      `${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re`,
+      op,
+      `1 w 0 0 0 RG 0 0 0 rg`,
+    ]
+    this.pages[this.pages.length - 1].push(cmds.join(' '))
   }
 
   addLine(x1: number, y1: number, x2: number, y2: number, r = 0, g = 0, b = 0, lineWidth = 1) {
@@ -79,6 +90,49 @@ class PDFBuilder {
     this.pages[this.pages.length - 1].push(
       `${lineWidth.toFixed(2)} w ${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} RG ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S 1 w 0 0 0 RG`,
     )
+  }
+
+  addRoundedRect(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    r: number,
+    rL = 0,
+    gL = 0,
+    bL = 0,
+    rF = 1,
+    gF = 1,
+    bF = 1,
+    fill = false,
+    stroke = true,
+  ) {
+    if (this.pages.length === 0) this.addPage()
+    const op = fill && stroke ? 'B' : fill ? 'f' : stroke ? 'S' : 'n'
+    const kappa = 0.552284749831 * r
+    const cmds = [
+      `0.75 w`,
+      `${rL.toFixed(2)} ${gL.toFixed(2)} ${bL.toFixed(2)} RG`,
+      `${rF.toFixed(2)} ${gF.toFixed(2)} ${bF.toFixed(2)} rg`,
+      `${(x + r).toFixed(2)} ${y.toFixed(2)} m`,
+      `${(x + w - r).toFixed(2)} ${y.toFixed(2)} l`,
+      `${(x + w - r + kappa).toFixed(2)} ${y.toFixed(2)} ${(x + w).toFixed(2)} ${(y + r - kappa).toFixed(2)} ${(x + w).toFixed(2)} ${(y + r).toFixed(2)} c`,
+      `${(x + w).toFixed(2)} ${(y + h - r).toFixed(2)} l`,
+      `${(x + w).toFixed(2)} ${(y + h - r + kappa).toFixed(2)} ${(x + w - r + kappa).toFixed(2)} ${(y + h).toFixed(2)} ${(x + w - r).toFixed(2)} ${(y + h).toFixed(2)} c`,
+      `${(x + r).toFixed(2)} ${(y + h).toFixed(2)} l`,
+      `${(x + r - kappa).toFixed(2)} ${(y + h).toFixed(2)} ${x.toFixed(2)} ${(y + h - r + kappa).toFixed(2)} ${x.toFixed(2)} ${(y + h - r).toFixed(2)} c`,
+      `${x.toFixed(2)} ${(y + r).toFixed(2)} l`,
+      `${x.toFixed(2)} ${(y + r - kappa).toFixed(2)} ${(x + r - kappa).toFixed(2)} ${y.toFixed(2)} ${(x + r).toFixed(2)} ${y.toFixed(2)} c`,
+      `h`,
+      op,
+      `1 w 0 0 0 RG 0 0 0 rg`,
+    ]
+    this.pages[this.pages.length - 1].push(cmds.join(' '))
+  }
+
+  addShadow(x: number, y: number, w: number, h: number, r: number) {
+    this.addRoundedRect(x, y - 1.5, w, h, r, 0, 0, 0, 0.92, 0.92, 0.92, true, false)
+    this.addRoundedRect(x, y - 3, w, h, r, 0, 0, 0, 0.96, 0.96, 0.96, true, false)
   }
 
   build(): Blob {
@@ -109,11 +163,11 @@ class PDFBuilder {
 
     for (let i = 0; i < numPages; i++) {
       const streamContent = this.pages[i]?.join('\n') || ''
-      const streamLen = new Blob([streamContent]).size // count accurate bytes
+      const streamLen = new Blob([streamContent]).size
       const contentObjIdx = pageObjectsStartIndex + i * 2 + 1
 
       addObj(
-        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents ${contentObjIdx} 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> >>`,
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents ${contentObjIdx} 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> >>`,
       )
       addObj(`<< /Length ${streamLen} >>\nstream\n${streamContent}\nendstream`)
     }
@@ -130,123 +184,187 @@ class PDFBuilder {
 
 export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetalhePDF[]): Blob {
   const pdf = new PDFBuilder()
-  const PAGE_W = 595
-  const PAGE_H = 842
-  const MARGIN = 57 // ~20mm
-  const HEADER_Y = PAGE_H - MARGIN
-  const FOOTER_Y = 40
+  const PAGE_W = 595.28
+  const PAGE_H = 841.89
+  const MARGIN = 56.7 // 20mm
 
-  const COL_WIDTH = 230
-  const COL_GAP = 21
-  const ROW_HEIGHT = 340
-  const ROW_GAP = 20
-
-  const startX = MARGIN
-  const startY = HEADER_Y - 40 // ~745
+  const CARD_W = 255.1 // 90mm
+  const CARD_GAP = 17 // 6mm
+  const PADDING = 34 // 12mm
 
   const truncate = (str: string, len: number) =>
     str.length > len ? str.substring(0, len - 3) + '...' : str
 
-  const totalPages = Math.ceil(Math.max(1, produtos.length) / 4)
+  const cards = produtos.map((prod) => {
+    const headerH = 14 + 4 + 10 + 8 + 16
+    const padB = 17
+    const margB = 22.7
+    const spacing = headerH + padB + margB
 
-  for (let page = 0; page < totalPages; page++) {
-    pdf.addPage()
+    const limit = 39
+    const hasMore = prod.coberturas.length > limit
+    const showCount = hasMore ? limit - 1 : Math.min(prod.coberturas.length, limit)
+    const tableRows = showCount + (hasMore ? 1 : 0)
 
-    // Header
-    const dataFormatada = cotacao.created
-      ? new Date(cotacao.created).toLocaleDateString('pt-BR')
-      : new Date().toLocaleDateString('pt-BR')
-    const headerText = `Cotação ${cotacao.id} | Data: ${dataFormatada} | Agência: ${cotacao.nome_agencia || 'N/A'}`
-    pdf.addText(headerText, MARGIN, HEADER_Y, 10, 'F2', 0.2, 0.2, 0.2)
-    pdf.addLine(MARGIN, HEADER_Y - 10, PAGE_W - MARGIN, HEADER_Y - 10, 0.8, 0.8, 0.8)
+    const tableH = 17 + tableRows * 17
+    const h = PADDING * 2 + spacing + tableH
+    return { prod, h, showCount, hasMore, tableRows }
+  })
 
-    // Footer
-    pdf.addLine(MARGIN, FOOTER_Y + 15, PAGE_W - MARGIN, FOOTER_Y + 15, 0.8, 0.8, 0.8)
-    pdf.addText(
-      `Página ${page + 1} de ${totalPages} | Now Assistance`,
-      MARGIN,
-      FOOTER_Y,
-      9,
-      'F1',
-      0.4,
-      0.4,
-      0.4,
-    )
+  const pages: any[][] = []
+  let currentPageCards: any[] = []
+  let cardsOnPage = 0
+  let currentY = PAGE_H - MARGIN - 40
 
-    // 2x2 Grid setup
-    const prodsPage = produtos.slice(page * 4, page * 4 + 4)
+  let i = 0
+  while (i < cards.length) {
+    const c1 = cards[i]
+    let c2 = null
+    let rowH = c1.h
 
-    prodsPage.forEach((prod, i) => {
-      const col = i % 2
-      const row = Math.floor(i / 2)
+    const isLeft = cardsOnPage % 2 === 0
+    if (isLeft && i + 1 < cards.length && cardsOnPage + 1 < 4) {
+      c2 = cards[i + 1]
+      rowH = Math.max(c1.h, c2.h)
+    }
 
-      const x = startX + col * (COL_WIDTH + COL_GAP)
-      const yTop = startY - row * (ROW_HEIGHT + ROW_GAP)
+    if ((cardsOnPage >= 4 || currentY - rowH < MARGIN + 20) && cardsOnPage > 0) {
+      pages.push(currentPageCards)
+      currentPageCards = []
+      cardsOnPage = 0
+      currentY = PAGE_H - MARGIN - 40
+      continue
+    }
 
-      // Card Container
-      pdf.addRect(x - 5, yTop - ROW_HEIGHT + 5, COL_WIDTH + 10, ROW_HEIGHT, 0.9, 0.9, 0.9)
+    currentPageCards.push({ card: c1, col: isLeft ? 0 : 1, yTop: currentY, rowH })
+    cardsOnPage++
+    i++
 
-      // Card Info
-      pdf.addText(truncate(prod.produto_nome, 35), x, yTop - 15, 12, 'F2')
-      pdf.addText(
-        `Cobrança: ${prod.tipo_cobranca === 'anual' ? 'Anual' : 'Dia'}`,
-        x,
-        yTop - 28,
-        9,
-        'F1',
-        0.4,
-        0.4,
-        0.4,
-      )
-      pdf.addText(
-        `${cotacao.moeda || 'USD'} ${prod.preco_total_produto.toFixed(2)}`,
-        x,
-        yTop - 50,
-        16,
-        'F2',
-        0.1,
-        0.5,
-        0.2,
-      )
+    if (c2) {
+      currentPageCards.push({ card: c2, col: 1, yTop: currentY, rowH })
+      cardsOnPage++
+      i++
+    }
 
-      // Table Header
-      const thY = yTop - 75
-      pdf.addRect(x, thY - 5, COL_WIDTH, 14, 0.95, 0.95, 0.95, true)
-      pdf.addText('Cobertura', x + 5, thY, 7, 'F2')
-      pdf.addText('Valor', x + COL_WIDTH - 50, thY, 7, 'F2')
-
-      // Table Rows (Max 39 to fit inside card layout)
-      const maxRows = 39
-      const hasMore = prod.coberturas.length > maxRows
-      const showCount = hasMore ? maxRows - 1 : Math.min(prod.coberturas.length, maxRows)
-
-      for (let j = 0; j < showCount; j++) {
-        const cob = prod.coberturas[j]
-        const rowY = thY - 12 - j * 6.5
-
-        pdf.addText(truncate(cob.nome, 50), x + 5, rowY, 5.5, 'F1')
-        pdf.addText(truncate(cob.valor, 15), x + COL_WIDTH - 50, rowY, 5.5, 'F1')
-        pdf.addLine(x, rowY - 1.5, x + COL_WIDTH, rowY - 1.5, 0.95, 0.95, 0.95, 0.5)
-      }
-
-      // Truncation row if items exceed capacity
-      if (hasMore) {
-        const rowY = thY - 12 - showCount * 6.5
-        const restantes = prod.coberturas.length - showCount
-        pdf.addText(`... e mais ${restantes} coberturas`, x + 5, rowY, 5.5, 'F2', 0.5, 0.5, 0.5)
-      }
-    })
+    currentY -= rowH + CARD_GAP
+  }
+  if (currentPageCards.length > 0) {
+    pages.push(currentPageCards)
   }
 
-  // Fallback if no products
-  if (produtos.length === 0) {
+  if (pages.length === 0) {
     pdf.addPage()
     const dataFormatada = cotacao.created
       ? new Date(cotacao.created).toLocaleDateString('pt-BR')
       : new Date().toLocaleDateString('pt-BR')
     const headerText = `Cotação ${cotacao.id} | Data: ${dataFormatada} | Agência: ${cotacao.nome_agencia || 'N/A'}`
-    pdf.addText(headerText, MARGIN, HEADER_Y, 10, 'F2', 0.2, 0.2, 0.2)
-    pdf.addText('Nenhum produto selecionado na cotação.', MARGIN, HEADER_Y - 40, 12, 'F1')
+    pdf.addText(headerText, MARGIN, PAGE_H - MARGIN, 10, 'F2', 0.2, 0.2, 0.2)
+    pdf.addText('Nenhum produto selecionado na cotação.', MARGIN, PAGE_H - MARGIN - 40, 12, 'F1')
+    return pdf.build()
+  }
+
+  for (let p = 0; p < pages.length; p++) {
+    pdf.addPage()
+    const pageItems = pages[p]
+
+    const dataFormatada = cotacao.created
+      ? new Date(cotacao.created).toLocaleDateString('pt-BR')
+      : new Date().toLocaleDateString('pt-BR')
+    const headerText = `Cotação ${cotacao.id} | Data: ${dataFormatada} | Agência: ${cotacao.nome_agencia || 'N/A'}`
+    pdf.addText(headerText, MARGIN, PAGE_H - MARGIN, 10, 'F2', 0.2, 0.2, 0.2)
+    pdf.addLine(MARGIN, PAGE_H - MARGIN - 10, PAGE_W - MARGIN, PAGE_H - MARGIN - 10, 0.8, 0.8, 0.8)
+
+    const footerText = `Página ${p + 1} de ${pages.length} | Now Assistance`
+    const footerWidth = footerText.length * 4.2
+    const footerX = (PAGE_W - footerWidth) / 2
+    pdf.addLine(MARGIN, MARGIN, PAGE_W - MARGIN, MARGIN, 0.8, 0.8, 0.8)
+    pdf.addText(footerText, footerX, MARGIN - 15, 8, 'F1', 0.4, 0.4, 0.4)
+
+    for (const item of pageItems) {
+      const x = MARGIN + item.col * (CARD_W + CARD_GAP)
+      const yBot = item.yTop - item.rowH
+
+      pdf.addShadow(x, yBot, CARD_W, item.rowH, 3)
+      pdf.addRoundedRect(x, yBot, CARD_W, item.rowH, 3, 0.8, 0.8, 0.8, 1, 1, 1, true, true)
+
+      const yStart = item.yTop - PADDING
+      pdf.addText(
+        truncate(item.card.prod.produto_nome, 32),
+        x + PADDING,
+        yStart - 14,
+        14,
+        'F2',
+        0.1,
+        0.1,
+        0.1,
+      )
+
+      const tipo = item.card.prod.tipo_cobranca === 'anual' ? 'Anual' : 'Por Dia'
+      pdf.addText(`Cobrança: ${tipo}`, x + PADDING, yStart - 28, 10, 'F1', 0.4, 0.4, 0.4)
+
+      pdf.addText(
+        `${cotacao.moeda || 'USD'} ${item.card.prod.preco_total_produto.toFixed(2)}`,
+        x + PADDING,
+        yStart - 52,
+        16,
+        'F2',
+        0.05,
+        0.4,
+        0.8,
+      )
+
+      const yLine = yStart - 69
+      pdf.addLine(x + PADDING, yLine, x + CARD_W - PADDING, yLine, 0.9, 0.9, 0.9, 0.5)
+
+      const yTable = yStart - 91.7
+      pdf.addRect(x + PADDING, yTable - 17, CARD_W - 2 * PADDING, 17, 0.95, 0.95, 0.95, true)
+
+      const col2X = x + PADDING + 112.3
+      pdf.addText('Cobertura', x + PADDING + 11.3, yTable - 11.5, 9, 'F2', 0.2, 0.2, 0.2)
+      pdf.addText('Valor', col2X + 11.3, yTable - 11.5, 9, 'F2', 0.2, 0.2, 0.2)
+
+      for (let j = 0; j < item.card.showCount; j++) {
+        const cob = item.card.prod.coberturas[j]
+        const rY = yTable - 17 - (j + 1) * 17
+        if (j % 2 === 0) {
+          pdf.addRect(x + PADDING, rY, CARD_W - 2 * PADDING, 17, 0.98, 0.98, 0.98, true)
+        }
+        pdf.addText(truncate(cob.nome, 26), x + PADDING + 11.3, rY + 5.5, 9, 'F1', 0.2, 0.2, 0.2)
+        pdf.addText(truncate(cob.valor, 16), col2X + 11.3, rY + 5.5, 9, 'F1', 0.2, 0.2, 0.2)
+      }
+
+      if (item.card.hasMore) {
+        const rY = yTable - 17 - (item.card.showCount + 1) * 17
+        pdf.addText(
+          `... e mais ${item.card.prod.coberturas.length - item.card.showCount} coberturas`,
+          x + PADDING + 11.3,
+          rY + 5.5,
+          9,
+          'F2',
+          0.5,
+          0.5,
+          0.5,
+        )
+      }
+
+      const tableH = 17 + item.card.tableRows * 17
+      pdf.addRect(
+        x + PADDING,
+        yTable - tableH,
+        CARD_W - 2 * PADDING,
+        tableH,
+        0.85,
+        0.85,
+        0.85,
+        false,
+        0.5,
+      )
+      pdf.addLine(col2X, yTable, col2X, yTable - tableH, 0.85, 0.85, 0.85, 0.5)
+      for (let r = 1; r < item.card.tableRows + 1; r++) {
+        const rowY = yTable - r * 17
+        pdf.addLine(x + PADDING, rowY, x + CARD_W - PADDING, rowY, 0.85, 0.85, 0.85, 0.5)
+      }
+    }
   }
 
   return pdf.build()
