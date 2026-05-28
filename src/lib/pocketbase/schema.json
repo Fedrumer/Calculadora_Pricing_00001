@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T01:39:00.274Z",
+  "generatedAt": "2026-05-28T02:09:22.133Z",
   "collections": [
     {
       "name": "users",
@@ -672,7 +672,7 @@
         {
           "name": "valor",
           "type": "text",
-          "required": true,
+          "required": false,
           "system": false
         },
         {
@@ -710,8 +710,8 @@
       ],
       "indexes": [
         "CREATE UNIQUE INDEX idx_produto_coberturas_unique ON produto_coberturas (produto_id, cobertura_id)",
-        "CREATE INDEX idx_produto_coberturas_produto_id ON produto_coberturas (produto_id)",
-        "CREATE INDEX idx_produto_coberturas_cobertura_id ON produto_coberturas (cobertura_id)"
+        "CREATE INDEX idx_produto_coberturas_produto ON produto_coberturas (produto_id)",
+        "CREATE INDEX idx_produto_coberturas_cobertura ON produto_coberturas (cobertura_id)"
       ]
     }
   ]
