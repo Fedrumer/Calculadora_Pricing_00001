@@ -135,37 +135,64 @@ export function useHistorico() {
     }
   }
 
-  const downloadPDF = (cotacao: any) => {
-    const produtos_detalhes =
-      cotacao.expand?.cotacao_produtos_via_cotacao_id?.map((cp: any) => ({
-        produto_nome: cp.expand?.produto_id?.nome || 'Produto',
-        qtd_ate_75: cp.qtd_ate_75,
-        qtd_76_a_85: cp.qtd_76_a_85,
-        preco_total_produto: cp.preco_total_produto,
-        detalhes:
-          cp.expand?.cotacao_produto_detalhes_via_cotacao_produto_id?.map((det: any) => ({
-            destino_nome: det.destino_codigo,
-            faixa_etaria: det.faixa_etaria,
-            preco_unitario_dia: det.preco_unitario_dia,
-            preco_total_faixa: det.preco_total_faixa,
-          })) || [],
-      })) || []
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
-    const blob = gerarPDFProposta(
-      {
-        ...cotacao,
-        fatura_total: cotacao.fatura_total || 0,
-        moeda: cotacao.moeda || 'USD',
-        forma_pagamento: cotacao.expand?.forma_pagamento_id?.nome,
-      },
-      produtos_detalhes,
-    )
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `proposta_${cotacao.id}_${new Date().toISOString().split('T')[0]}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
+  const downloadPDF = async (cotacao: any) => {
+    if (isGeneratingPdf) return
+    setIsGeneratingPdf(true)
+    toast({ title: 'Gerando PDF...', description: 'Buscando detalhes dos produtos e coberturas.' })
+    try {
+      const produtosList = cotacao.expand?.cotacao_produtos_via_cotacao_id || []
+      const produtos_detalhes = await Promise.all(
+        produtosList.map(async (cp: any) => {
+          const produto = cp.expand?.produto_id
+          if (!produto) return null
+
+          const cobRes = await pb.collection('produto_coberturas').getFullList({
+            filter: `produto_id = "${produto.id}" && ativo = true`,
+            expand: 'cobertura_id',
+            sort: 'ordem_exibicao',
+          })
+
+          return {
+            produto_nome: produto.nome,
+            tipo_cobranca: produto.tipo_cobranca,
+            preco_total_produto: cp.preco_total_produto,
+            coberturas: cobRes.map((c: any) => ({
+              nome: c.expand?.cobertura_id?.nome || 'Desconhecida',
+              valor: c.valor || 'Incluído',
+            })),
+          }
+        }),
+      )
+
+      const validProdutos = produtos_detalhes.filter(Boolean) as any[]
+
+      const blob = gerarPDFProposta(
+        {
+          id: cotacao.id,
+          nome_agencia: cotacao.nome_agencia,
+          created: cotacao.created,
+          fatura_total: cotacao.fatura_total || 0,
+          moeda: cotacao.moeda || 'USD',
+          forma_pagamento: cotacao.expand?.forma_pagamento_id?.nome,
+        },
+        validProdutos,
+      )
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `proposta_${cotacao.id}_${new Date().toISOString().split('T')[0]}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível gerar o PDF' })
+    } finally {
+      setIsGeneratingPdf(false)
+    }
   }
 
   return {
@@ -187,5 +214,6 @@ export function useHistorico() {
     deleteCotacao,
     updateAgencia,
     downloadPDF,
+    isGeneratingPdf,
   }
 }

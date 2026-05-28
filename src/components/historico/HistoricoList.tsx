@@ -58,6 +58,7 @@ export function HistoricoList({
   onDownload,
   onUpdate,
   onUpdateAgencia,
+  isGeneratingPdf,
 }: any) {
   const isMobile = useIsMobile()
   const [viewItem, setViewItem] = useState<any>(null)
@@ -106,8 +107,8 @@ export function HistoricoList({
         <DropdownMenuItem onClick={() => openViewModal(item)}>
           <Eye className="w-4 h-4 mr-2" /> Visualizar
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onDownload(item)}>
-          <FileText className="w-4 h-4 mr-2" /> Baixar PDF
+        <DropdownMenuItem onClick={() => onDownload(item)} disabled={isGeneratingPdf}>
+          <FileText className="w-4 h-4 mr-2" /> {isGeneratingPdf ? 'Gerando...' : 'Baixar PDF'}
         </DropdownMenuItem>
         {item.status === 'RASCUNHO' && (
           <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'PROPOSTA_ENVIADA')}>
@@ -348,12 +349,13 @@ export function HistoricoList({
               Fechar
             </Button>
             <Button
+              disabled={isGeneratingPdf}
               onClick={() => {
                 onDownload(viewItem)
                 setViewItem(null)
               }}
             >
-              Baixar PDF
+              {isGeneratingPdf ? 'Gerando...' : 'Baixar PDF'}
             </Button>
           </DialogFooter>
         </DialogContent>
