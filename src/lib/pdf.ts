@@ -1,3 +1,5 @@
+import pb from '@/lib/pocketbase/client'
+
 export interface CotacaoPDFData {
   id: string
   nome_agencia?: string
@@ -25,7 +27,7 @@ class PDFBuilder {
   }
 
   escapeText(text: string): string {
-    if (!text) return ''
+    if (text == null) return ''
     let result = ''
     const str = String(text)
     for (let i = 0; i < str.length; i++) {
@@ -33,10 +35,8 @@ class PDFBuilder {
       if (code === 40) result += '\\('
       else if (code === 41) result += '\\)'
       else if (code === 92) result += '\\\\'
-      else if (code > 127 && code < 256) {
+      else if (code > 127) {
         result += '\\' + code.toString(8).padStart(3, '0')
-      } else if (code >= 256) {
-        result += '?'
       } else {
         result += str[i]
       }
@@ -144,7 +144,8 @@ class PDFBuilder {
 
     const addObj = (content: string) => {
       xref.push(currentOffset)
-      const obj = `${xref.length + 1} 0 obj\n${content}\nendobj\n`
+      const objId = xref.length
+      const obj = `${objId} 0 obj\n${content}\nendobj\n`
       objects.push(obj)
       currentOffset += obj.length
     }
@@ -163,7 +164,7 @@ class PDFBuilder {
 
     for (let i = 0; i < numPages; i++) {
       const streamContent = this.pages[i]?.join('\n') || ''
-      const streamLen = new Blob([streamContent]).size
+      const streamLen = streamContent.length
       const contentObjIdx = pageObjectsStartIndex + i * 2 + 1
 
       addObj(
@@ -173,10 +174,10 @@ class PDFBuilder {
     }
 
     const xrefData =
-      `xref\n0 ${xref.length + 1}\n0000000000 65535 f \n` +
-      xref.map((off) => `${off.toString().padStart(10, '0')} 00000 n \n`).join('')
+      `xref\n0 ${xref.length + 1}\n0000000000 65535 f \r\n` +
+      xref.map((off) => `${off.toString().padStart(10, '0')} 00000 n \r\n`).join('')
 
-    const trailer = `trailer\n<< /Size ${xref.length + 1} /Root 1 0 R >>\nstartxref\n${currentOffset}\n%%EOF`
+    const trailer = `trailer\n<< /Size ${xref.length + 1} /Root 1 0 R >>\nstartxref\n${currentOffset}\n%%EOF\n`
 
     return new Blob([header + objects.join('') + xrefData + trailer], { type: 'application/pdf' })
   }
@@ -196,18 +197,19 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
     str.length > len ? str.substring(0, len - 3) + '...' : str
 
   const cards = produtos.map((prod) => {
-    const headerH = 14 + 4 + 10 + 8 + 16
-    const padB = 17
-    const margB = 22.7
-    const spacing = headerH + padB + margB
-
     const limit = 39
     const hasMore = prod.coberturas.length > limit
     const showCount = hasMore ? limit - 1 : Math.min(prod.coberturas.length, limit)
     const tableRows = showCount + (hasMore ? 1 : 0)
 
+    const headerH = 14 + 4 + 10 + 14 + 16
+    const padB = 17
+    const margB = 22.7
+    const separation = padB + margB + 1
+
     const tableH = 17 + tableRows * 17
-    const h = PADDING * 2 + spacing + tableH
+    const h = PADDING * 2 + headerH + separation + tableH
+
     return { prod, h, showCount, hasMore, tableRows }
   })
 
@@ -236,7 +238,7 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
       continue
     }
 
-    currentPageCards.push({ card: c1, col: isLeft ? 0 : 1, yTop: currentY, rowH })
+    currentPageCards.push({ card: c1, col: 0, yTop: currentY, rowH })
     cardsOnPage++
     i++
 
@@ -284,88 +286,154 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
       const x = MARGIN + item.col * (CARD_W + CARD_GAP)
       const yBot = item.yTop - item.rowH
 
-      pdf.addShadow(x, yBot, CARD_W, item.rowH, 3)
-      pdf.addRoundedRect(x, yBot, CARD_W, item.rowH, 3, 0.8, 0.8, 0.8, 1, 1, 1, true, true)
+      pdf.addShadow(x, yBot, CARD_W, item.rowH, 4)
+      pdf.addRoundedRect(x, yBot, CARD_W, item.rowH, 4, 0.9, 0.9, 0.9, 1, 1, 1, true, true)
 
-      const yStart = item.yTop - PADDING
+      let currentTextY = item.yTop - PADDING
+
       pdf.addText(
         truncate(item.card.prod.produto_nome, 32),
         x + PADDING,
-        yStart - 14,
+        currentTextY - 14,
         14,
         'F2',
         0.1,
         0.1,
         0.1,
       )
+      currentTextY -= 14 + 4
 
       const tipo = item.card.prod.tipo_cobranca === 'anual' ? 'Anual' : 'Por Dia'
-      pdf.addText(`Cobrança: ${tipo}`, x + PADDING, yStart - 28, 10, 'F1', 0.4, 0.4, 0.4)
+      pdf.addText(`Cobrança: ${tipo}`, x + PADDING, currentTextY - 10, 10, 'F1', 0.4, 0.4, 0.4)
+      currentTextY -= 10 + 14
 
       pdf.addText(
         `${cotacao.moeda || 'USD'} ${item.card.prod.preco_total_produto.toFixed(2)}`,
         x + PADDING,
-        yStart - 52,
+        currentTextY - 16,
         16,
         'F2',
-        0.05,
+        0.0,
         0.4,
         0.8,
       )
+      currentTextY -= 16 + 17
 
-      const yLine = yStart - 69
-      pdf.addLine(x + PADDING, yLine, x + CARD_W - PADDING, yLine, 0.9, 0.9, 0.9, 0.5)
+      pdf.addLine(x + PADDING, currentTextY, x + CARD_W - PADDING, currentTextY, 0.9, 0.9, 0.9, 1)
+      currentTextY -= 22.7
 
-      const yTable = yStart - 91.7
-      pdf.addRect(x + PADDING, yTable - 17, CARD_W - 2 * PADDING, 17, 0.95, 0.95, 0.95, true)
+      const tableW = CARD_W - 2 * PADDING
+      pdf.addRect(x + PADDING, currentTextY - 17, tableW, 17, 0.96, 0.96, 0.96, true)
 
-      const col2X = x + PADDING + 112.3
-      pdf.addText('Cobertura', x + PADDING + 11.3, yTable - 11.5, 9, 'F2', 0.2, 0.2, 0.2)
-      pdf.addText('Valor', col2X + 11.3, yTable - 11.5, 9, 'F2', 0.2, 0.2, 0.2)
+      const col1W = tableW * 0.6
+      const col2X = x + PADDING + col1W
+
+      pdf.addText('Cobertura', x + PADDING + 11.3, currentTextY - 11.5, 9, 'F2', 0.2, 0.2, 0.2)
+      pdf.addText('Valor', col2X + 11.3, currentTextY - 11.5, 9, 'F2', 0.2, 0.2, 0.2)
+
+      let rowY = currentTextY - 17
 
       for (let j = 0; j < item.card.showCount; j++) {
         const cob = item.card.prod.coberturas[j]
-        const rY = yTable - 17 - (j + 1) * 17
         if (j % 2 === 0) {
-          pdf.addRect(x + PADDING, rY, CARD_W - 2 * PADDING, 17, 0.98, 0.98, 0.98, true)
+          pdf.addRect(x + PADDING, rowY - 17, tableW, 17, 1, 1, 1, true)
+        } else {
+          pdf.addRect(x + PADDING, rowY - 17, tableW, 17, 0.95, 0.95, 0.95, true)
         }
-        pdf.addText(truncate(cob.nome, 26), x + PADDING + 11.3, rY + 5.5, 9, 'F1', 0.2, 0.2, 0.2)
-        pdf.addText(truncate(cob.valor, 16), col2X + 11.3, rY + 5.5, 9, 'F1', 0.2, 0.2, 0.2)
+        pdf.addText(truncate(cob.nome, 35), x + PADDING + 11.3, rowY - 11.5, 9, 'F1', 0.2, 0.2, 0.2)
+        pdf.addText(truncate(cob.valor, 22), col2X + 11.3, rowY - 11.5, 9, 'F1', 0.2, 0.2, 0.2)
+        rowY -= 17
       }
 
       if (item.card.hasMore) {
-        const rY = yTable - 17 - (item.card.showCount + 1) * 17
+        if (item.card.showCount % 2 === 0) {
+          pdf.addRect(x + PADDING, rowY - 17, tableW, 17, 1, 1, 1, true)
+        } else {
+          pdf.addRect(x + PADDING, rowY - 17, tableW, 17, 0.95, 0.95, 0.95, true)
+        }
         pdf.addText(
           `... e mais ${item.card.prod.coberturas.length - item.card.showCount} coberturas`,
           x + PADDING + 11.3,
-          rY + 5.5,
+          rowY - 11.5,
           9,
           'F2',
-          0.5,
-          0.5,
-          0.5,
+          0.4,
+          0.4,
+          0.4,
         )
+        rowY -= 17
       }
 
-      const tableH = 17 + item.card.tableRows * 17
+      const tableFullH = 17 + item.card.tableRows * 17
       pdf.addRect(
         x + PADDING,
-        yTable - tableH,
-        CARD_W - 2 * PADDING,
-        tableH,
+        currentTextY - tableFullH,
+        tableW,
+        tableFullH,
         0.85,
         0.85,
         0.85,
         false,
         0.5,
       )
-      pdf.addLine(col2X, yTable, col2X, yTable - tableH, 0.85, 0.85, 0.85, 0.5)
+      pdf.addLine(col2X, currentTextY, col2X, currentTextY - tableFullH, 0.85, 0.85, 0.85, 0.5)
+
       for (let r = 1; r < item.card.tableRows + 1; r++) {
-        const rowY = yTable - r * 17
-        pdf.addLine(x + PADDING, rowY, x + CARD_W - PADDING, rowY, 0.85, 0.85, 0.85, 0.5)
+        const lineY = currentTextY - r * 17
+        pdf.addLine(x + PADDING, lineY, x + CARD_W - PADDING, lineY, 0.85, 0.85, 0.85, 0.5)
       }
     }
   }
 
   return pdf.build()
+}
+
+export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
+  const cotacao = await pb.collection('cotacoes').getOne(cotacaoId, {
+    expand: 'forma_pagamento_id,cotacao_produtos_via_cotacao_id.produto_id',
+  })
+
+  const produtosRel = cotacao.expand?.cotacao_produtos_via_cotacao_id || []
+  const produtosPDF: ProdutoDetalhePDF[] = []
+
+  for (const rel of produtosRel) {
+    const prod = rel.expand?.produto_id
+    if (!prod) continue
+
+    const coberturasRel = await pb.collection('produto_coberturas').getFullList({
+      filter: `produto_id = "${prod.id}" && ativo = true && cobertura_id.ativo = true`,
+      expand: 'cobertura_id',
+      sort: 'ordem_exibicao,cobertura_id.ordem_exibicao',
+    })
+
+    produtosPDF.push({
+      produto_nome: prod.nome,
+      tipo_cobranca: prod.tipo_cobranca,
+      preco_total_produto: rel.preco_total_produto,
+      coberturas: coberturasRel.map((c: any) => ({
+        nome: c.expand?.cobertura_id?.nome || 'Cobertura',
+        valor: c.valor || c.descricao_customizada || 'Incluso',
+      })),
+    })
+  }
+
+  const pdfData: CotacaoPDFData = {
+    id: cotacao.id,
+    nome_agencia: cotacao.nome_agencia,
+    created: cotacao.created,
+    fatura_total: cotacao.fatura_total,
+    moeda: cotacao.moeda,
+    forma_pagamento: cotacao.expand?.forma_pagamento_id?.nome,
+  }
+
+  const blob = gerarPDFProposta(pdfData, produtosPDF)
+
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `Cotacao_${cotacao.id}.pdf`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 100)
 }

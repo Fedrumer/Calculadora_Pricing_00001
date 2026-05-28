@@ -51,6 +51,8 @@ const StatusBadge = ({ status }: { status: string }) => {
   )
 }
 
+import { generateAndDownloadCotacaoPdf } from '@/lib/pdf'
+
 export function HistoricoList({
   data,
   onDuplicate,
@@ -62,6 +64,19 @@ export function HistoricoList({
 }: any) {
   const isMobile = useIsMobile()
   const [viewItem, setViewItem] = useState<any>(null)
+  const [localGenerating, setLocalGenerating] = useState(false)
+  const generating = isGeneratingPdf || localGenerating
+
+  const handleDownload = async (item: any) => {
+    try {
+      setLocalGenerating(true)
+      await generateAndDownloadCotacaoPdf(item.id)
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível gerar PDF' })
+    } finally {
+      setLocalGenerating(false)
+    }
+  }
   const { user } = useAuth()
   const { toast } = useToast()
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -107,8 +122,8 @@ export function HistoricoList({
         <DropdownMenuItem onClick={() => openViewModal(item)}>
           <Eye className="w-4 h-4 mr-2" /> Visualizar
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onDownload(item)} disabled={isGeneratingPdf}>
-          <FileText className="w-4 h-4 mr-2" /> {isGeneratingPdf ? 'Gerando...' : 'Baixar PDF'}
+        <DropdownMenuItem onClick={() => handleDownload(item)} disabled={generating}>
+          <FileText className="w-4 h-4 mr-2" /> {generating ? 'Gerando...' : 'Baixar PDF'}
         </DropdownMenuItem>
         {item.status === 'RASCUNHO' && (
           <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'PROPOSTA_ENVIADA')}>
@@ -349,13 +364,13 @@ export function HistoricoList({
               Fechar
             </Button>
             <Button
-              disabled={isGeneratingPdf}
+              disabled={generating}
               onClick={() => {
-                onDownload(viewItem)
+                handleDownload(viewItem)
                 setViewItem(null)
               }}
             >
-              {isGeneratingPdf ? 'Gerando...' : 'Baixar PDF'}
+              {generating ? 'Gerando...' : 'Baixar PDF'}
             </Button>
           </DialogFooter>
         </DialogContent>
