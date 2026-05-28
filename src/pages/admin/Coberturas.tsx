@@ -12,8 +12,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { GripVertical, Trash2, Plus } from 'lucide-react'
+import { Trash2, Plus, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface Cobertura {
   id: string
@@ -35,20 +43,32 @@ interface ProdutoCobertura {
 
 export default function Coberturas() {
   const { toast } = useToast()
+  const isMobile = useIsMobile()
   const [loading, setLoading] = useState(true)
   const [coberturas, setCoberturas] = useState<Cobertura[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [produtoCoberturas, setProdutoCoberturas] = useState<ProdutoCobertura[]>([])
+
+  const [selectedCoberturaId, setSelectedCoberturaId] = useState<string | null>(null)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [itemToDelete, setItemToDelete] = useState<string | null>(null)
+
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [newNome, setNewNome] = useState('')
 
-  const [selectedCoberturaId, setSelectedCoberturaId] = useState<string | null>(null)
+  const [editingCell, setEditingCell] = useState<{ cId: string; pId: string } | null>(null)
+  const [savingCell, setSavingCell] = useState<{ cId: string; pId: string } | null>(null)
 
   useEffect(() => {
     fetchData()
   }, [])
+
+  useEffect(() => {
+    if (isMobile && selectedCoberturaId) {
+      const el = document.getElementById(`row-${selectedCoberturaId}`)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [selectedCoberturaId, isMobile])
 
   const fetchData = async () => {
     try {
@@ -69,7 +89,6 @@ export default function Coberturas() {
     }
   }
 
-  // drag logic
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedId(id)
     e.dataTransfer.effectAllowed = 'move'
@@ -90,7 +109,6 @@ export default function Coberturas() {
     const [draggedItem] = newCoberturas.splice(draggedIdx, 1)
     newCoberturas.splice(targetIdx, 0, draggedItem)
 
-    // optimistic update
     const updatedCoberturas = newCoberturas.map((c, i) => ({ ...c, ordem_exibicao: i }))
     setCoberturas(updatedCoberturas)
 
@@ -101,12 +119,12 @@ export default function Coberturas() {
         ),
       )
     } catch {
-      toast({ title: 'Erro ao salvar alterações', variant: 'destructive' })
+      toast({ title: 'Erro ao reordenar', variant: 'destructive' })
       fetchData() // revert
     }
+    setDraggedId(null)
   }
 
-  // row actions
   const toggleAtivo = async (id: string, current: boolean) => {
     try {
       await pb.collection('coberturas').update(id, { ativo: !current })
@@ -125,9 +143,10 @@ export default function Coberturas() {
 
       setCoberturas((prev) => prev.filter((c) => c.id !== itemToDelete))
       setProdutoCoberturas((prev) => prev.filter((pc) => pc.cobertura_id !== itemToDelete))
+      if (selectedCoberturaId === itemToDelete) setSelectedCoberturaId(null)
       toast({ title: 'Cobertura excluída' })
     } catch {
-      toast({ title: 'Erro ao salvar alterações', variant: 'destructive' })
+      toast({ title: 'Erro ao excluir', variant: 'destructive' })
     }
     setItemToDelete(null)
   }
@@ -144,74 +163,77 @@ export default function Coberturas() {
       setNewNome('')
       setIsCreateOpen(false)
     } catch {
-      toast({ title: 'Erro ao salvar alterações', variant: 'destructive' })
+      toast({ title: 'Erro ao criar', variant: 'destructive' })
     }
   }
 
-  // matrix actions
-  const handleMatrixSave = async (
-    coberturaId: string,
-    produtoId: string,
-    value: string,
-    pcId?: string,
+  const handleBlur = async (
+    e: React.FocusEvent<HTMLInputElement>,
+    cId: string,
+    pId: string,
+    pc?: ProdutoCobertura,
   ) => {
+    const value = e.target.value
+    setEditingCell(null)
+
+    if (value === (pc?.valor || '')) return
+
+    setSavingCell({ cId, pId })
     try {
-      if (pcId) {
+      if (pc?.id) {
         if (!value.trim()) {
-          await pb.collection('produto_coberturas').delete(pcId)
-          setProdutoCoberturas((prev) => prev.filter((x) => x.id !== pcId))
+          await pb.collection('produto_coberturas').delete(pc.id)
+          setProdutoCoberturas((prev) => prev.filter((x) => x.id !== pc.id))
         } else {
-          const res = await pb.collection('produto_coberturas').update(pcId, { valor: value })
+          const res = await pb.collection('produto_coberturas').update(pc.id, { valor: value })
           setProdutoCoberturas((prev) =>
-            prev.map((x) => (x.id === pcId ? (res as unknown as ProdutoCobertura) : x)),
+            prev.map((x) => (x.id === pc.id ? (res as unknown as ProdutoCobertura) : x)),
           )
         }
       } else if (value.trim()) {
         const res = await pb.collection('produto_coberturas').create({
-          cobertura_id: coberturaId,
-          produto_id: produtoId,
+          cobertura_id: cId,
+          produto_id: pId,
           valor: value,
           ativo: true,
         })
         setProdutoCoberturas((prev) => [...prev, res as unknown as ProdutoCobertura])
       }
     } catch {
-      toast({ title: 'Erro ao salvar alterações', variant: 'destructive' })
+      toast({ title: 'Erro ao salvar valor', variant: 'destructive' })
+    } finally {
+      setSavingCell(null)
     }
   }
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6 max-w-[1600px] mx-auto animate-fade-in">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Gerenciar Coberturas</h1>
-          <Skeleton className="h-10 w-40" />
+      <div className="flex flex-col h-[calc(100vh-80px)] p-[24px] gap-[24px] max-w-[1600px] mx-auto animate-fade-in">
+        <div className="flex justify-between items-center shrink-0">
+          <Skeleton className="h-[32px] w-[240px]" />
+          <Skeleton className="h-[40px] w-[160px]" />
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          <div className="xl:col-span-1 border rounded-lg p-2 bg-white dark:bg-zinc-950">
-            <Skeleton className="h-10 w-full mb-2" />
-            <Skeleton className="h-10 w-full mb-2" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <div className="xl:col-span-3 border rounded-lg bg-white dark:bg-zinc-950 p-2">
-            <Skeleton className="h-[400px] w-full" />
-          </div>
+        <div className="flex flex-col md:flex-row gap-[24px] flex-1 min-h-0">
+          {!isMobile && <Skeleton className="w-[280px] shrink-0 h-full rounded-[8px]" />}
+          <Skeleton className="flex-1 h-full rounded-lg" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-[1600px] mx-auto animate-fade-in">
-      <div className="flex justify-between items-center">
+    <div className="flex flex-col h-[calc(100vh-80px)] p-[24px] gap-[24px] max-w-[1600px] mx-auto animate-fade-in">
+      {/* Header */}
+      <div className="flex justify-between items-center shrink-0">
         <h1 className="text-2xl font-bold tracking-tight">Gerenciar Coberturas</h1>
         <Button onClick={() => setIsCreateOpen(true)} className="shadow-sm">
           <Plus className="w-4 h-4 mr-2" /> Nova Cobertura
         </Button>
       </div>
 
+      {/* Main Content */}
       {coberturas.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 border border-dashed rounded-lg bg-gray-50/50 dark:bg-zinc-900/20">
+        <div className="flex flex-col items-center justify-center py-20 border border-dashed border-border rounded-[8px] bg-secondary/5 flex-1 min-h-0">
           <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <Plus className="w-6 h-6 text-primary" />
           </div>
@@ -222,14 +244,10 @@ export default function Coberturas() {
           <Button onClick={() => setIsCreateOpen(true)}>Nova Cobertura</Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
-          {/* Left Panel: List */}
-          <div className="xl:col-span-1 border rounded-lg bg-white dark:bg-zinc-950 overflow-hidden shadow-sm flex flex-col h-[calc(100vh-140px)]">
-            <div className="bg-gray-50 dark:bg-zinc-900 px-4 py-3 border-b font-medium text-sm text-muted-foreground flex justify-between items-center">
-              <span>Lista Master</span>
-              <span className="text-xs">{coberturas.length} itens</span>
-            </div>
-            <div className="p-2 space-y-1 overflow-y-auto flex-1 custom-scrollbar">
+        <div className="flex flex-col md:flex-row gap-[24px] flex-1 min-h-0">
+          {/* Left Section / Mobile Dropdown */}
+          {!isMobile ? (
+            <div className="w-[280px] shrink-0 bg-secondary/5 rounded-[8px] p-[16px] flex flex-col gap-1 overflow-y-auto custom-scrollbar border border-border/50">
               {coberturas.map((c) => (
                 <div
                   key={c.id}
@@ -239,131 +257,169 @@ export default function Coberturas() {
                   onDrop={(e) => handleDrop(e, c.id)}
                   onClick={() => setSelectedCoberturaId(c.id)}
                   className={cn(
-                    'flex items-center gap-3 p-2 rounded-md border bg-white dark:bg-zinc-950 cursor-pointer transition-all',
-                    draggedId === c.id ? 'opacity-50 scale-[0.98]' : '',
+                    'group flex items-center p-[12px] rounded-[6px] transition-colors cursor-grab active:cursor-grabbing border-l-[4px]',
+                    draggedId === c.id && 'opacity-50 scale-[0.98]',
                     selectedCoberturaId === c.id
-                      ? 'border-primary ring-1 ring-primary/20 shadow-sm'
-                      : 'hover:border-gray-300 dark:hover:border-zinc-700',
+                      ? 'bg-primary/10 border-primary'
+                      : 'bg-transparent hover:bg-secondary/10 border-transparent',
                   )}
                 >
-                  <GripVertical className="w-4 h-4 text-gray-400 cursor-grab active:cursor-grabbing hover:text-gray-600 transition-colors" />
                   <Checkbox
+                    className="mr-[8px] shrink-0"
                     checked={c.ativo}
                     onCheckedChange={() => toggleAtivo(c.id, c.ativo)}
                     onClick={(e) => e.stopPropagation()}
                   />
                   <span
                     className={cn(
-                      'flex-1 text-sm truncate font-medium',
-                      !c.ativo && 'text-gray-400 line-through opacity-70',
+                      'flex-1 text-[14px] font-medium truncate',
+                      !c.ativo && 'text-muted-foreground line-through opacity-70',
                     )}
                     title={c.nome}
                   >
                     {c.nome}
                   </span>
-                  <span className="text-[10px] text-muted-foreground w-4 text-center font-mono">
-                    {c.ordem_exibicao}
-                  </span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-sm ml-1"
+                    className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity ml-1 shrink-0"
                     onClick={(e) => {
                       e.stopPropagation()
                       setItemToDelete(c.id)
                     }}
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Right Panel: Matrix */}
-          <div className="xl:col-span-3 border rounded-lg bg-white dark:bg-zinc-950 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-140px)]">
-            <div className="overflow-auto flex-1 custom-scrollbar">
-              <table className="w-full text-sm text-left border-collapse">
-                <thead className="sticky top-0 z-20 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                  <tr>
-                    <th className="p-3 border-b border-r border-gray-200 dark:border-zinc-800 font-medium min-w-[220px] max-w-[300px] sticky left-0 bg-gray-50 dark:bg-zinc-900 z-30 text-muted-foreground">
-                      Cobertura
-                    </th>
-                    {produtos.map((p) => (
-                      <th
-                        key={p.id}
-                        className="p-3 border-b border-gray-200 dark:border-zinc-800 font-medium min-w-[160px] whitespace-nowrap bg-white dark:bg-zinc-950"
-                      >
-                        {p.nome}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
+          ) : (
+            <div className="shrink-0">
+              <Select value={selectedCoberturaId || ''} onValueChange={setSelectedCoberturaId}>
+                <SelectTrigger className="w-full bg-background border-border">
+                  <SelectValue placeholder="Selecionar Cobertura" />
+                </SelectTrigger>
+                <SelectContent>
                   {coberturas.map((c) => (
-                    <tr
-                      key={c.id}
-                      className={cn(
-                        'border-b border-gray-100 dark:border-zinc-800/50 transition-colors group',
-                        selectedCoberturaId === c.id
-                          ? 'bg-blue-50/50 dark:bg-blue-900/10'
-                          : c.ativo
-                            ? 'hover:bg-gray-50/50 dark:hover:bg-zinc-900/30'
-                            : 'bg-gray-50/80 dark:bg-zinc-900/60 opacity-[0.65]',
-                      )}
-                      onClick={() => setSelectedCoberturaId(c.id)}
-                    >
-                      <td
-                        className={cn(
-                          'p-3 border-r border-gray-100 dark:border-zinc-800/50 font-medium sticky left-0 z-10 transition-colors truncate max-w-[300px]',
-                          selectedCoberturaId === c.id
-                            ? 'bg-blue-50/80 dark:bg-blue-900/20'
-                            : 'bg-white dark:bg-zinc-950 group-hover:bg-gray-50 dark:group-hover:bg-zinc-900',
-                          !c.ativo && 'bg-gray-50/80 dark:bg-zinc-900/80',
-                        )}
-                        title={c.nome}
-                      >
-                        {c.nome}
-                      </td>
-                      {produtos.map((p) => {
-                        const pc = produtoCoberturas.find(
-                          (x) => x.cobertura_id === c.id && x.produto_id === p.id,
-                        )
-                        return (
-                          <td
-                            key={p.id}
-                            className="p-1.5 relative border-r border-gray-100 dark:border-zinc-800/50 last:border-r-0"
-                          >
-                            <Input
-                              defaultValue={pc?.valor || ''}
-                              placeholder="Não configurado"
-                              onBlur={(e) => {
-                                const val = e.target.value
-                                if (val !== (pc?.valor || '')) {
-                                  handleMatrixSave(c.id, p.id, val, pc?.id)
-                                }
-                              }}
-                              className="h-9 w-full bg-transparent border-transparent hover:border-gray-200 dark:hover:border-zinc-700 focus:border-primary focus:bg-white dark:focus:bg-zinc-900 transition-all rounded px-2 shadow-none placeholder:text-gray-300 dark:placeholder:text-zinc-700"
-                            />
-                          </td>
-                        )
-                      })}
-                    </tr>
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
+                    </SelectItem>
                   ))}
-                </tbody>
-              </table>
+                </SelectContent>
+              </Select>
             </div>
+          )}
+
+          {/* Matrix View */}
+          <div className="flex-1 overflow-auto rounded-[8px] border border-border bg-background shadow-sm custom-scrollbar relative">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead className="sticky top-0 z-20 shadow-sm">
+                <tr>
+                  <th className="bg-secondary/5 font-semibold text-foreground p-[12px] border-b border-r border-border sticky left-0 z-30 w-[180px] min-w-[180px] md:w-[200px] md:min-w-[200px]">
+                    Cobertura
+                  </th>
+                  {produtos.map((p) => (
+                    <th
+                      key={p.id}
+                      className="bg-secondary/5 font-semibold text-foreground p-[12px] border-b border-r border-border w-[140px] min-w-[140px] md:w-[160px] md:min-w-[160px]"
+                    >
+                      {p.nome}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {coberturas.map((c) => (
+                  <tr
+                    key={c.id}
+                    id={`row-${c.id}`}
+                    className={cn(
+                      'h-[48px] hover:bg-accent/5 transition-colors group',
+                      selectedCoberturaId === c.id
+                        ? 'bg-primary/5 dark:bg-primary/10'
+                        : 'bg-background',
+                    )}
+                  >
+                    <td
+                      className={cn(
+                        'p-[12px] border-b border-r border-border sticky left-0 z-10 transition-colors truncate font-medium',
+                        selectedCoberturaId === c.id
+                          ? 'bg-primary/10'
+                          : 'bg-background group-hover:bg-accent/5',
+                        !c.ativo && 'opacity-60 line-through',
+                      )}
+                      title={c.nome}
+                    >
+                      {c.nome}
+                    </td>
+                    {produtos.map((p) => {
+                      const pc = produtoCoberturas.find(
+                        (x) => x.cobertura_id === c.id && x.produto_id === p.id,
+                      )
+                      const isEditing = editingCell?.cId === c.id && editingCell?.pId === p.id
+                      const isSaving = savingCell?.cId === c.id && savingCell?.pId === p.id
+
+                      return (
+                        <td
+                          key={p.id}
+                          className="p-[12px] border-b border-r border-border cursor-text relative hover:bg-accent/5 transition-colors"
+                          onClick={() => {
+                            if (!isSaving && !isEditing) setEditingCell({ cId: c.id, pId: p.id })
+                          }}
+                        >
+                          <div className="flex items-center justify-start h-full min-h-[20px]">
+                            {isEditing ? (
+                              <div className="absolute inset-0 flex items-center px-[6px]">
+                                <Input
+                                  autoFocus
+                                  defaultValue={pc?.valor || ''}
+                                  className="h-[36px] px-[8px] rounded-[4px] focus-visible:ring-2 focus-visible:ring-primary w-full border-border bg-background shadow-sm text-sm"
+                                  onBlur={(e) => handleBlur(e, c.id, p.id, pc)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') e.currentTarget.blur()
+                                    if (e.key === 'Escape') {
+                                      e.currentTarget.value = pc?.valor || ''
+                                      e.currentTarget.blur()
+                                    }
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                {isSaving ? (
+                                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                ) : (
+                                  <span
+                                    className={cn(
+                                      'truncate block w-full',
+                                      !pc?.valor && 'text-muted-foreground',
+                                    )}
+                                  >
+                                    {pc?.valor || '-'}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation Modal */}
       <Dialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Excluir Cobertura</DialogTitle>
           </DialogHeader>
-          <p className="text-gray-600 dark:text-gray-400 py-4">
+          <p className="text-muted-foreground py-4">
             Tem certeza que deseja excluir esta cobertura? Isso removerá a configuração para todos
             os produtos associados de forma permanente.
           </p>
