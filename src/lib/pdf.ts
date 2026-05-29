@@ -527,14 +527,14 @@ export function gerarPDFProposta(
         return Math.max(17, lines.length * 10 + 7)
       })
 
-      if (availableHeight < headerHeight + (cobHeights[0] || 17) + 15) {
+      if (availableHeight < headerHeight + (cobHeights[0] || 17) + 25) {
         pdf.addPage()
         drawGlobalHeader(pdf.pages.length - 1)
         currentY = PAGE_H - 150
         availableHeight = currentY - minAvailableY
       }
 
-      let spaceForRows = availableHeight - headerHeight - 15
+      let spaceForRows = availableHeight - headerHeight - 25
       let itemsToDraw = 0
       let usedSpace = 0
 
@@ -553,7 +553,7 @@ export function gerarPDFProposta(
       }
 
       if (idx === 0 && cobs.length > 0) {
-        const totalNeeded = headerHeight + cobHeights.reduce((a, b) => a + b, 0) + 15
+        const totalNeeded = headerHeight + cobHeights.reduce((a, b) => a + b, 0) + 25
         const maxPageCapacity = PAGE_H - 150 - minAvailableY
 
         if (totalNeeded > availableHeight && totalNeeded <= maxPageCapacity) {
@@ -562,7 +562,7 @@ export function gerarPDFProposta(
           currentY = PAGE_H - 150
           availableHeight = currentY - minAvailableY
 
-          spaceForRows = availableHeight - headerHeight - 15
+          spaceForRows = availableHeight - headerHeight - 25
           itemsToDraw = 0
           usedSpace = 0
           for (let i = 0; i < remainingCobs.length; i++) {
@@ -592,7 +592,7 @@ export function gerarPDFProposta(
       const pageCobHeights = cobHeights.slice(0, itemsToDraw)
       const cobsCount = pageCobs.length || 1
       const cardHeight =
-        headerHeight + (pageCobs.length > 0 ? pageCobHeights.reduce((a, b) => a + b, 0) : 17) + 15
+        headerHeight + (pageCobs.length > 0 ? pageCobHeights.reduce((a, b) => a + b, 0) : 17) + 25
 
       const cardTop = currentY
 
@@ -639,31 +639,19 @@ export function gerarPDFProposta(
       pdf.addText(
         truncate(prod.produto_nome, 60),
         MARGIN + 15,
-        cardTop - 25,
+        cardTop - 34,
         14,
         'F2',
         whiteR,
         whiteG,
         whiteB,
       )
-      if (prod.tipo_cobranca) {
-        pdf.addText(
-          `Cobrança por ${prod.tipo_cobranca}`,
-          MARGIN + 15,
-          cardTop - 40,
-          10,
-          'F1',
-          0.9,
-          0.9,
-          0.9,
-        )
-      }
       const priceText = `${cotacao.moeda || 'USD'} ${(prod.preco_total_produto || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       const priceW = priceText.length * 8
       pdf.addText(
         priceText,
         PAGE_W - MARGIN - priceW - 20,
-        cardTop - 32,
+        cardTop - 34,
         16,
         'F2',
         whiteR,
@@ -710,16 +698,18 @@ export function gerarPDFProposta(
             darkB,
           )
 
-          pdf.addLine(
-            MARGIN + 1,
-            rowY - rh,
-            MARGIN + CARD_W - 1,
-            rowY - rh,
-            grayR,
-            grayG,
-            grayB,
-            0.5,
-          )
+          if (i < pageCobs.length - 1) {
+            pdf.addLine(
+              MARGIN + 1,
+              rowY - rh,
+              MARGIN + CARD_W - 1,
+              rowY - rh,
+              grayR,
+              grayG,
+              grayB,
+              0.5,
+            )
+          }
 
           rowY -= rh
         }
