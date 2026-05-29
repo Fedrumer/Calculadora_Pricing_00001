@@ -1,4 +1,5 @@
 import pb from '@/lib/pocketbase/client'
+import logoImgUrl from '@/assets/logo-3585e.png'
 
 export interface CotacaoPDFData {
   id: string
@@ -24,11 +25,49 @@ export interface ProdutoDetalhePDF {
   }[]
 }
 
+export async function getJpegData(
+  src: string,
+): Promise<{ width: number; height: number; data: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'Anonymous'
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return reject(new Error('No canvas context'))
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(img, 0, 0)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95)
+      const b64 = dataUrl.split(',')[1]
+      if (!b64) return reject(new Error('No base64 data'))
+      const binStr = atob(b64)
+      resolve({ width: canvas.width, height: canvas.height, data: binStr })
+    }
+    img.onerror = () => reject(new Error('Image load failed'))
+    img.src = src
+  })
+}
+
 class PDFBuilder {
   pages: string[][] = []
+  images: { id: string; width: number; height: number; data: string; objId: number }[] = []
 
   addPage() {
     this.pages.push([])
+  }
+
+  addImage(id: string, width: number, height: number, data: string) {
+    this.images.push({ id, width, height, data, objId: 0 })
+  }
+
+  drawImage(pageIndex: number, id: string, x: number, y: number, w: number, h: number) {
+    if (pageIndex < 0 || pageIndex >= this.pages.length) return
+    this.pages[pageIndex].push(
+      `q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /Im${id} Do Q`,
+    )
   }
 
   escapeText(text: string): string {
@@ -200,46 +239,85 @@ class PDFBuilder {
   }
 
   addShadow(x: number, y: number, w: number, h: number, r: number) {
-    this.addRoundedRect(x, y - 1.5, w, h, r, r, r, r, 0, 0, 0, 0.92, 0.92, 0.92, true, false)
-    this.addRoundedRect(x, y - 3, w, h, r, r, r, r, 0, 0, 0, 0.96, 0.96, 0.96, true, false)
+    this.addRoundedRect(x, y - 2, w, h, r, r, r, r, 0.92, 0.92, 0.92, 0.92, 0.92, 0.92, true, false)
+    this.addRoundedRect(x, y - 4, w, h, r, r, r, r, 0.96, 0.96, 0.96, 0.96, 0.96, 0.96, true, false)
   }
 
   build(): Blob {
     const header = '%PDF-1.4\n'
-
-    let objects: string[] = []
-    let xref: number[] = []
+    const objects: (string | Uint8Array)[] = []
+    const xref: number[] = []
     let currentOffset = header.length
 
-    const addObj = (content: string) => {
+    const addObj = (content: string | (string | Uint8Array)[]) => {
       xref.push(currentOffset)
       const objId = xref.length
-      const obj = `${objId} 0 obj\n${content}\nendobj\n`
-      objects.push(obj)
-      currentOffset += obj.length
+      const prefix = `${objId} 0 obj\n`
+      const suffix = `\nendobj\n`
+
+      const writeStr = (str: string) => {
+        objects.push(str)
+        currentOffset += str.length
+      }
+
+      writeStr(prefix)
+      if (Array.isArray(content)) {
+        for (const part of content) {
+          if (typeof part === 'string') {
+            writeStr(part)
+          } else {
+            objects.push(part)
+            currentOffset += part.length
+          }
+        }
+      } else {
+        writeStr(content)
+      }
+      writeStr(suffix)
+      return objId
     }
 
-    const pageObjectsStartIndex = 5
     const numPages = this.pages.length || 1
-    const kids = Array.from(
-      { length: numPages },
-      (_, i) => `${pageObjectsStartIndex + i * 2} 0 R`,
-    ).join(' ')
+    const imagesStartIndex = 5
+    const contentsStartIndex = imagesStartIndex + this.images.length
+
+    const pageDictIds: number[] = []
+    for (let i = 0; i < numPages; i++) {
+      pageDictIds.push(contentsStartIndex + i * 2)
+    }
 
     addObj(`<< /Type /Catalog /Pages 2 0 R >>`)
-    addObj(`<< /Type /Pages /Kids [${kids}] /Count ${numPages} >>`)
+    addObj(
+      `<< /Type /Pages /Kids [${pageDictIds.map((id) => id + ' 0 R').join(' ')}] /Count ${numPages} >>`,
+    )
     addObj(`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>`)
     addObj(`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>`)
 
+    for (const img of this.images) {
+      const streamContent = new Uint8Array(img.data.length)
+      for (let i = 0; i < img.data.length; i++) {
+        streamContent[i] = img.data.charCodeAt(i)
+      }
+      const dict = `<< /Type /XObject /Subtype /Image /Width ${img.width} /Height ${img.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${streamContent.length} >>\nstream\n`
+      img.objId = addObj([dict, streamContent, '\nendstream'])
+    }
+
+    let xObjectStr = ''
+    if (this.images.length > 0) {
+      xObjectStr =
+        ` /XObject << ` +
+        this.images.map((img) => `/Im${img.id} ${img.objId} 0 R`).join(' ') +
+        ` >>`
+    }
+
     for (let i = 0; i < numPages; i++) {
       const streamContent = this.pages[i]?.join('\n') || ''
-      const streamLen = streamContent.length
-      const contentObjIdx = pageObjectsStartIndex + i * 2 + 1
+      const contentObjId = contentsStartIndex + i * 2 + 1
 
       addObj(
-        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents ${contentObjIdx} 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> >>`,
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents ${contentObjId} 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >>${xObjectStr} >> >>`,
       )
-      addObj(`<< /Length ${streamLen} >>\nstream\n${streamContent}\nendstream`)
+      addObj(`<< /Length ${streamContent.length} >>\nstream\n${streamContent}\nendstream`)
     }
 
     const xrefData =
@@ -248,17 +326,40 @@ class PDFBuilder {
 
     const trailer = `trailer\n<< /Size ${xref.length + 1} /Root 1 0 R >>\nstartxref\n${currentOffset}\n%%EOF\n`
 
-    return new Blob([header + objects.join('') + xrefData + trailer], { type: 'application/pdf' })
+    return new Blob([header, ...objects, xrefData, trailer], { type: 'application/pdf' })
   }
 }
 
-export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetalhePDF[]): Blob {
+export function gerarPDFProposta(
+  cotacao: CotacaoPDFData,
+  produtos: ProdutoDetalhePDF[],
+  logoData: { width: number; height: number; data: string } | null = null,
+): Blob {
   const pdf = new PDFBuilder()
+  if (logoData) {
+    pdf.addImage('logo', logoData.width, logoData.height, logoData.data)
+  }
+
   const PAGE_W = 595.28
   const PAGE_H = 841.89
   const MARGIN = 40
-
   const CARD_W = PAGE_W - 2 * MARGIN
+
+  const pR = 0.114,
+    pG = 0.188,
+    pB = 0.859
+  const lightR = 0,
+    lightG = 0.804,
+    lightB = 0.988
+  const darkR = 0.125,
+    darkG = 0.141,
+    darkB = 0.188
+  const grayR = 0.898,
+    grayG = 0.902,
+    grayB = 0.902
+  const whiteR = 1,
+    whiteG = 1,
+    whiteB = 1
 
   const truncate = (str: string, len: number) => {
     if (!str) return ''
@@ -272,107 +373,148 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
   }
 
   const drawGlobalHeader = (pageIndex: number) => {
+    if (logoData) {
+      pdf.drawImage(pageIndex, 'logo', MARGIN, PAGE_H - MARGIN - 80, 80, 80)
+    } else {
+      pdf.addTextToPage(pageIndex, 'Now', MARGIN, PAGE_H - MARGIN - 20, 24, 'F2', pR, pG, pB)
+      pdf.addTextToPage(
+        pageIndex,
+        'Assistance',
+        MARGIN,
+        PAGE_H - MARGIN - 40,
+        14,
+        'F2',
+        lightR,
+        lightG,
+        lightB,
+      )
+    }
+
     const dates = `${formatDate(cotacao.data_inicio)} a ${formatDate(cotacao.data_fim)}`
     const created = formatDate(cotacao.created)
     const comissaoText =
       (cotacao.comissao || 0) > 0 ? `${((cotacao.comissao || 0) * 100).toFixed(0)}%` : '0%'
     const totalFormatado = `${cotacao.moeda || 'USD'} ${(cotacao.fatura_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 
-    const logoY = PAGE_H - MARGIN - 20
-    pdf.addTextToPage(pageIndex, 'now', MARGIN, logoY, 28, 'F2', 0.05, 0.79, 0.94)
-    pdf.addTextToPage(pageIndex, 'assistance', MARGIN, logoY - 18, 16, 'F2', 0.08, 0.22, 0.8)
-
-    const col1 = 200
+    const col1 = 180
     const col2 = 380
-    let y = PAGE_H - MARGIN
+    let y = PAGE_H - MARGIN - 10
 
-    pdf.addTextToPage(pageIndex, 'Agência:', col1, y, 9, 'F2', 0.4, 0.4, 0.4)
+    const labelSz = 8
+    const valSz = 9
+
+    pdf.addTextToPage(pageIndex, 'Agência:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
     pdf.addTextToPage(
       pageIndex,
-      truncate(cotacao.nome_agencia || 'N/A', 25),
+      truncate(cotacao.nome_agencia || 'N/A', 30),
       col1 + 45,
       y,
-      9,
+      valSz,
       'F1',
-      0.2,
-      0.2,
-      0.2,
+      darkR,
+      darkG,
+      darkB,
     )
-    pdf.addTextToPage(pageIndex, 'Data da Cotação:', col2, y, 9, 'F2', 0.4, 0.4, 0.4)
-    pdf.addTextToPage(pageIndex, created, col2 + 85, y, 9, 'F1', 0.2, 0.2, 0.2)
-    y -= 15
+    pdf.addTextToPage(pageIndex, 'Data da Cotação:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
+    pdf.addTextToPage(pageIndex, created, col2 + 80, y, valSz, 'F1', darkR, darkG, darkB)
 
-    pdf.addTextToPage(pageIndex, 'Período:', col1, y, 9, 'F2', 0.4, 0.4, 0.4)
-    pdf.addTextToPage(pageIndex, dates, col1 + 45, y, 9, 'F1', 0.2, 0.2, 0.2)
-    pdf.addTextToPage(pageIndex, 'Total de Dias:', col2, y, 9, 'F2', 0.4, 0.4, 0.4)
-    pdf.addTextToPage(pageIndex, `${cotacao.qtd_dias || 1}`, col2 + 85, y, 9, 'F1', 0.2, 0.2, 0.2)
     y -= 15
+    pdf.addTextToPage(pageIndex, 'Período:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
+    pdf.addTextToPage(pageIndex, dates, col1 + 45, y, valSz, 'F1', darkR, darkG, darkB)
+    pdf.addTextToPage(pageIndex, 'Total de Dias:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
+    pdf.addTextToPage(
+      pageIndex,
+      `${cotacao.qtd_dias || 1}`,
+      col2 + 65,
+      y,
+      valSz,
+      'F1',
+      darkR,
+      darkG,
+      darkB,
+    )
 
-    pdf.addTextToPage(pageIndex, 'Passageiros:', col1, y, 9, 'F2', 0.4, 0.4, 0.4)
+    y -= 15
+    pdf.addTextToPage(pageIndex, 'Passageiros:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
     pdf.addTextToPage(
       pageIndex,
       `${cotacao.total_passageiros || 0}`,
-      col1 + 65,
-      y,
-      9,
-      'F1',
-      0.2,
-      0.2,
-      0.2,
-    )
-    pdf.addTextToPage(pageIndex, 'Comissão:', col2, y, 9, 'F2', 0.4, 0.4, 0.4)
-    pdf.addTextToPage(pageIndex, comissaoText, col2 + 85, y, 9, 'F1', 0.2, 0.2, 0.2)
-    y -= 15
-
-    pdf.addTextToPage(pageIndex, 'Pagamento:', col1, y, 9, 'F2', 0.4, 0.4, 0.4)
-    pdf.addTextToPage(
-      pageIndex,
-      truncate(cotacao.forma_pagamento || 'N/A', 20),
       col1 + 60,
       y,
-      9,
+      valSz,
       'F1',
-      0.2,
-      0.2,
-      0.2,
+      darkR,
+      darkG,
+      darkB,
     )
-    pdf.addTextToPage(pageIndex, 'Fatura Total:', col2, y, 9, 'F2', 0.4, 0.4, 0.4)
-    pdf.addTextToPage(pageIndex, totalFormatado, col2 + 85, y, 9, 'F2', 0.6, 0.27, 0.16)
+    pdf.addTextToPage(pageIndex, 'Comissão:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
+    pdf.addTextToPage(pageIndex, comissaoText, col2 + 55, y, valSz, 'F1', darkR, darkG, darkB)
 
-    pdf.addLineToPage(pageIndex, MARGIN, y - 10, PAGE_W - MARGIN, y - 10, 0.9, 0.9, 0.9)
+    y -= 15
+    pdf.addTextToPage(pageIndex, 'Pagamento:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
+    pdf.addTextToPage(
+      pageIndex,
+      truncate(cotacao.forma_pagamento || 'N/A', 25),
+      col1 + 55,
+      y,
+      valSz,
+      'F1',
+      darkR,
+      darkG,
+      darkB,
+    )
+    pdf.addTextToPage(pageIndex, 'Fatura Total:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
+    pdf.addTextToPage(pageIndex, totalFormatado, col2 + 60, y, 10, 'F2', pR, pG, pB)
+
+    pdf.addLineToPage(pageIndex, MARGIN, y - 15, PAGE_W - MARGIN, y - 15, grayR, grayG, grayB)
   }
 
   if (produtos.length === 0) {
     pdf.addPage()
     drawGlobalHeader(0)
-    pdf.addText('Nenhum produto selecionado na cotação.', MARGIN, PAGE_H - MARGIN - 90, 12, 'F1')
+    pdf.addText('Nenhum produto selecionado na cotação.', MARGIN, PAGE_H - 150, 12, 'F1')
   }
+
+  let currentY = PAGE_H - 130
+  const minAvailableY = 80
+  const rowHeight = 17
+  const headerHeight = 60
 
   for (const prod of produtos) {
     let cobs = prod.coberturas
     let idx = 0
 
-    while (idx < cobs.length || (cobs.length === 0 && idx === 0)) {
+    const neededHeight = headerHeight + cobs.length * rowHeight + 15
+
+    if (currentY - neededHeight < minAvailableY && currentY < PAGE_H - 135) {
       pdf.addPage()
       const currentPageIndex = pdf.pages.length - 1
       drawGlobalHeader(currentPageIndex)
+      currentY = PAGE_H - 130
+    }
 
-      let currentY = PAGE_H - MARGIN - 90
-      const cardTop = currentY
-      const headerHeight = 35
-      const ROW_HEIGHT = 17
+    while (idx < cobs.length || (cobs.length === 0 && idx === 0)) {
+      const availableHeight = currentY - minAvailableY
+      const spaceForRows = availableHeight - headerHeight - 15
+      let itemsToDraw = Math.floor(spaceForRows / rowHeight)
 
-      const availableHeight = currentY - MARGIN - 40 - headerHeight - 15
-      let itemsToDraw = Math.floor(availableHeight / ROW_HEIGHT)
-      if (itemsToDraw < 1) itemsToDraw = 1
+      if (itemsToDraw < 1) {
+        pdf.addPage()
+        const currentPageIndex = pdf.pages.length - 1
+        drawGlobalHeader(currentPageIndex)
+        currentY = PAGE_H - 130
+        continue
+      }
+
+      if (itemsToDraw > cobs.length - idx) {
+        itemsToDraw = cobs.length - idx
+      }
 
       const pageCobs = cobs.slice(idx, idx + itemsToDraw)
       const cobsCount = pageCobs.length || 1
-      const cardHeight = headerHeight + 15 + cobsCount * ROW_HEIGHT + 10
+      const cardHeight = headerHeight + cobsCount * rowHeight + 15
 
-      const pR = 152 / 255,
-        pG = 68 / 255,
-        pB = 40 / 255
+      const cardTop = currentY
 
       pdf.addShadow(MARGIN, cardTop - cardHeight, CARD_W, cardHeight, 12)
       pdf.addRoundedRect(
@@ -387,9 +529,9 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
         pR,
         pG,
         pB,
-        1,
-        1,
-        1,
+        whiteR,
+        whiteG,
+        whiteB,
         true,
         true,
         2,
@@ -411,80 +553,114 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
         pB,
         true,
         false,
+        1,
       )
 
-      pdf.addText(truncate(prod.produto_nome, 60), MARGIN + 15, cardTop - 20, 14, 'F2', 1, 1, 1)
+      pdf.addText(
+        truncate(prod.produto_nome, 60),
+        MARGIN + 15,
+        cardTop - 25,
+        14,
+        'F2',
+        whiteR,
+        whiteG,
+        whiteB,
+      )
       if (prod.tipo_cobranca) {
         pdf.addText(
-          `Cobra por ${prod.tipo_cobranca}`,
+          `Cobrança por ${prod.tipo_cobranca}`,
           MARGIN + 15,
-          cardTop - 30,
-          9,
+          cardTop - 40,
+          10,
           'F1',
           0.9,
           0.9,
           0.9,
         )
       }
-
       const priceText = `${cotacao.moeda || 'USD'} ${(prod.preco_total_produto || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
-      const priceW = priceText.length * 7
-      pdf.addText(priceText, PAGE_W - MARGIN - priceW - 20, cardTop - 22, 16, 'F2', 1, 1, 1)
+      const priceW = priceText.length * 8
+      pdf.addText(
+        priceText,
+        PAGE_W - MARGIN - priceW - 20,
+        cardTop - 32,
+        16,
+        'F2',
+        whiteR,
+        whiteG,
+        whiteB,
+      )
 
-      currentY -= headerHeight
+      let rowY = cardTop - headerHeight
 
-      pdf.addText('Cobertura', MARGIN + 15, currentY - 10, 9, 'F2', pR, pG, pB)
-      pdf.addText('Valor', MARGIN + CARD_W - 120, currentY - 10, 9, 'F2', pR, pG, pB)
-      currentY -= 15
+      pdf.addText('Cobertura', MARGIN + 15, rowY - 12, 9, 'F2', darkR, darkG, darkB)
+      pdf.addText('Valor', MARGIN + CARD_W - 120, rowY - 12, 9, 'F2', darkR, darkG, darkB)
+      pdf.addLine(MARGIN + 1, rowY - 17, MARGIN + CARD_W - 1, rowY - 17, grayR, grayG, grayB, 0.5)
+      rowY -= 17
 
       if (cobs.length === 0) {
-        pdf.addText(
-          'Nenhuma cobertura configurada.',
-          MARGIN + 15,
-          currentY - 11,
-          9,
-          'F1',
-          0.4,
-          0.4,
-          0.4,
-        )
+        pdf.addText('Não configurado.', MARGIN + 15, rowY - 12, 9, 'F1', darkR, darkG, darkB)
       } else {
         for (let i = 0; i < pageCobs.length; i++) {
           const cob = pageCobs[i]
-          const isEven = i % 2 === 0
+          const isEven = (idx + i) % 2 === 0
 
           if (isEven) {
             pdf.addRect(
-              MARGIN + 2,
-              currentY - ROW_HEIGHT,
-              CARD_W - 4,
-              ROW_HEIGHT,
-              0.95,
-              0.95,
-              0.95,
+              MARGIN + 1,
+              rowY - rowHeight,
+              CARD_W - 2,
+              rowHeight,
+              whiteR,
+              whiteG,
+              whiteB,
+              true,
+              0,
+            )
+          } else {
+            pdf.addRect(
+              MARGIN + 1,
+              rowY - rowHeight,
+              CARD_W - 2,
+              rowHeight,
+              grayR,
+              grayG,
+              grayB,
               true,
               0,
             )
           }
 
-          pdf.addText(truncate(cob.nome, 50), MARGIN + 15, currentY - 11, 9, 'F1', 0.2, 0.2, 0.2)
+          pdf.addText(truncate(cob.nome, 50), MARGIN + 15, rowY - 12, 9, 'F1', darkR, darkG, darkB)
           pdf.addText(
-            truncate(cob.valor, 50),
+            truncate(cob.valor, 30),
             MARGIN + CARD_W - 120,
-            currentY - 11,
+            rowY - 12,
             9,
             'F1',
-            0.2,
-            0.2,
-            0.2,
+            darkR,
+            darkG,
+            darkB,
           )
 
-          currentY -= ROW_HEIGHT
+          pdf.addLine(
+            MARGIN + 1,
+            rowY - rowHeight,
+            MARGIN + CARD_W - 1,
+            rowY - rowHeight,
+            grayR,
+            grayG,
+            grayB,
+            0.5,
+          )
+
+          rowY -= rowHeight
         }
       }
 
+      currentY -= cardHeight + 20
       idx += itemsToDraw
-      if (cobs.length === 0) break
+      if (idx >= cobs.length) break
     }
   }
 
@@ -493,7 +669,7 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
     const footerY = 30
     const footerText = `Página ${i + 1} de ${numPages} | Now Assistance | ID: ${cotacao.id}`
 
-    pdf.addLineToPage(i, MARGIN, footerY + 15, PAGE_W - MARGIN, footerY + 15, 0.8, 0.8, 0.8)
+    pdf.addLineToPage(i, MARGIN, footerY + 15, PAGE_W - MARGIN, footerY + 15, grayR, grayG, grayB)
     pdf.addTextToPage(
       i,
       footerText,
@@ -501,9 +677,9 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
       footerY,
       8,
       'F1',
-      0.4,
-      0.4,
-      0.4,
+      darkR,
+      darkG,
+      darkB,
     )
   }
 
@@ -541,15 +717,18 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
         } else {
           if (c.moeda) {
             let normalized = valRaw.trim()
+            let numVal: number | null = null
             if (/^\d+([.,]\d+)?$/.test(normalized)) {
               if (normalized.includes(',')) {
                 normalized = normalized.replace(',', '.')
               }
-              const num = parseFloat(normalized)
-              valFinal = `${c.moeda} ${num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+              numVal = parseFloat(normalized)
             } else if (/^[\d.]+$/.test(normalized) && normalized.includes('.')) {
-              const num = parseFloat(normalized.replace(/\./g, ''))
-              valFinal = `${c.moeda} ${num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+              numVal = parseFloat(normalized.replace(/\./g, ''))
+            }
+
+            if (numVal !== null && !isNaN(numVal)) {
+              valFinal = `${c.moeda} ${numVal.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
             } else {
               valFinal = `${c.moeda} ${valRaw}`
             }
@@ -585,7 +764,8 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
     comissao: cotacao.comissao,
   }
 
-  const blob = gerarPDFProposta(pdfData, produtosPDF)
+  const logoData = await getJpegData(logoImgUrl).catch(() => null)
+  const blob = gerarPDFProposta(pdfData, produtosPDF, logoData)
 
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
