@@ -278,7 +278,7 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
   currentY -= 18
 
   pdf.addText(`Pagamento: ${cotacao.forma_pagamento || 'N/A'}`, MARGIN, currentY, 10, 'F1')
-  const totalFormatado = `${cotacao.moeda || 'USD'} ${cotacao.fatura_total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const totalFormatado = `${cotacao.moeda || 'USD'} ${cotacao.fatura_total.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
   pdf.addText(`Fatura Total: ${totalFormatado}`, col2, currentY, 10, 'F2', 0, 0.31, 0.63)
   currentY -= 25
 
@@ -296,7 +296,7 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
     pdf.addRect(MARGIN, currentY - 20, CARD_W, 25, 0.2, 0.2, 0.2, true)
     pdf.addText(truncate(prod.produto_nome, 60), MARGIN + 10, currentY - 14, 12, 'F2', 1, 1, 1)
 
-    const priceText = `${cotacao.moeda || 'USD'} ${prod.preco_total_produto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    const priceText = `${cotacao.moeda || 'USD'} ${prod.preco_total_produto.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
     const priceW = priceText.length * 6 // estimation
     pdf.addText(priceText, PAGE_W - MARGIN - priceW - 20, currentY - 14, 12, 'F2', 1, 1, 1)
     currentY -= 35
@@ -324,7 +324,7 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
 
       pdf.addText(truncate(cob.nome, 70), MARGIN + 10, currentY - 10, 8, 'F1', 0.2, 0.2, 0.2)
       pdf.addText(
-        truncate(cob.valor, 25),
+        truncate(cob.valor, 50),
         MARGIN + CARD_W - 120,
         currentY - 10,
         8,
@@ -344,25 +344,13 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
   const numPages = pdf.pages.length
   for (let i = 0; i < numPages; i++) {
     const footerY = 30
-    const footerText = `Página ${i + 1} de ${numPages} | Now Assistance`
-    const quoteId = `ID: ${cotacao.id}`
+    const footerText = `Página ${i + 1} de ${numPages} | Now Assistance | ID: ${cotacao.id}`
 
     pdf.addLineToPage(i, MARGIN, footerY + 15, PAGE_W - MARGIN, footerY + 15, 0.8, 0.8, 0.8)
     pdf.addTextToPage(
       i,
       footerText,
-      PAGE_W / 2 - footerText.length * 2.5,
-      footerY,
-      8,
-      'F1',
-      0.4,
-      0.4,
-      0.4,
-    )
-    pdf.addTextToPage(
-      i,
-      quoteId,
-      PAGE_W - MARGIN - quoteId.length * 4.5,
+      PAGE_W / 2 - footerText.length * 2.2,
       footerY,
       8,
       'F1',
@@ -398,10 +386,29 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
       tipo_cobranca: prod.tipo_cobranca,
       preco_total_produto: rel.preco_total_produto,
       coberturas: coberturasRel.map((c: any) => {
-        const valFinal = c.valor || c.descricao_customizada || 'Incluso'
+        let valRaw = c.valor || c.descricao_customizada
+        let valFinal = ''
+
+        if (!valRaw || valRaw.trim() === '') {
+          valFinal = 'Não configurado'
+        } else {
+          if (c.moeda) {
+            const numRegex = /^(\d+)([.,]\d+)?$/
+            const match = valRaw.match(numRegex)
+            if (match) {
+              const intPart = parseInt(match[1], 10).toLocaleString('pt-BR')
+              const decPart = match[2] ? match[2].replace('.', ',') : ''
+              valRaw = intPart + decPart
+            }
+            valFinal = `${c.moeda} ${valRaw}`
+          } else {
+            valFinal = valRaw
+          }
+        }
+
         return {
           nome: c.expand?.cobertura_id?.nome || 'Cobertura',
-          valor: c.moeda ? `${c.moeda} ${valFinal}` : valFinal,
+          valor: valFinal,
         }
       }),
     })
