@@ -23,7 +23,6 @@ export function useCalculadoraCotacao(input: Partial<CalculoInput>): CotacaoStat
     input.viajantes_por_faixa?.de_76_a_85,
     input.data_inicio,
     input.data_fim,
-    input.destino,
   ])
 
   const calculate = useCallback((calcInput: Partial<CalculoInput>) => {

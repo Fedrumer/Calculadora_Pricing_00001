@@ -18,7 +18,6 @@ const defaultInput: Partial<CalculoInput> = {
   comissao: 0,
   viajantes_por_faixa: { ate_75: 1, de_76_a_85: 0 },
   forma_pagamento: 'TRANSFER',
-  destino: 'WORLD',
   data_inicio: new Date(),
   data_fim: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
 }

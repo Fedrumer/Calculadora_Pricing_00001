@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { AlertCircle, Plane } from 'lucide-react'
-import { Produto, FormaPagamentoId, FaixaEtariaId, DestinoId } from '@/types/cotacao'
+import { Produto, FormaPagamentoId, FaixaEtariaId } from '@/types/cotacao'
 import { useCalculadoraCotacao } from '@/hooks/use-calculadora-cotacao'
 import useCotacaoStore from '@/stores/useCotacaoStore'
 import { cn } from '@/lib/utils'
@@ -18,7 +18,6 @@ export interface GridProdutosProps {
   viajantes_por_faixa: Record<FaixaEtariaId, number>
   data_inicio?: Date
   data_fim?: Date
-  destino?: DestinoId
   produtosSelecionados: string[]
   onSelecaoMudou: (id: string, selecionado: boolean) => void
   isError?: boolean
@@ -38,7 +37,6 @@ export function GridProdutos({
   viajantes_por_faixa,
   data_inicio,
   data_fim,
-  destino,
   produtosSelecionados,
   onSelecaoMudou,
   isError = false,
@@ -70,17 +68,8 @@ export function GridProdutos({
       viajantes_por_faixa,
       data_inicio,
       data_fim,
-      destino,
     }),
-    [
-      produtosFiltrados,
-      forma_pagamento,
-      comissao,
-      viajantes_por_faixa,
-      data_inicio,
-      data_fim,
-      destino,
-    ],
+    [produtosFiltrados, forma_pagamento, comissao, viajantes_por_faixa, data_inicio, data_fim],
   )
 
   const { produtos_calculados, tipo_preco, moeda, carregando, erros } = useCalculadoraCotacao(input)

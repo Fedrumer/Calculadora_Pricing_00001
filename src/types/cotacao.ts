@@ -21,7 +21,6 @@ export interface CalculoInput {
   viajantes_por_faixa: Record<FaixaEtariaId, number>
   data_inicio?: Date
   data_fim?: Date
-  destino?: DestinoId
   filtro_tag?: string
   filtro_nome?: string
 }

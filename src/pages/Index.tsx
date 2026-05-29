@@ -109,7 +109,6 @@ export default function Index() {
         viajantes_por_faixa={input.viajantes_por_faixa!}
         data_inicio={input.data_inicio}
         data_fim={input.data_fim}
-        destino={input.destino}
         produtosSelecionados={selecionados}
         onSelecaoMudou={(id, isSelected) => {
           setSelecionados((prev) => (isSelected ? [...prev, id] : prev.filter((x) => x !== id)))

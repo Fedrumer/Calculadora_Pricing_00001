@@ -8,7 +8,6 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
   else if (input.data_fim < input.data_inicio) erros.push('Data final menor que data inicial')
 
   if (!input.forma_pagamento) erros.push('Selecione a forma de pagamento')
-  if (!input.destino) erros.push('Selecione o destino')
   if (input.comissao !== undefined && input.comissao >= 0.99) {
     erros.push('Comissão máxima permitida é de 99%')
   }
@@ -20,7 +19,6 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
   const bloqueiaCalculo =
     !input.produtos ||
     !input.forma_pagamento ||
-    !input.destino ||
     (input.comissao !== undefined && input.comissao >= 0.99)
 
   if (bloqueiaCalculo) {
@@ -55,8 +53,13 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
         const preco_net_base =
           produto.precos_base_por_forma_pagamento?.[input.forma_pagamento!] ?? 0
 
-        const destinoData = produto.destinos?.[input.destino!]
-        if (!destinoData) {
+        const destinosKeys = Object.keys(produto.destinos || {})
+        const destinoData =
+          destinosKeys.length > 0
+            ? produto.destinos[destinosKeys[0] as keyof typeof produto.destinos]
+            : null
+
+        if (!destinoData && destinosKeys.length === 0) {
           acc.push({
             id: produto.id,
             nome: produto.nome,
@@ -69,7 +72,7 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
           return acc
         }
 
-        const agravo = destinoData.agravo_percentual ?? 0
+        const agravo = destinoData?.agravo_percentual ?? 0
 
         const preco_bruto = isGross ? preco_net_base / (1 - comissao) : preco_net_base
         const tipoCobranca = produto.tipo_cobranca || 'dia'
