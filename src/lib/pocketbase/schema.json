@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-29T13:41:46.477Z",
+  "generatedAt": "2026-05-29T14:43:26.360Z",
   "collections": [
     {
       "name": "users",
@@ -433,6 +433,12 @@
         {
           "name": "nome_agencia",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logo",
+          "type": "file",
           "required": false,
           "system": false
         }
