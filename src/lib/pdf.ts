@@ -3,7 +3,7 @@ import pb from '@/lib/pocketbase/client'
 export interface CotacaoPDFData {
   id: string
   nome_agencia?: string
-  created?: string | Date
+  data_inicio?: string | Date
   fatura_total: number
   moeda?: string
   forma_pagamento?: string
@@ -199,12 +199,12 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
   const cards = produtos.map((prod) => {
     const limit = 39
     const hasMore = prod.coberturas.length > limit
-    const showCount = hasMore ? limit - 1 : Math.min(prod.coberturas.length, limit)
+    const showCount = hasMore ? limit : prod.coberturas.length
     const tableRows = showCount + (hasMore ? 1 : 0)
 
     const headerH = 14 + 4 + 10 + 14 + 16
     const padB = 17
-    const margB = 22.7
+    const margB = 17
     const separation = padB + margB + 1
 
     const tableH = 17 + tableRows * 17
@@ -254,13 +254,39 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
     pages.push(currentPageCards)
   }
 
+  const dataFormatada = cotacao.data_inicio
+    ? new Date(cotacao.data_inicio).toLocaleDateString('pt-BR')
+    : new Date().toLocaleDateString('pt-BR')
+
+  const leftText = `Cotação ${cotacao.id}`
+  const centerText = `Data: ${dataFormatada}`
+  const rightText = `Agência: ${cotacao.nome_agencia || 'N/A'}`
+
   if (pages.length === 0) {
     pdf.addPage()
-    const dataFormatada = cotacao.created
-      ? new Date(cotacao.created).toLocaleDateString('pt-BR')
-      : new Date().toLocaleDateString('pt-BR')
-    const headerText = `Cotação ${cotacao.id} | Data: ${dataFormatada} | Agência: ${cotacao.nome_agencia || 'N/A'}`
-    pdf.addText(headerText, MARGIN, PAGE_H - MARGIN, 10, 'F2', 0.2, 0.2, 0.2)
+    pdf.addText(leftText, MARGIN, PAGE_H - MARGIN, 10, 'F2', 0.2, 0.2, 0.2)
+    pdf.addText(
+      centerText,
+      PAGE_W / 2 - centerText.length * 2.5,
+      PAGE_H - MARGIN,
+      10,
+      'F2',
+      0.2,
+      0.2,
+      0.2,
+    )
+    pdf.addText(
+      rightText,
+      PAGE_W - MARGIN - rightText.length * 5,
+      PAGE_H - MARGIN,
+      10,
+      'F2',
+      0.2,
+      0.2,
+      0.2,
+    )
+    pdf.addLine(MARGIN, PAGE_H - MARGIN - 10, PAGE_W - MARGIN, PAGE_H - MARGIN - 10, 0.8, 0.8, 0.8)
+
     pdf.addText('Nenhum produto selecionado na cotação.', MARGIN, PAGE_H - MARGIN - 40, 12, 'F1')
     return pdf.build()
   }
@@ -269,11 +295,27 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
     pdf.addPage()
     const pageItems = pages[p]
 
-    const dataFormatada = cotacao.created
-      ? new Date(cotacao.created).toLocaleDateString('pt-BR')
-      : new Date().toLocaleDateString('pt-BR')
-    const headerText = `Cotação ${cotacao.id} | Data: ${dataFormatada} | Agência: ${cotacao.nome_agencia || 'N/A'}`
-    pdf.addText(headerText, MARGIN, PAGE_H - MARGIN, 10, 'F2', 0.2, 0.2, 0.2)
+    pdf.addText(leftText, MARGIN, PAGE_H - MARGIN, 10, 'F2', 0.2, 0.2, 0.2)
+    pdf.addText(
+      centerText,
+      PAGE_W / 2 - centerText.length * 2.5,
+      PAGE_H - MARGIN,
+      10,
+      'F2',
+      0.2,
+      0.2,
+      0.2,
+    )
+    pdf.addText(
+      rightText,
+      PAGE_W - MARGIN - rightText.length * 5,
+      PAGE_H - MARGIN,
+      10,
+      'F2',
+      0.2,
+      0.2,
+      0.2,
+    )
     pdf.addLine(MARGIN, PAGE_H - MARGIN - 10, PAGE_W - MARGIN, PAGE_H - MARGIN - 10, 0.8, 0.8, 0.8)
 
     const footerText = `Página ${p + 1} de ${pages.length} | Now Assistance`
@@ -320,7 +362,7 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
       currentTextY -= 16 + 17
 
       pdf.addLine(x + PADDING, currentTextY, x + CARD_W - PADDING, currentTextY, 0.9, 0.9, 0.9, 1)
-      currentTextY -= 22.7
+      currentTextY -= 17
 
       const tableW = CARD_W - 2 * PADDING
       pdf.addRect(x + PADDING, currentTextY - 17, tableW, 17, 0.96, 0.96, 0.96, true)
@@ -390,7 +432,7 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
 
 export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
   const cotacao = await pb.collection('cotacoes').getOne(cotacaoId, {
-    expand: 'forma_pagamento_id,cotacao_produtos_via_cotacao_id.produto_id',
+    expand: 'forma_pagamento_id,cotacao_produtos_via_cotacao_id.produto_id,usuario_id',
   })
 
   const produtosRel = cotacao.expand?.cotacao_produtos_via_cotacao_id || []
@@ -422,8 +464,8 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
 
   const pdfData: CotacaoPDFData = {
     id: cotacao.id,
-    nome_agencia: cotacao.nome_agencia,
-    created: cotacao.created,
+    nome_agencia: cotacao.nome_agencia || cotacao.expand?.usuario_id?.name,
+    data_inicio: cotacao.data_inicio || cotacao.created,
     fatura_total: cotacao.fatura_total,
     moeda: cotacao.moeda,
     forma_pagamento: cotacao.expand?.forma_pagamento_id?.nome,

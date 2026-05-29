@@ -123,7 +123,7 @@ export function HistoricoList({
           <Eye className="w-4 h-4 mr-2" /> Visualizar
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleDownload(item)} disabled={generating}>
-          <FileText className="w-4 h-4 mr-2" /> {generating ? 'Gerando...' : 'Baixar PDF'}
+          <FileText className="w-4 h-4 mr-2" /> {generating ? 'Gerando PDF...' : 'Baixar PDF'}
         </DropdownMenuItem>
         {item.status === 'RASCUNHO' && (
           <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'PROPOSTA_ENVIADA')}>
@@ -370,7 +370,7 @@ export function HistoricoList({
                 setViewItem(null)
               }}
             >
-              {generating ? 'Gerando...' : 'Baixar PDF'}
+              {generating ? 'Gerando PDF...' : 'Baixar PDF'}
             </Button>
           </DialogFooter>
         </DialogContent>
