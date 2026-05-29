@@ -49,6 +49,7 @@ export function PrecosTab({ produtoId = 'all' }: { produtoId?: string }) {
         produto_id: produtoId !== 'all' ? produtoId : '',
         forma_pagamento_codigo: '',
         preco_base_net: 0,
+        moeda: 'USD',
       },
     )
     setOpen(true)
@@ -79,6 +80,7 @@ export function PrecosTab({ produtoId = 'all' }: { produtoId?: string }) {
               <TableHead>Produto</TableHead>
               <TableHead>Forma Pgto</TableHead>
               <TableHead>Preço NET</TableHead>
+              <TableHead>Moeda</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -88,6 +90,7 @@ export function PrecosTab({ produtoId = 'all' }: { produtoId?: string }) {
                 <TableCell>{item.expand?.produto_id?.nome}</TableCell>
                 <TableCell>{item.forma_pagamento_codigo}</TableCell>
                 <TableCell className="font-mono">{item.preco_base_net?.toFixed(2)}</TableCell>
+                <TableCell>{item.moeda || 'USD'}</TableCell>
                 <TableCell className="flex gap-2 justify-end">
                   <Button variant="ghost" size="icon" onClick={() => handleOpen(item)}>
                     <Edit className="w-4 h-4 text-blue-600" />
@@ -153,6 +156,23 @@ export function PrecosTab({ produtoId = 'all' }: { produtoId?: string }) {
                 value={form.preco_base_net}
                 onChange={(e) => setForm({ ...form, preco_base_net: Number(e.target.value) })}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>Moeda</Label>
+              <Select
+                value={form.moeda || 'USD'}
+                onValueChange={(v) => setForm({ ...form, moeda: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a moeda" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="BRL">BRL</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="ARS">ARS</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

@@ -410,10 +410,13 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
       produto_nome: prod.nome,
       tipo_cobranca: prod.tipo_cobranca,
       preco_total_produto: rel.preco_total_produto,
-      coberturas: coberturasRel.map((c: any) => ({
-        nome: c.expand?.cobertura_id?.nome || 'Cobertura',
-        valor: c.valor || c.descricao_customizada || 'Incluso',
-      })),
+      coberturas: coberturasRel.map((c: any) => {
+        const valFinal = c.valor || c.descricao_customizada || 'Incluso'
+        return {
+          nome: c.expand?.cobertura_id?.nome || 'Cobertura',
+          valor: c.moeda ? `${c.moeda} ${valFinal}` : valFinal,
+        }
+      }),
     })
   }
 

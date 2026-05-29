@@ -56,6 +56,7 @@ export function ProdutoCoberturasTab({ produtoId }: { produtoId: string }) {
         produto_id: produtoId,
         cobertura_id: '',
         valor: '',
+        moeda: '',
         descricao_customizada: '',
         ordem_exibicao: 0,
         ativo: true,
@@ -92,6 +93,7 @@ export function ProdutoCoberturasTab({ produtoId }: { produtoId: string }) {
               <TableHead>Ordem</TableHead>
               <TableHead>Cobertura</TableHead>
               <TableHead>Valor</TableHead>
+              <TableHead>Moeda</TableHead>
               <TableHead>Desc. Customizada</TableHead>
               <TableHead>Ativo</TableHead>
               <TableHead className="w-[100px]"></TableHead>
@@ -103,6 +105,7 @@ export function ProdutoCoberturasTab({ produtoId }: { produtoId: string }) {
                 <TableCell>{item.ordem_exibicao}</TableCell>
                 <TableCell>{getCoberturaNome(item.cobertura_id)}</TableCell>
                 <TableCell>{item.valor}</TableCell>
+                <TableCell>{item.moeda}</TableCell>
                 <TableCell>{item.descricao_customizada}</TableCell>
                 <TableCell>
                   <Switch
@@ -159,11 +162,29 @@ export function ProdutoCoberturasTab({ produtoId }: { produtoId: string }) {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Valor (Ex: R$ 500 ou Incluído)</Label>
+              <Label>Valor (Ex: 50000 ou Incluído)</Label>
               <Input
                 value={form.valor}
                 onChange={(e) => setForm({ ...form, valor: e.target.value })}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>Moeda (Opcional)</Label>
+              <Select
+                value={form.moeda || 'none'}
+                onValueChange={(v) => setForm({ ...form, moeda: v === 'none' ? '' : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem moeda" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="BRL">BRL</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="ARS">ARS</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label>Descrição Customizada (Opcional)</Label>

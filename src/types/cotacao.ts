@@ -10,6 +10,7 @@ export interface Produto {
   ordem_exibicao?: number
   tipo_cobranca?: 'dia' | 'anual'
   precos_base_por_forma_pagamento: Record<FormaPagamentoId, number>
+  moedas_por_forma_pagamento?: Record<string, string>
   destinos: Record<DestinoId, { agravo_percentual: number }>
   faixas_etarias: Record<FaixaEtariaId, { fator_multiplicador: number | null }>
 }
@@ -43,7 +44,7 @@ export interface CotacaoState {
   fatura_total: number
   preco_unitario_total: number
   tipo_preco: 'NET' | 'BRUTO'
-  moeda: 'USD'
+  moeda: string
   erros: string[]
   carregando: boolean
 }

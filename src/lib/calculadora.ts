@@ -47,11 +47,21 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
   const comissao = input.comissao || 0
   const isGross = comissao > 0
 
+  let moeda_calculada = 'USD'
+
   const produtos_calculados = input.produtos.reduce<CotacaoState['produtos_calculados']>(
     (acc, produto) => {
       try {
         const preco_net_base =
           produto.precos_base_por_forma_pagamento?.[input.forma_pagamento!] ?? 0
+
+        if (
+          produto.moedas_por_forma_pagamento &&
+          input.forma_pagamento &&
+          produto.moedas_por_forma_pagamento[input.forma_pagamento]
+        ) {
+          moeda_calculada = produto.moedas_por_forma_pagamento[input.forma_pagamento]
+        }
 
         const destinosKeys = Object.keys(produto.destinos || {})
         const destinoData =
@@ -137,7 +147,7 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
     fatura_total,
     preco_unitario_total,
     tipo_preco: isGross ? 'BRUTO' : 'NET',
-    moeda: 'USD',
+    moeda: moeda_calculada,
     erros: [],
     carregando: false,
   }

@@ -29,11 +29,13 @@ function CoberturaEditor({
   onRemove: () => void
 }) {
   const [val, setVal] = useState(record.valor || '')
+  const [moeda, setMoeda] = useState(record.moeda || '')
   const [desc, setDesc] = useState(record.descricao_customizada || '')
   const [ordem, setOrdem] = useState(record.ordem_exibicao || 0)
 
   useEffect(() => {
     setVal(record.valor || '')
+    setMoeda(record.moeda || '')
     setDesc(record.descricao_customizada || '')
     setOrdem(record.ordem_exibicao || 0)
   }, [record])
@@ -43,16 +45,42 @@ function CoberturaEditor({
       <h3 className="text-lg font-bold mb-6 text-foreground">{cobertura.nome}</h3>
 
       <div className="space-y-4">
-        <div>
-          <Label className="text-[12px] font-[600] text-muted-foreground mb-[8px] block">
-            Valor (ex: R$ 500 ou Incluído)
-          </Label>
-          <Input
-            value={val}
-            onChange={(e) => setVal(e.target.value)}
-            onBlur={() => onUpdate(record.id, 'valor', val)}
-            className="h-[40px] px-[12px] rounded-[8px] border border-input focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-[12px] font-[600] text-muted-foreground mb-[8px] block">
+              Valor (ex: 50000 ou Incluído)
+            </Label>
+            <Input
+              value={val}
+              onChange={(e) => setVal(e.target.value)}
+              onBlur={() => onUpdate(record.id, 'valor', val)}
+              className="h-[40px] px-[12px] rounded-[8px] border border-input focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+            />
+          </div>
+          <div>
+            <Label className="text-[12px] font-[600] text-muted-foreground mb-[8px] block">
+              Moeda
+            </Label>
+            <Select
+              value={moeda || 'none'}
+              onValueChange={(v) => {
+                const newMoeda = v === 'none' ? '' : v;
+                setMoeda(newMoeda);
+                onUpdate(record.id, 'moeda', newMoeda);
+              }}
+            >
+              <SelectTrigger className="h-[40px]">
+                <SelectValue placeholder="Sem moeda" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma</SelectItem>
+                <SelectItem value="USD">USD</SelectItem>
+                <SelectItem value="BRL">BRL</SelectItem>
+                <SelectItem value="EUR">EUR</SelectItem>
+                <SelectItem value="ARS">ARS</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div>
@@ -143,10 +171,10 @@ export default function ProdutoCoberturasForm() {
           cobertura_id: coberturaId,
           ativo: true,
           ordem_exibicao: 0,
-          valor: '',
+          valor: 'Incluído',
+          moeda: '',
           descricao_customizada: '',
-        })
-        setProdutoCoberturas((prev) => [...prev, newRecord])
+        })        setProdutoCoberturas((prev) => [...prev, newRecord])
         setSelectedId(coberturaId)
       } catch (err) {
         toast({ variant: 'destructive', title: 'Erro ao adicionar cobertura' })
