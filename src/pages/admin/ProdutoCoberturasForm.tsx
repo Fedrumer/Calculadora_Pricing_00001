@@ -64,9 +64,9 @@ function CoberturaEditor({
             <Select
               value={moeda || 'none'}
               onValueChange={(v) => {
-                const newMoeda = v === 'none' ? '' : v;
-                setMoeda(newMoeda);
-                onUpdate(record.id, 'moeda', newMoeda);
+                const newMoeda = v === 'none' ? '' : v
+                setMoeda(newMoeda)
+                onUpdate(record.id, 'moeda', newMoeda)
               }}
             >
               <SelectTrigger className="h-[40px]">
@@ -174,7 +174,8 @@ export default function ProdutoCoberturasForm() {
           valor: 'Incluído',
           moeda: '',
           descricao_customizada: '',
-        })        setProdutoCoberturas((prev) => [...prev, newRecord])
+        })
+        setProdutoCoberturas((prev) => [...prev, newRecord])
         setSelectedId(coberturaId)
       } catch (err) {
         toast({ variant: 'destructive', title: 'Erro ao adicionar cobertura' })
