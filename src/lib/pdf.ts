@@ -374,7 +374,8 @@ export function gerarPDFProposta(
 
   const drawGlobalHeader = (pageIndex: number) => {
     if (logoData) {
-      pdf.drawImage(pageIndex, 'logo', MARGIN, PAGE_H - MARGIN - 80, 80, 80)
+      const logoW = 80 * (logoData.width / logoData.height)
+      pdf.drawImage(pageIndex, 'logo', MARGIN, PAGE_H - MARGIN - 80, logoW, 80)
     } else {
       pdf.addTextToPage(pageIndex, 'Now', MARGIN, PAGE_H - MARGIN - 20, 24, 'F2', pR, pG, pB)
       pdf.addTextToPage(
@@ -390,92 +391,104 @@ export function gerarPDFProposta(
       )
     }
 
-    const dates = `${formatDate(cotacao.data_inicio)} a ${formatDate(cotacao.data_fim)}`
-    const created = formatDate(cotacao.created)
-    const comissaoText =
-      (cotacao.comissao || 0) > 0 ? `${((cotacao.comissao || 0) * 100).toFixed(0)}%` : '0%'
-    const totalFormatado = `${cotacao.moeda || 'USD'} ${(cotacao.fatura_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+    if (pageIndex === 0) {
+      const dates = `${formatDate(cotacao.data_inicio)} a ${formatDate(cotacao.data_fim)}`
+      const created = formatDate(cotacao.created)
+      const comissaoText =
+        (cotacao.comissao || 0) > 0 ? `${((cotacao.comissao || 0) * 100).toFixed(0)}%` : '0%'
+      const totalFormatado = `${cotacao.moeda || 'USD'} ${(cotacao.fatura_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-    const col1 = 180
-    const col2 = 380
-    let y = PAGE_H - MARGIN - 10
+      const col1 = 180
+      const col2 = 380
+      let y = PAGE_H - MARGIN - 10
 
-    const labelSz = 8
-    const valSz = 9
+      const labelSz = 8
+      const valSz = 9
 
-    pdf.addTextToPage(pageIndex, 'Agência:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
-    pdf.addTextToPage(
+      pdf.addTextToPage(pageIndex, 'Agência:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
+      pdf.addTextToPage(
+        pageIndex,
+        truncate(cotacao.nome_agencia || 'N/A', 30),
+        col1 + 45,
+        y,
+        valSz,
+        'F1',
+        darkR,
+        darkG,
+        darkB,
+      )
+      pdf.addTextToPage(pageIndex, 'Data da Cotação:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
+      pdf.addTextToPage(pageIndex, created, col2 + 80, y, valSz, 'F1', darkR, darkG, darkB)
+
+      y -= 15
+      pdf.addTextToPage(pageIndex, 'Período:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
+      pdf.addTextToPage(pageIndex, dates, col1 + 45, y, valSz, 'F1', darkR, darkG, darkB)
+      pdf.addTextToPage(pageIndex, 'Total de Dias:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
+      pdf.addTextToPage(
+        pageIndex,
+        `${cotacao.qtd_dias || 1}`,
+        col2 + 65,
+        y,
+        valSz,
+        'F1',
+        darkR,
+        darkG,
+        darkB,
+      )
+
+      y -= 15
+      pdf.addTextToPage(pageIndex, 'Passageiros:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
+      pdf.addTextToPage(
+        pageIndex,
+        `${cotacao.total_passageiros || 0}`,
+        col1 + 60,
+        y,
+        valSz,
+        'F1',
+        darkR,
+        darkG,
+        darkB,
+      )
+      pdf.addTextToPage(pageIndex, 'Comissão:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
+      pdf.addTextToPage(pageIndex, comissaoText, col2 + 55, y, valSz, 'F1', darkR, darkG, darkB)
+
+      y -= 15
+      pdf.addTextToPage(pageIndex, 'Pagamento:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
+      pdf.addTextToPage(
+        pageIndex,
+        truncate(cotacao.forma_pagamento || 'N/A', 25),
+        col1 + 55,
+        y,
+        valSz,
+        'F1',
+        darkR,
+        darkG,
+        darkB,
+      )
+      pdf.addTextToPage(pageIndex, 'Fatura Total:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
+      pdf.addTextToPage(pageIndex, totalFormatado, col2 + 60, y, 10, 'F2', pR, pG, pB)
+    }
+
+    pdf.addLineToPage(
       pageIndex,
-      truncate(cotacao.nome_agencia || 'N/A', 30),
-      col1 + 45,
-      y,
-      valSz,
-      'F1',
-      darkR,
-      darkG,
-      darkB,
+      MARGIN,
+      PAGE_H - MARGIN - 85,
+      PAGE_W - MARGIN,
+      PAGE_H - MARGIN - 85,
+      grayR,
+      grayG,
+      grayB,
     )
-    pdf.addTextToPage(pageIndex, 'Data da Cotação:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
-    pdf.addTextToPage(pageIndex, created, col2 + 80, y, valSz, 'F1', darkR, darkG, darkB)
-
-    y -= 15
-    pdf.addTextToPage(pageIndex, 'Período:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
-    pdf.addTextToPage(pageIndex, dates, col1 + 45, y, valSz, 'F1', darkR, darkG, darkB)
-    pdf.addTextToPage(pageIndex, 'Total de Dias:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
-    pdf.addTextToPage(
-      pageIndex,
-      `${cotacao.qtd_dias || 1}`,
-      col2 + 65,
-      y,
-      valSz,
-      'F1',
-      darkR,
-      darkG,
-      darkB,
-    )
-
-    y -= 15
-    pdf.addTextToPage(pageIndex, 'Passageiros:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
-    pdf.addTextToPage(
-      pageIndex,
-      `${cotacao.total_passageiros || 0}`,
-      col1 + 60,
-      y,
-      valSz,
-      'F1',
-      darkR,
-      darkG,
-      darkB,
-    )
-    pdf.addTextToPage(pageIndex, 'Comissão:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
-    pdf.addTextToPage(pageIndex, comissaoText, col2 + 55, y, valSz, 'F1', darkR, darkG, darkB)
-
-    y -= 15
-    pdf.addTextToPage(pageIndex, 'Pagamento:', col1, y, labelSz, 'F2', darkR, darkG, darkB)
-    pdf.addTextToPage(
-      pageIndex,
-      truncate(cotacao.forma_pagamento || 'N/A', 25),
-      col1 + 55,
-      y,
-      valSz,
-      'F1',
-      darkR,
-      darkG,
-      darkB,
-    )
-    pdf.addTextToPage(pageIndex, 'Fatura Total:', col2, y, labelSz, 'F2', darkR, darkG, darkB)
-    pdf.addTextToPage(pageIndex, totalFormatado, col2 + 60, y, 10, 'F2', pR, pG, pB)
-
-    pdf.addLineToPage(pageIndex, MARGIN, y - 15, PAGE_W - MARGIN, y - 15, grayR, grayG, grayB)
   }
 
+  pdf.addPage()
+  drawGlobalHeader(0)
+
   if (produtos.length === 0) {
-    pdf.addPage()
-    drawGlobalHeader(0)
     pdf.addText('Nenhum produto selecionado na cotação.', MARGIN, PAGE_H - 150, 12, 'F1')
   }
 
-  let currentY = PAGE_H - 130
+  let currentY = PAGE_H - 140
   const minAvailableY = 80
   const rowHeight = 17
   const headerHeight = 60
@@ -484,30 +497,46 @@ export function gerarPDFProposta(
     let cobs = prod.coberturas
     let idx = 0
 
-    const neededHeight = headerHeight + cobs.length * rowHeight + 15
-
-    if (currentY - neededHeight < minAvailableY && currentY < PAGE_H - 135) {
-      pdf.addPage()
-      const currentPageIndex = pdf.pages.length - 1
-      drawGlobalHeader(currentPageIndex)
-      currentY = PAGE_H - 130
-    }
-
     while (idx < cobs.length || (cobs.length === 0 && idx === 0)) {
-      const availableHeight = currentY - minAvailableY
-      const spaceForRows = availableHeight - headerHeight - 15
-      let itemsToDraw = Math.floor(spaceForRows / rowHeight)
+      let availableHeight = currentY - minAvailableY
 
-      if (itemsToDraw < 1) {
+      if (availableHeight < headerHeight + rowHeight + 15) {
         pdf.addPage()
-        const currentPageIndex = pdf.pages.length - 1
-        drawGlobalHeader(currentPageIndex)
-        currentY = PAGE_H - 130
-        continue
+        drawGlobalHeader(pdf.pages.length - 1)
+        currentY = PAGE_H - 140
+        availableHeight = currentY - minAvailableY
       }
+
+      let spaceForRows = availableHeight - headerHeight - 15
+      let itemsToDraw = Math.floor(spaceForRows / rowHeight)
 
       if (itemsToDraw > cobs.length - idx) {
         itemsToDraw = cobs.length - idx
+      }
+
+      if (idx === 0) {
+        const totalNeeded = headerHeight + (cobs.length || 1) * rowHeight + 15
+        const maxPageCapacity = PAGE_H - 140 - minAvailableY
+
+        if (totalNeeded > availableHeight && totalNeeded <= maxPageCapacity) {
+          pdf.addPage()
+          drawGlobalHeader(pdf.pages.length - 1)
+          currentY = PAGE_H - 140
+          availableHeight = currentY - minAvailableY
+
+          spaceForRows = availableHeight - headerHeight - 15
+          itemsToDraw = Math.floor(spaceForRows / rowHeight)
+          if (itemsToDraw > cobs.length - idx) {
+            itemsToDraw = cobs.length - idx
+          }
+        }
+      }
+
+      if (itemsToDraw < 1) {
+        pdf.addPage()
+        drawGlobalHeader(pdf.pages.length - 1)
+        currentY = PAGE_H - 140
+        continue
       }
 
       const pageCobs = cobs.slice(idx, idx + itemsToDraw)
@@ -578,7 +607,7 @@ export function gerarPDFProposta(
           0.9,
         )
       }
-      const priceText = `${cotacao.moeda || 'USD'} ${(prod.preco_total_produto || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+      const priceText = `${cotacao.moeda || 'USD'} ${(prod.preco_total_produto || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       const priceW = priceText.length * 8
       pdf.addText(
         priceText,
