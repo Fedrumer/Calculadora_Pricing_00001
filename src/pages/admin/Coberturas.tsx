@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Trash2, Plus, Loader2 } from 'lucide-react'
+import { Trash2, Plus, Loader2, GripVertical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import {
@@ -39,6 +39,8 @@ interface ProdutoCobertura {
   produto_id: string
   cobertura_id: string
   valor: string
+  moeda: string
+  ativo: boolean
 }
 
 export default function Coberturas() {
@@ -120,7 +122,7 @@ export default function Coberturas() {
       )
     } catch {
       toast({ title: 'Erro ao reordenar', variant: 'destructive' })
-      fetchData() // revert
+      fetchData()
     }
     setDraggedId(null)
   }
@@ -173,28 +175,49 @@ export default function Coberturas() {
     pId: string,
     pc?: ProdutoCobertura,
   ) => {
-    const value = e.target.value
+    const rawValue = e.target.value.trim()
     setEditingCell(null)
 
-    if (value === (pc?.valor || '')) return
+    let newMoeda = pc?.moeda || ''
+    let newValor = rawValue
+
+    const match = rawValue.match(/^([A-Za-z]{3})\s+(.*)$/)
+    if (match) {
+      newMoeda = match[1].toUpperCase()
+      newValor = match[2].trim()
+    } else if (rawValue === '') {
+      newMoeda = ''
+    }
+
+    const currentDisplay = pc ? (pc.moeda ? `${pc.moeda} ${pc.valor}` : pc.valor) : ''
+
+    if (
+      rawValue === currentDisplay ||
+      (newValor === (pc?.valor || '') && newMoeda === (pc?.moeda || ''))
+    ) {
+      return
+    }
 
     setSavingCell({ cId, pId })
     try {
       if (pc?.id) {
-        if (!value.trim()) {
+        if (!newValor) {
           await pb.collection('produto_coberturas').delete(pc.id)
           setProdutoCoberturas((prev) => prev.filter((x) => x.id !== pc.id))
         } else {
-          const res = await pb.collection('produto_coberturas').update(pc.id, { valor: value })
+          const res = await pb
+            .collection('produto_coberturas')
+            .update(pc.id, { valor: newValor, moeda: newMoeda })
           setProdutoCoberturas((prev) =>
             prev.map((x) => (x.id === pc.id ? (res as unknown as ProdutoCobertura) : x)),
           )
         }
-      } else if (value.trim()) {
+      } else if (newValor) {
         const res = await pb.collection('produto_coberturas').create({
           cobertura_id: cId,
           produto_id: pId,
-          valor: value,
+          valor: newValor,
+          moeda: newMoeda,
           ativo: true,
         })
         setProdutoCoberturas((prev) => [...prev, res as unknown as ProdutoCobertura])
@@ -215,7 +238,27 @@ export default function Coberturas() {
         </div>
         <div className="flex flex-col md:flex-row gap-[24px] flex-1 min-h-0">
           {!isMobile && <Skeleton className="w-[280px] shrink-0 h-full rounded-[8px]" />}
-          <Skeleton className="flex-1 h-full rounded-lg" />
+          <div className="flex-1 rounded-lg border border-border bg-background shadow-sm overflow-hidden flex flex-col">
+            <div className="flex border-b border-border bg-secondary/5">
+              <Skeleton className="h-[48px] w-[200px] rounded-none border-r border-border shrink-0" />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton
+                  key={i}
+                  className="h-[48px] w-[160px] rounded-none border-r border-border shrink-0"
+                />
+              ))}
+            </div>
+            {Array.from({ length: 5 }).map((_, r) => (
+              <div key={r} className="flex border-b border-border">
+                <Skeleton className="h-[48px] w-[200px] rounded-none border-r border-border shrink-0" />
+                {Array.from({ length: 4 }).map((_, c) => (
+                  <div key={c} className="h-[48px] w-[160px] border-r border-border shrink-0 p-3">
+                    <Skeleton className="h-full w-full" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -223,7 +266,6 @@ export default function Coberturas() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] p-[24px] gap-[24px] max-w-[1600px] mx-auto animate-fade-in">
-      {/* Header */}
       <div className="flex justify-between items-center shrink-0">
         <h1 className="text-2xl font-bold tracking-tight">Gerenciar Coberturas</h1>
         <Button onClick={() => setIsCreateOpen(true)} className="shadow-sm">
@@ -231,7 +273,6 @@ export default function Coberturas() {
         </Button>
       </div>
 
-      {/* Main Content */}
       {coberturas.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 border border-dashed border-border rounded-[8px] bg-secondary/5 flex-1 min-h-0">
           <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
@@ -245,7 +286,6 @@ export default function Coberturas() {
         </div>
       ) : (
         <div className="flex flex-col md:flex-row gap-[24px] flex-1 min-h-0">
-          {/* Left Section / Mobile Dropdown */}
           {!isMobile ? (
             <div className="w-[280px] shrink-0 bg-secondary/5 rounded-[8px] p-[16px] flex flex-col gap-1 overflow-y-auto custom-scrollbar border border-border/50">
               {coberturas.map((c) => (
@@ -264,15 +304,19 @@ export default function Coberturas() {
                       : 'bg-transparent hover:bg-secondary/10 border-transparent',
                   )}
                 >
+                  <GripVertical className="w-4 h-4 text-muted-foreground/50 mr-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <Checkbox
                     className="mr-[8px] shrink-0"
                     checked={c.ativo}
                     onCheckedChange={() => toggleAtivo(c.id, c.ativo)}
                     onClick={(e) => e.stopPropagation()}
                   />
+                  <span className="text-xs font-mono text-muted-foreground/70 w-5 shrink-0 text-center">
+                    {c.ordem_exibicao}
+                  </span>
                   <span
                     className={cn(
-                      'flex-1 text-[14px] font-medium truncate',
+                      'flex-1 text-[14px] font-medium truncate ml-1',
                       !c.ativo && 'text-muted-foreground line-through opacity-70',
                     )}
                     title={c.nome}
@@ -310,7 +354,6 @@ export default function Coberturas() {
             </div>
           )}
 
-          {/* Matrix View */}
           <div className="flex-1 overflow-auto rounded-[8px] border border-border bg-background shadow-sm custom-scrollbar relative">
             <table className="w-full text-sm text-left border-collapse">
               <thead className="sticky top-0 z-20 shadow-sm">
@@ -359,6 +402,18 @@ export default function Coberturas() {
                       const isEditing = editingCell?.cId === c.id && editingCell?.pId === p.id
                       const isSaving = savingCell?.cId === c.id && savingCell?.pId === p.id
 
+                      const displayValue = pc
+                        ? pc.moeda
+                          ? `${pc.moeda} ${pc.valor}`
+                          : pc.valor
+                        : 'Não configurado'
+                      const isCellActive = pc ? pc.ativo : false
+                      const textColor = !pc
+                        ? 'text-muted-foreground/70 italic text-xs'
+                        : isCellActive
+                          ? 'text-green-600 dark:text-green-500 font-medium'
+                          : 'text-gray-500 dark:text-gray-400 font-medium'
+
                       return (
                         <td
                           key={p.id}
@@ -372,13 +427,19 @@ export default function Coberturas() {
                               <div className="absolute inset-0 flex items-center px-[6px]">
                                 <Input
                                   autoFocus
-                                  defaultValue={pc?.valor || ''}
-                                  className="h-[36px] px-[8px] rounded-[4px] focus-visible:ring-2 focus-visible:ring-primary w-full border-border bg-background shadow-sm text-sm"
+                                  defaultValue={
+                                    pc ? (pc.moeda ? `${pc.moeda} ${pc.valor}` : pc.valor) : ''
+                                  }
+                                  className="h-[36px] px-[8px] rounded-[4px] focus-visible:ring-2 focus-visible:ring-primary w-full border-input dark:border-gray-600 bg-background shadow-sm text-sm"
                                   onBlur={(e) => handleBlur(e, c.id, p.id, pc)}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') e.currentTarget.blur()
                                     if (e.key === 'Escape') {
-                                      e.currentTarget.value = pc?.valor || ''
+                                      e.currentTarget.value = pc
+                                        ? pc.moeda
+                                          ? `${pc.moeda} ${pc.valor}`
+                                          : pc.valor
+                                        : ''
                                       e.currentTarget.blur()
                                     }
                                   }}
@@ -390,13 +451,8 @@ export default function Coberturas() {
                                 {isSaving ? (
                                   <Loader2 className="w-4 h-4 animate-spin text-primary" />
                                 ) : (
-                                  <span
-                                    className={cn(
-                                      'truncate block w-full',
-                                      !pc?.valor && 'text-muted-foreground',
-                                    )}
-                                  >
-                                    {pc?.valor || '-'}
+                                  <span className={cn('truncate block w-full', textColor)}>
+                                    {displayValue}
                                   </span>
                                 )}
                               </div>
@@ -413,7 +469,6 @@ export default function Coberturas() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       <Dialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <DialogContent>
           <DialogHeader>
@@ -434,7 +489,6 @@ export default function Coberturas() {
         </DialogContent>
       </Dialog>
 
-      {/* Create Modal */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent>
           <DialogHeader>
