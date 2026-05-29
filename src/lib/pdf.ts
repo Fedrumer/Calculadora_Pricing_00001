@@ -4,9 +4,14 @@ export interface CotacaoPDFData {
   id: string
   nome_agencia?: string
   data_inicio?: string | Date
+  data_fim?: string | Date
+  created?: string | Date
   fatura_total: number
   moeda?: string
   forma_pagamento?: string
+  qtd_dias?: number
+  total_passageiros?: number
+  comissao?: number
 }
 
 export interface ProdutoDetalhePDF {
@@ -42,6 +47,41 @@ class PDFBuilder {
       }
     }
     return result
+  }
+
+  addTextToPage(
+    pageIndex: number,
+    text: string,
+    x: number,
+    y: number,
+    size: number = 10,
+    font: 'F1' | 'F2' = 'F1',
+    r = 0,
+    g = 0,
+    b = 0,
+  ) {
+    if (pageIndex < 0 || pageIndex >= this.pages.length) return
+    const escaped = this.escapeText(text)
+    this.pages[pageIndex].push(
+      `${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} rg BT /${font} ${size} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${escaped}) Tj ET 0 0 0 rg`,
+    )
+  }
+
+  addLineToPage(
+    pageIndex: number,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    r = 0,
+    g = 0,
+    b = 0,
+    lineWidth = 1,
+  ) {
+    if (pageIndex < 0 || pageIndex >= this.pages.length) return
+    this.pages[pageIndex].push(
+      `${lineWidth.toFixed(2)} w ${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} RG ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S 1 w 0 0 0 RG`,
+    )
   }
 
   addText(
@@ -187,244 +227,149 @@ export function gerarPDFProposta(cotacao: CotacaoPDFData, produtos: ProdutoDetal
   const pdf = new PDFBuilder()
   const PAGE_W = 595.28
   const PAGE_H = 841.89
-  const MARGIN = 56.7 // 20mm
+  const MARGIN = 56.7
 
-  const CARD_W = 255.1 // 90mm
-  const CARD_GAP = 17 // 6mm
-  const PADDING = 34 // 12mm
+  const CARD_W = PAGE_W - 2 * MARGIN
 
   const truncate = (str: string, len: number) =>
     str.length > len ? str.substring(0, len - 3) + '...' : str
 
-  const cards = produtos.map((prod) => {
-    const limit = 39
-    const hasMore = prod.coberturas.length > limit
-    const showCount = hasMore ? limit : prod.coberturas.length
-    const tableRows = showCount + (hasMore ? 1 : 0)
+  let currentY = PAGE_H - MARGIN
 
-    const headerH = 14 + 4 + 10 + 14 + 16
-    const padB = 17
-    const margB = 17
-    const separation = padB + margB + 1
-
-    const tableH = 17 + tableRows * 17
-    const h = PADDING * 2 + headerH + separation + tableH
-
-    return { prod, h, showCount, hasMore, tableRows }
-  })
-
-  const pages: any[][] = []
-  let currentPageCards: any[] = []
-  let cardsOnPage = 0
-  let currentY = PAGE_H - MARGIN - 40
-
-  let i = 0
-  while (i < cards.length) {
-    const c1 = cards[i]
-    let c2 = null
-    let rowH = c1.h
-
-    const isLeft = cardsOnPage % 2 === 0
-    if (isLeft && i + 1 < cards.length && cardsOnPage + 1 < 4) {
-      c2 = cards[i + 1]
-      rowH = Math.max(c1.h, c2.h)
+  const checkSpace = (required: number) => {
+    if (currentY - required < MARGIN + 40) {
+      pdf.addPage()
+      currentY = PAGE_H - MARGIN
+      pdf.addText(`Cotação ${cotacao.id}`, MARGIN, currentY, 10, 'F2', 0.5, 0.5, 0.5)
+      pdf.addLine(MARGIN, currentY - 5, PAGE_W - MARGIN, currentY - 5, 0.8, 0.8, 0.8)
+      currentY -= 25
     }
-
-    if ((cardsOnPage >= 4 || currentY - rowH < MARGIN + 20) && cardsOnPage > 0) {
-      pages.push(currentPageCards)
-      currentPageCards = []
-      cardsOnPage = 0
-      currentY = PAGE_H - MARGIN - 40
-      continue
-    }
-
-    currentPageCards.push({ card: c1, col: 0, yTop: currentY, rowH })
-    cardsOnPage++
-    i++
-
-    if (c2) {
-      currentPageCards.push({ card: c2, col: 1, yTop: currentY, rowH })
-      cardsOnPage++
-      i++
-    }
-
-    currentY -= rowH + CARD_GAP
-  }
-  if (currentPageCards.length > 0) {
-    pages.push(currentPageCards)
   }
 
-  const dataFormatada = cotacao.data_inicio
-    ? new Date(cotacao.data_inicio).toLocaleDateString('pt-BR')
-    : new Date().toLocaleDateString('pt-BR')
+  pdf.addPage()
 
-  const leftText = `Cotação ${cotacao.id}`
-  const centerText = `Data: ${dataFormatada}`
-  const rightText = `Agência: ${cotacao.nome_agencia || 'N/A'}`
+  // Header Page 1
+  pdf.addText('NOW ASSISTANCE', MARGIN, currentY, 18, 'F2', 0, 0.31, 0.63)
+  currentY -= 30
 
-  if (pages.length === 0) {
-    pdf.addPage()
-    pdf.addText(leftText, MARGIN, PAGE_H - MARGIN, 10, 'F2', 0.2, 0.2, 0.2)
-    pdf.addText(
-      centerText,
-      PAGE_W / 2 - centerText.length * 2.5,
-      PAGE_H - MARGIN,
-      10,
-      'F2',
-      0.2,
-      0.2,
-      0.2,
-    )
-    pdf.addText(
-      rightText,
-      PAGE_W - MARGIN - rightText.length * 5,
-      PAGE_H - MARGIN,
-      10,
-      'F2',
-      0.2,
-      0.2,
-      0.2,
-    )
-    pdf.addLine(MARGIN, PAGE_H - MARGIN - 10, PAGE_W - MARGIN, PAGE_H - MARGIN - 10, 0.8, 0.8, 0.8)
-
-    pdf.addText('Nenhum produto selecionado na cotação.', MARGIN, PAGE_H - MARGIN - 40, 12, 'F1')
-    return pdf.build()
+  const formatDate = (d: any) => {
+    if (!d) return 'N/A'
+    const dt = new Date(d)
+    return isNaN(dt.getTime()) ? 'N/A' : dt.toLocaleDateString('pt-BR', { timeZone: 'UTC' })
   }
 
-  for (let p = 0; p < pages.length; p++) {
-    pdf.addPage()
-    const pageItems = pages[p]
+  const dates = `${formatDate(cotacao.data_inicio)} a ${formatDate(cotacao.data_fim)}`
+  const created = formatDate(cotacao.created)
 
-    pdf.addText(leftText, MARGIN, PAGE_H - MARGIN, 10, 'F2', 0.2, 0.2, 0.2)
-    pdf.addText(
-      centerText,
-      PAGE_W / 2 - centerText.length * 2.5,
-      PAGE_H - MARGIN,
-      10,
-      'F2',
-      0.2,
-      0.2,
-      0.2,
-    )
-    pdf.addText(
-      rightText,
-      PAGE_W - MARGIN - rightText.length * 5,
-      PAGE_H - MARGIN,
-      10,
-      'F2',
-      0.2,
-      0.2,
-      0.2,
-    )
-    pdf.addLine(MARGIN, PAGE_H - MARGIN - 10, PAGE_W - MARGIN, PAGE_H - MARGIN - 10, 0.8, 0.8, 0.8)
+  const col2 = MARGIN + 220
 
-    const footerText = `Página ${p + 1} de ${pages.length} | Now Assistance`
-    const footerWidth = footerText.length * 4.2
-    const footerX = (PAGE_W - footerWidth) / 2
-    pdf.addLine(MARGIN, MARGIN, PAGE_W - MARGIN, MARGIN, 0.8, 0.8, 0.8)
-    pdf.addText(footerText, footerX, MARGIN - 15, 8, 'F1', 0.4, 0.4, 0.4)
+  pdf.addText(`Agência: ${cotacao.nome_agencia || 'N/A'}`, MARGIN, currentY, 10, 'F2')
+  pdf.addText(`Data da Cotação: ${created}`, col2, currentY, 10, 'F1')
+  currentY -= 18
 
-    for (const item of pageItems) {
-      const x = MARGIN + item.col * (CARD_W + CARD_GAP)
-      const yBot = item.yTop - item.rowH
+  pdf.addText(`Período da Viagem: ${dates}`, MARGIN, currentY, 10, 'F1')
+  pdf.addText(`Total de Dias: ${cotacao.qtd_dias || 'N/A'}`, col2, currentY, 10, 'F1')
+  currentY -= 18
 
-      pdf.addShadow(x, yBot, CARD_W, item.rowH, 4)
-      pdf.addRoundedRect(x, yBot, CARD_W, item.rowH, 4, 0.9, 0.9, 0.9, 1, 1, 1, true, true)
+  pdf.addText(`Passageiros: ${cotacao.total_passageiros || '0'}`, MARGIN, currentY, 10, 'F1')
+  const comissaoText =
+    (cotacao.comissao || 0) > 0 ? `${((cotacao.comissao || 0) * 100).toFixed(0)}%` : '0%'
+  pdf.addText(`Comissão: ${comissaoText}`, col2, currentY, 10, 'F1')
+  currentY -= 18
 
-      let currentTextY = item.yTop - PADDING
+  pdf.addText(`Pagamento: ${cotacao.forma_pagamento || 'N/A'}`, MARGIN, currentY, 10, 'F1')
+  const totalFormatado = `${cotacao.moeda || 'USD'} ${cotacao.fatura_total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  pdf.addText(`Fatura Total: ${totalFormatado}`, col2, currentY, 10, 'F2', 0, 0.31, 0.63)
+  currentY -= 25
 
+  pdf.addLine(MARGIN, currentY, PAGE_W - MARGIN, currentY, 0.8, 0.8, 0.8)
+  currentY -= 25
+
+  if (produtos.length === 0) {
+    pdf.addText('Nenhum produto selecionado na cotação.', MARGIN, currentY, 12, 'F1')
+  }
+
+  for (const prod of produtos) {
+    checkSpace(80)
+
+    // Product Header
+    pdf.addRect(MARGIN, currentY - 20, CARD_W, 25, 0.2, 0.2, 0.2, true)
+    pdf.addText(truncate(prod.produto_nome, 60), MARGIN + 10, currentY - 14, 12, 'F2', 1, 1, 1)
+
+    const priceText = `${cotacao.moeda || 'USD'} ${prod.preco_total_produto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    const priceW = priceText.length * 6 // estimation
+    pdf.addText(priceText, PAGE_W - MARGIN - priceW - 20, currentY - 14, 12, 'F2', 1, 1, 1)
+    currentY -= 35
+
+    // Section header
+    pdf.addText('COBERTURAS', MARGIN, currentY, 10, 'F2', 0, 0.31, 0.63)
+    currentY -= 15
+
+    // Table Header
+    pdf.addRect(MARGIN, currentY - 15, CARD_W, 15, 0, 0.31, 0.63, true)
+    pdf.addText('Cobertura', MARGIN + 10, currentY - 10, 9, 'F2', 1, 1, 1)
+    pdf.addText('Valor', MARGIN + CARD_W - 120, currentY - 10, 9, 'F2', 1, 1, 1)
+    currentY -= 15
+
+    // Table Rows
+    for (let i = 0; i < prod.coberturas.length; i++) {
+      checkSpace(20)
+      const cob = prod.coberturas[i]
+      const isEven = i % 2 === 0
+      if (isEven) {
+        pdf.addRect(MARGIN, currentY - 15, CARD_W, 15, 0.95, 0.95, 0.95, true)
+      } else {
+        pdf.addRect(MARGIN, currentY - 15, CARD_W, 15, 1, 1, 1, true)
+      }
+
+      pdf.addText(truncate(cob.nome, 70), MARGIN + 10, currentY - 10, 8, 'F1', 0.2, 0.2, 0.2)
       pdf.addText(
-        truncate(item.card.prod.produto_nome, 32),
-        x + PADDING,
-        currentTextY - 14,
-        14,
-        'F2',
-        0.1,
-        0.1,
-        0.1,
+        truncate(cob.valor, 25),
+        MARGIN + CARD_W - 120,
+        currentY - 10,
+        8,
+        'F1',
+        0.2,
+        0.2,
+        0.2,
       )
-      currentTextY -= 14 + 4
 
-      const tipo = item.card.prod.tipo_cobranca === 'anual' ? 'Anual' : 'Por Dia'
-      pdf.addText(`Cobrança: ${tipo}`, x + PADDING, currentTextY - 10, 10, 'F1', 0.4, 0.4, 0.4)
-      currentTextY -= 10 + 14
-
-      pdf.addText(
-        `${cotacao.moeda || 'USD'} ${item.card.prod.preco_total_produto.toFixed(2)}`,
-        x + PADDING,
-        currentTextY - 16,
-        16,
-        'F2',
-        0.0,
-        0.4,
-        0.8,
-      )
-      currentTextY -= 16 + 17
-
-      pdf.addLine(x + PADDING, currentTextY, x + CARD_W - PADDING, currentTextY, 0.9, 0.9, 0.9, 1)
-      currentTextY -= 17
-
-      const tableW = CARD_W - 2 * PADDING
-      pdf.addRect(x + PADDING, currentTextY - 17, tableW, 17, 0.96, 0.96, 0.96, true)
-
-      const col1W = tableW * 0.6
-      const col2X = x + PADDING + col1W
-
-      pdf.addText('Cobertura', x + PADDING + 11.3, currentTextY - 11.5, 9, 'F2', 0.2, 0.2, 0.2)
-      pdf.addText('Valor', col2X + 11.3, currentTextY - 11.5, 9, 'F2', 0.2, 0.2, 0.2)
-
-      let rowY = currentTextY - 17
-
-      for (let j = 0; j < item.card.showCount; j++) {
-        const cob = item.card.prod.coberturas[j]
-        if (j % 2 === 0) {
-          pdf.addRect(x + PADDING, rowY - 17, tableW, 17, 1, 1, 1, true)
-        } else {
-          pdf.addRect(x + PADDING, rowY - 17, tableW, 17, 0.95, 0.95, 0.95, true)
-        }
-        pdf.addText(truncate(cob.nome, 35), x + PADDING + 11.3, rowY - 11.5, 9, 'F1', 0.2, 0.2, 0.2)
-        pdf.addText(truncate(cob.valor, 22), col2X + 11.3, rowY - 11.5, 9, 'F1', 0.2, 0.2, 0.2)
-        rowY -= 17
-      }
-
-      if (item.card.hasMore) {
-        if (item.card.showCount % 2 === 0) {
-          pdf.addRect(x + PADDING, rowY - 17, tableW, 17, 1, 1, 1, true)
-        } else {
-          pdf.addRect(x + PADDING, rowY - 17, tableW, 17, 0.95, 0.95, 0.95, true)
-        }
-        pdf.addText(
-          `... e mais ${item.card.prod.coberturas.length - item.card.showCount} coberturas`,
-          x + PADDING + 11.3,
-          rowY - 11.5,
-          9,
-          'F2',
-          0.4,
-          0.4,
-          0.4,
-        )
-        rowY -= 17
-      }
-
-      const tableFullH = 17 + item.card.tableRows * 17
-      pdf.addRect(
-        x + PADDING,
-        currentTextY - tableFullH,
-        tableW,
-        tableFullH,
-        0.85,
-        0.85,
-        0.85,
-        false,
-        0.5,
-      )
-      pdf.addLine(col2X, currentTextY, col2X, currentTextY - tableFullH, 0.85, 0.85, 0.85, 0.5)
-
-      for (let r = 1; r < item.card.tableRows + 1; r++) {
-        const lineY = currentTextY - r * 17
-        pdf.addLine(x + PADDING, lineY, x + CARD_W - PADDING, lineY, 0.85, 0.85, 0.85, 0.5)
-      }
+      currentY -= 15
     }
+
+    currentY -= 20
+  }
+
+  // Draw Footers on all pages
+  const numPages = pdf.pages.length
+  for (let i = 0; i < numPages; i++) {
+    const footerY = 30
+    const footerText = `Página ${i + 1} de ${numPages} | Now Assistance`
+    const quoteId = `ID: ${cotacao.id}`
+
+    pdf.addLineToPage(i, MARGIN, footerY + 15, PAGE_W - MARGIN, footerY + 15, 0.8, 0.8, 0.8)
+    pdf.addTextToPage(
+      i,
+      footerText,
+      PAGE_W / 2 - footerText.length * 2.5,
+      footerY,
+      8,
+      'F1',
+      0.4,
+      0.4,
+      0.4,
+    )
+    pdf.addTextToPage(
+      i,
+      quoteId,
+      PAGE_W - MARGIN - quoteId.length * 4.5,
+      footerY,
+      8,
+      'F1',
+      0.4,
+      0.4,
+      0.4,
+    )
   }
 
   return pdf.build()
@@ -462,13 +407,23 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
     })
   }
 
+  let totalPassageiros = 0
+  for (const rel of produtosRel) {
+    totalPassageiros += (rel.qtd_ate_75 || 0) + (rel.qtd_76_a_85 || 0)
+  }
+
   const pdfData: CotacaoPDFData = {
     id: cotacao.id,
     nome_agencia: cotacao.nome_agencia || cotacao.expand?.usuario_id?.name,
-    data_inicio: cotacao.data_inicio || cotacao.created,
+    data_inicio: cotacao.data_inicio,
+    data_fim: cotacao.data_fim,
+    created: cotacao.created,
     fatura_total: cotacao.fatura_total,
     moeda: cotacao.moeda,
     forma_pagamento: cotacao.expand?.forma_pagamento_id?.nome,
+    qtd_dias: cotacao.qtd_dias,
+    total_passageiros: totalPassageiros,
+    comissao: cotacao.comissao,
   }
 
   const blob = gerarPDFProposta(pdfData, produtosPDF)
