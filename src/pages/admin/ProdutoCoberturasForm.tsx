@@ -61,25 +61,13 @@ function CoberturaEditor({
             <Label className="text-[12px] font-[600] text-muted-foreground mb-[8px] block">
               Moeda
             </Label>
-            <Select
-              value={moeda || 'none'}
-              onValueChange={(v) => {
-                const newMoeda = v === 'none' ? '' : v
-                setMoeda(newMoeda)
-                onUpdate(record.id, 'moeda', newMoeda)
-              }}
-            >
-              <SelectTrigger className="h-[40px]">
-                <SelectValue placeholder="Sem moeda" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="BRL">BRL</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
-                <SelectItem value="ARS">ARS</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input
+              value={moeda}
+              onChange={(e) => setMoeda(e.target.value)}
+              onBlur={() => onUpdate(record.id, 'moeda', moeda)}
+              placeholder="Ex: USD, BRL"
+              className="h-[40px] px-[12px] rounded-[8px] border border-input focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+            />
           </div>
         </div>
 
@@ -150,7 +138,7 @@ export default function ProdutoCoberturasForm() {
         toast({
           variant: 'destructive',
           title: 'Erro',
-          description: 'Não foi possível carregar',
+          description: 'Nao foi possivel carregar',
         })
       } finally {
         setLoading(false)
@@ -258,7 +246,7 @@ export default function ProdutoCoberturasForm() {
       {coberturas.length === 0 ? (
         <div className="p-[24px]">
           <div className="text-center py-12 text-muted-foreground bg-card border rounded-[8px]">
-            Nenhuma cobertura disponível
+            Nenhuma cobertura disponivel
           </div>
         </div>
       ) : (
