@@ -19,6 +19,7 @@ export interface CalculoInput {
   produtos: Produto[]
   forma_pagamento?: FormaPagamentoId
   comissao: number // 0 to 0.99
+  markup?: number // 0 to 1.99
   viajantes_por_faixa: Record<FaixaEtariaId, number>
   data_inicio?: Date
   data_fim?: Date

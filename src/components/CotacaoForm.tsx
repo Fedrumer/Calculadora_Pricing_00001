@@ -130,19 +130,39 @@ export function CotacaoForm({ className }: { className?: string }) {
 
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
-          2. Comissões
+          2. Taxas e Comissões
         </Label>
-        <Input
-          type="number"
-          min={0}
-          max={60}
-          value={((input.comissao || 0) * 100).toFixed(0)}
-          onChange={(e) => {
-            let val = parseInt(e.target.value) || 0
-            setInput((p) => ({ ...p, comissao: Math.min(99, Math.max(0, val)) / 100 }))
-          }}
-          className={cn(inputStyle, 'w-full font-mono font-bold text-center')}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div>
+            <Label className="text-[10px] text-blue-200 mb-1 block">Markup (%)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={199}
+              placeholder="0"
+              value={((input.markup || 0) * 100).toFixed(0)}
+              onChange={(e) => {
+                let val = parseInt(e.target.value) || 0
+                setInput((p) => ({ ...p, markup: Math.min(199, Math.max(0, val)) / 100 }))
+              }}
+              className={cn(inputStyle, 'w-full font-mono font-bold text-center')}
+            />
+          </div>
+          <div>
+            <Label className="text-[10px] text-blue-200 mb-1 block">Comissão (%)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={60}
+              value={((input.comissao || 0) * 100).toFixed(0)}
+              onChange={(e) => {
+                let val = parseInt(e.target.value) || 0
+                setInput((p) => ({ ...p, comissao: Math.min(99, Math.max(0, val)) / 100 }))
+              }}
+              className={cn(inputStyle, 'w-full font-mono font-bold text-center')}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50 overflow-hidden">

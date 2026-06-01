@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-29T22:07:52.385Z",
+  "generatedAt": "2026-06-01T20:11:24.617Z",
   "collections": [
     {
       "name": "users",
@@ -439,6 +439,12 @@
         {
           "name": "logo",
           "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "markup_percentual",
+          "type": "number",
           "required": false,
           "system": false
         }

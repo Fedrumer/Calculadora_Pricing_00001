@@ -59,6 +59,7 @@ export const salvarCotacao = async (
     tipo_preco: resultado.tipo_preco,
     moeda: resultado.moeda,
     nome_agencia,
+    markup_percentual: input.markup || 0,
     produtos: produtosSelecionados.map((p) => ({
       produto_id: p.id,
       qtd_ate_75: p.breakdown.ate_75.quantidade,

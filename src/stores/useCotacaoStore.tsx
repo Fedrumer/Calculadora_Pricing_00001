@@ -16,6 +16,7 @@ interface CotacaoContextType {
 const defaultInput: Partial<CalculoInput> = {
   produtos: [],
   comissao: 0,
+  markup: 0,
   viajantes_por_faixa: { ate_75: 1, de_76_a_85: 0 },
   forma_pagamento: 'TRANSFER',
   data_inicio: new Date(),

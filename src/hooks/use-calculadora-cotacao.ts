@@ -19,6 +19,7 @@ export function useCalculadoraCotacao(input: Partial<CalculoInput>): CotacaoStat
     input.produtos,
     input.forma_pagamento,
     input.comissao,
+    input.markup,
     input.viajantes_por_faixa?.ate_75,
     input.viajantes_por_faixa?.de_76_a_85,
     input.data_inicio,

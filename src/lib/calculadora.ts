@@ -45,6 +45,7 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
   }
 
   const comissao = input.comissao || 0
+  const markup = input.markup || 0
   const isGross = comissao > 0
 
   let moeda_calculada = 'USD'
@@ -84,7 +85,8 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
 
         const agravo = destinoData?.agravo_percentual ?? 0
 
-        const preco_bruto = isGross ? preco_net_base / (1 - comissao) : preco_net_base
+        const preco_com_markup = preco_net_base * (1 + markup)
+        const preco_bruto = isGross ? preco_com_markup / (1 - comissao) : preco_com_markup
         const tipoCobranca = produto.tipo_cobranca || 'dia'
 
         const calcFaixa = (faixa: FaixaEtariaId, qtd: number) => {
