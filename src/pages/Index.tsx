@@ -106,6 +106,7 @@ export default function Index() {
         produtos={produtosFiltrados}
         forma_pagamento={input.forma_pagamento}
         comissao={input.comissao || 0}
+        markup={input.markup || 0}
         viajantes_por_faixa={input.viajantes_por_faixa!}
         data_inicio={input.data_inicio}
         data_fim={input.data_fim}

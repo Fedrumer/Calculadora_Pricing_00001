@@ -15,6 +15,7 @@ export interface GridProdutosProps {
   produtos: Produto[]
   forma_pagamento?: FormaPagamentoId
   comissao: number
+  markup?: number
   viajantes_por_faixa: Record<FaixaEtariaId, number>
   data_inicio?: Date
   data_fim?: Date
@@ -34,6 +35,7 @@ export function GridProdutos({
   produtos,
   forma_pagamento,
   comissao,
+  markup = 0,
   viajantes_por_faixa,
   data_inicio,
   data_fim,
@@ -65,11 +67,20 @@ export function GridProdutos({
       produtos: produtosFiltrados,
       forma_pagamento,
       comissao,
+      markup,
       viajantes_por_faixa,
       data_inicio,
       data_fim,
     }),
-    [produtosFiltrados, forma_pagamento, comissao, viajantes_por_faixa, data_inicio, data_fim],
+    [
+      produtosFiltrados,
+      forma_pagamento,
+      comissao,
+      markup,
+      viajantes_por_faixa,
+      data_inicio,
+      data_fim,
+    ],
   )
 
   const { produtos_calculados, tipo_preco, moeda, carregando, erros } = useCalculadoraCotacao(input)
