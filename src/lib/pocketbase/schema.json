@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T01:59:34.840Z",
+  "generatedAt": "2026-06-02T14:59:58.712Z",
   "collections": [
     {
       "name": "users",
@@ -29,21 +29,29 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "role",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["ADMIN", "COMERCIAL"]
+          "selectValues": [
+            "ADMIN",
+            "COMERCIAL"
+          ]
         },
         {
           "name": "ativo",
@@ -91,7 +99,10 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["dia", "anual"]
+          "selectValues": [
+            "dia",
+            "anual"
+          ]
         },
         {
           "name": "cobertura_medica",
@@ -116,14 +127,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "tags",
@@ -132,7 +148,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_produtos_codigo ON produtos (codigo)"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_produtos_codigo ON produtos (codigo)"
+      ]
     },
     {
       "name": "produto_precos_forma_pagamento",
@@ -169,14 +187,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "moeda",
@@ -230,17 +253,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_produto_destinos_prod ON produto_destinos (produto_id)"]
+      "indexes": [
+        "CREATE INDEX idx_produto_destinos_prod ON produto_destinos (produto_id)"
+      ]
     },
     {
       "name": "produto_faixas_etarias",
@@ -277,17 +307,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_produto_faixas_prod ON produto_faixas_etarias (produto_id)"]
+      "indexes": [
+        "CREATE INDEX idx_produto_faixas_prod ON produto_faixas_etarias (produto_id)"
+      ]
     },
     {
       "name": "formas_pagamento",
@@ -323,17 +360,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_formas_pagamento_codigo ON formas_pagamento (codigo)"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_formas_pagamento_codigo ON formas_pagamento (codigo)"
+      ]
     },
     {
       "name": "cotacoes",
@@ -358,7 +402,11 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["RASCUNHO", "PROPOSTA_ENVIADA", "APROVADA"]
+          "selectValues": [
+            "RASCUNHO",
+            "PROPOSTA_ENVIADA",
+            "APROVADA"
+          ]
         },
         {
           "name": "forma_pagamento_id",
@@ -408,7 +456,10 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["NET", "BRUTO"]
+          "selectValues": [
+            "NET",
+            "BRUTO"
+          ]
         },
         {
           "name": "moeda",
@@ -421,14 +472,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "nome_agencia",
@@ -449,7 +505,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE INDEX idx_cotacoes_user ON cotacoes (usuario_id)"]
+      "indexes": [
+        "CREATE INDEX idx_cotacoes_user ON cotacoes (usuario_id)"
+      ]
     },
     {
       "name": "cotacao_produtos",
@@ -499,14 +557,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": []
@@ -558,14 +621,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": []
@@ -598,17 +666,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_rate_limits_ip_end ON rate_limits (ip, endpoint)"]
+      "indexes": [
+        "CREATE INDEX idx_rate_limits_ip_end ON rate_limits (ip, endpoint)"
+      ]
     },
     {
       "name": "coberturas",
@@ -650,17 +725,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_coberturas_ordem ON coberturas (ordem_exibicao)"]
+      "indexes": [
+        "CREATE INDEX idx_coberturas_ordem ON coberturas (ordem_exibicao)"
+      ]
     },
     {
       "name": "produto_coberturas",
@@ -716,14 +798,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "moeda",
