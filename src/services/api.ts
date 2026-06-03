@@ -9,6 +9,50 @@ export const fetchProdutos = async () => {
     method: 'GET',
   })
 
+  const normalizeFaixas = (faixas: any) => {
+    if (!faixas) return {}
+
+    if (Array.isArray(faixas)) {
+      const normalized: any = {}
+      for (const item of faixas) {
+        const key = item.faixa_nome || item.nome || ''
+        const lowerKey = String(key).toLowerCase()
+        let mappedKey = key
+        if (lowerKey.includes('75')) mappedKey = 'ate_75'
+        else if (lowerKey.includes('76') && lowerKey.includes('85')) mappedKey = 'de_76_a_85'
+        normalized[mappedKey] = { fator_multiplicador: item.fator_multiplicador }
+      }
+      return normalized
+    }
+
+    const normalized: any = {}
+    for (const [key, value] of Object.entries(faixas)) {
+      const lowerKey = String(key).toLowerCase()
+      let mappedKey = key
+      if (lowerKey.includes('75')) {
+        mappedKey = 'ate_75'
+      } else if (lowerKey.includes('76') && lowerKey.includes('85')) {
+        mappedKey = 'de_76_a_85'
+      }
+      normalized[mappedKey] = value
+    }
+    return normalized
+  }
+
+  if (Array.isArray(response)) {
+    return response.map((p: any) => ({
+      ...p,
+      faixas_etarias: normalizeFaixas(p.faixas_etarias),
+    }))
+  }
+
+  if (response?.items && Array.isArray(response.items)) {
+    return response.items.map((p: any) => ({
+      ...p,
+      faixas_etarias: normalizeFaixas(p.faixas_etarias),
+    }))
+  }
+
   return response
 }
 
