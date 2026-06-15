@@ -14,6 +14,7 @@ import Coberturas from './pages/admin/Coberturas'
 import ProdutoCoberturasForm from './pages/admin/ProdutoCoberturasForm'
 import Forbidden from './pages/Forbidden'
 import { CotacaoProvider } from '@/stores/useCotacaoStore'
+import { TranslationProvider } from '@/hooks/use-translation'
 
 const RequireAuth = ({ children }: { children: React.ReactNode }) => {
   const { isAutenticado, status } = useAuth()
@@ -38,85 +39,87 @@ const GuestOnly = ({ children }: { children: React.ReactNode }) => {
 }
 
 const App = () => (
-  <AuthProvider>
-    <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <GuestOnly>
-                <Login />
-              </GuestOnly>
-            }
-          />
-          <Route
-            path="/forbidden"
-            element={
-              <RequireAuth>
-                <Forbidden />
-              </RequireAuth>
-            }
-          />
-          <Route
-            element={
-              <RequireAuth>
-                <CotacaoProvider>
-                  <Layout />
-                </CotacaoProvider>
-              </RequireAuth>
-            }
-          >
-            <Route path="/" element={<Navigate to="/cotacao" replace />} />
+  <TranslationProvider>
+    <AuthProvider>
+      <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
             <Route
-              path="/cotacao"
+              path="/login"
               element={
-                <RequireRole role={['COMERCIAL', 'ADMIN']}>
-                  <Index />
-                </RequireRole>
+                <GuestOnly>
+                  <Login />
+                </GuestOnly>
               }
             />
             <Route
-              path="/historico"
+              path="/forbidden"
               element={
-                <RequireRole role={['COMERCIAL', 'ADMIN']}>
-                  <Historico />
-                </RequireRole>
+                <RequireAuth>
+                  <Forbidden />
+                </RequireAuth>
               }
             />
             <Route
-              path="/admin"
               element={
-                <RequireRole role="ADMIN">
-                  <Admin />
-                </RequireRole>
+                <RequireAuth>
+                  <CotacaoProvider>
+                    <Layout />
+                  </CotacaoProvider>
+                </RequireAuth>
               }
-            />
-            <Route
-              path="/admin/coberturas"
-              element={
-                <RequireRole role="ADMIN">
-                  <Coberturas />
-                </RequireRole>
-              }
-            />
-            <Route
-              path="/admin/produtos/:id/coberturas"
-              element={
-                <RequireRole role="ADMIN">
-                  <ProdutoCoberturasForm />
-                </RequireRole>
-              }
-            />
-            <Route path="/testes" element={<Testes />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </TooltipProvider>
-    </BrowserRouter>
-  </AuthProvider>
+            >
+              <Route path="/" element={<Navigate to="/cotacao" replace />} />
+              <Route
+                path="/cotacao"
+                element={
+                  <RequireRole role={['COMERCIAL', 'ADMIN']}>
+                    <Index />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/historico"
+                element={
+                  <RequireRole role={['COMERCIAL', 'ADMIN']}>
+                    <Historico />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <RequireRole role="ADMIN">
+                    <Admin />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/coberturas"
+                element={
+                  <RequireRole role="ADMIN">
+                    <Coberturas />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/produtos/:id/coberturas"
+                element={
+                  <RequireRole role="ADMIN">
+                    <ProdutoCoberturasForm />
+                  </RequireRole>
+                }
+              />
+              <Route path="/testes" element={<Testes />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </TooltipProvider>
+      </BrowserRouter>
+    </AuthProvider>
+  </TranslationProvider>
 )
 
 export default App

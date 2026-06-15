@@ -10,6 +10,7 @@ import { Produto, FormaPagamentoId, FaixaEtariaId } from '@/types/cotacao'
 import { useCalculadoraCotacao } from '@/hooks/use-calculadora-cotacao'
 import useCotacaoStore from '@/stores/useCotacaoStore'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/hooks/use-translation'
 
 export interface GridProdutosProps {
   produtos: Produto[]
@@ -45,6 +46,7 @@ export function GridProdutos({
   onRetry,
 }: GridProdutosProps) {
   const { input: storeInput } = useCotacaoStore()
+  const { t } = useTranslation()
 
   const produtosFiltrados = useMemo(() => {
     return produtos
@@ -89,11 +91,9 @@ export function GridProdutos({
     return (
       <div className="flex flex-col items-center justify-center py-20 animate-fade-in text-center">
         <AlertCircle className="w-12 h-12 text-destructive mb-4" />
-        <p className="text-lg font-medium text-destructive mb-4">
-          Ocorreu um erro ao carregar os produtos
-        </p>
+        <p className="text-lg font-medium text-destructive mb-4">{t('grid.error_loading')}</p>
         <Button onClick={() => (onRetry ? onRetry() : window.location.reload())} variant="outline">
-          Tentar novamente
+          {t('grid.try_again')}
         </Button>
       </div>
     )
@@ -125,12 +125,8 @@ export function GridProdutos({
     return (
       <div className="flex flex-col items-center justify-center py-24 text-muted-foreground animate-fade-in bg-card/50 border border-dashed border-border/60 rounded-xl backdrop-blur-sm">
         <Plane className="w-16 h-16 mb-5 opacity-40 animate-float" />
-        <p className="text-lg text-center px-4 font-medium">
-          Nenhum produto encontrado com os filtros atuais.
-        </p>
-        <p className="text-sm text-center px-4 mt-2 opacity-70">
-          Ajuste as datas ou idades no formulário.
-        </p>
+        <p className="text-lg text-center px-4 font-medium">{t('grid.no_products')}</p>
+        <p className="text-sm text-center px-4 mt-2 opacity-70">{t('grid.adjust_filters')}</p>
       </div>
     )
   }
@@ -159,7 +155,7 @@ export function GridProdutos({
           >
             {isSelected && (
               <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-bl-xl z-10 shadow-sm flex items-center gap-1 animate-fade-in-down">
-                SELECIONADO
+                {t('grid.selected')}
               </div>
             )}
 
@@ -208,10 +204,10 @@ export function GridProdutos({
                   )}
 
                   <div className="mt-2 mb-4 bg-blue-50/60 dark:bg-blue-950/20 rounded-lg p-3 flex items-center justify-between border border-blue-100 dark:border-blue-900/50 transition-colors group-hover:bg-blue-50 dark:group-hover:bg-blue-900/40">
-                    <span className="text-xs text-blue-700/80 dark:text-blue-400/80 font-bold uppercase tracking-wider">
-                      Total Fatura
+                    <span className="text-xs text-blue-700/80 dark:text-blue-400/80 font-bold uppercase tracking-wider line-clamp-1 mr-2">
+                      {t('grid.total_invoice')}
                     </span>
-                    <span className="font-extrabold text-lg text-blue-700 dark:text-blue-400 tracking-tight">
+                    <span className="font-extrabold text-lg text-blue-700 dark:text-blue-400 tracking-tight whitespace-nowrap">
                       {formatCurrency(prodCalc.preco_total_produto, moeda)}
                     </span>
                   </div>
@@ -226,8 +222,8 @@ export function GridProdutos({
                   if (!hasAte75 && !has76a85) {
                     return (
                       <div className="mt-auto pt-4 border-t border-border/60 flex items-center justify-center">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Nenhuma faixa etária disponível para este produto
+                        <span className="text-sm font-medium text-muted-foreground text-center">
+                          {t('grid.no_age_range')}
                         </span>
                       </div>
                     )
@@ -243,7 +239,7 @@ export function GridProdutos({
                       {hasAte75 && (
                         <div className="flex flex-col">
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1 flex flex-wrap items-center">
-                            Até 75{' '}
+                            {t('grid.up_to_75_short')}{' '}
                             <span className="lowercase normal-case ml-1 font-normal text-muted-foreground/70 bg-muted px-1 rounded-sm">
                               {qtdAte75}x
                             </span>
@@ -256,11 +252,11 @@ export function GridProdutos({
                             </TooltipTrigger>
                             <TooltipContent className="text-xs font-mono p-3 z-50 shadow-xl border-green-200 dark:border-green-900">
                               <p className="text-green-600 dark:text-green-400 font-bold mb-1">
-                                Preço Base:{' '}
+                                {t('grid.base_price')}:{' '}
                                 {formatCurrency(prodCalc.breakdown['ate_75'].preco_unitario, moeda)}
                               </p>
                               <p className="text-muted-foreground">
-                                Total:{' '}
+                                {t('grid.total')}:{' '}
                                 {formatCurrency(prodCalc.breakdown['ate_75'].preco_total, moeda)}
                               </p>
                             </TooltipContent>
@@ -311,11 +307,13 @@ export function GridProdutos({
                                   )}
                                 >
                                   <p className={cn('font-bold mb-1', textColorClass)}>
-                                    {isAgravo ? 'Preço com Agravo:' : 'Preço Unitário:'}{' '}
-                                    {formatCurrency(thisPrice, moeda)}
+                                    {isAgravo
+                                      ? t('grid.price_with_aggravation')
+                                      : t('grid.unit_price')}
+                                    : {formatCurrency(thisPrice, moeda)}
                                   </p>
                                   <p className="text-muted-foreground">
-                                    Total:{' '}
+                                    {t('grid.total')}:{' '}
                                     {formatCurrency(
                                       prodCalc.breakdown['de_76_a_85'].preco_total,
                                       moeda,

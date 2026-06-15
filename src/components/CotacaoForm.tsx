@@ -13,9 +13,11 @@ import useCotacaoStore from '@/stores/useCotacaoStore'
 import { FormaPagamentoId } from '@/types/cotacao'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
+import { useTranslation } from '@/hooks/use-translation'
 
 export function CotacaoForm({ className }: { className?: string }) {
   const { input, setInput, formasPagamento } = useCotacaoStore()
+  const { t } = useTranslation()
 
   const produtosDisponiveis = useMemo(() => {
     let prods = input.produtos || []
@@ -40,7 +42,7 @@ export function CotacaoForm({ className }: { className?: string }) {
     <div className={cn('flex flex-col gap-4', className)}>
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
-          Filtros de Produtos
+          {t('form.filters')}
         </Label>
         <ToggleGroup
           type="single"
@@ -60,25 +62,25 @@ export function CotacaoForm({ className }: { className?: string }) {
             value="TODOS"
             className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
           >
-            Exibir Todos
+            {t('form.show_all')}
           </ToggleGroupItem>
           <ToggleGroupItem
             value="B2B"
             className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
           >
-            Folheto B2B
+            {t('form.b2b')}
           </ToggleGroupItem>
           <ToggleGroupItem
             value="B2C"
             className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
           >
-            Folheto B2C
+            {t('form.b2c')}
           </ToggleGroupItem>
           <ToggleGroupItem
             value="Acordo"
             className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
           >
-            Acordo
+            {t('form.agreement')}
           </ToggleGroupItem>
         </ToggleGroup>
 
@@ -90,10 +92,10 @@ export function CotacaoForm({ className }: { className?: string }) {
             }
           >
             <SelectTrigger className="w-full h-9 bg-white text-slate-900 border-white/20 shadow-sm focus-visible:ring-blue-400">
-              <SelectValue placeholder="Filtrar por nome do produto..." />
+              <SelectValue placeholder={t('form.filter_placeholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="TODOS">Todos os produtos</SelectItem>
+              <SelectItem value="TODOS">{t('form.all_products')}</SelectItem>
               {produtosDisponiveis.map((nome) => (
                 <SelectItem key={nome} value={nome}>
                   {nome}
@@ -106,7 +108,7 @@ export function CotacaoForm({ className }: { className?: string }) {
 
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
-          1. Pagamento
+          {t('form.payment')}
         </Label>
         <ToggleGroup
           type="single"
@@ -130,11 +132,11 @@ export function CotacaoForm({ className }: { className?: string }) {
 
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
-          2. Taxas e Comissões
+          {t('form.taxes_commissions')}
         </Label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           <div>
-            <Label className="text-[10px] text-blue-200 mb-1 block">Markup (%)</Label>
+            <Label className="text-[10px] text-blue-200 mb-1 block">{t('form.markup')}</Label>
             <Input
               type="number"
               min={0}
@@ -149,7 +151,7 @@ export function CotacaoForm({ className }: { className?: string }) {
             />
           </div>
           <div>
-            <Label className="text-[10px] text-blue-200 mb-1 block">Comissão (%)</Label>
+            <Label className="text-[10px] text-blue-200 mb-1 block">{t('form.commission')}</Label>
             <Input
               type="number"
               min={0}
@@ -167,16 +169,16 @@ export function CotacaoForm({ className }: { className?: string }) {
 
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50 overflow-hidden">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
-          3. Período
+          {t('form.period')}
         </Label>
         <div className="flex flex-col gap-2 w-full overflow-hidden [&>button]:w-full [&>button]:bg-white [&>button]:text-slate-900 [&>button]:h-9">
           <DatePicker
-            label="Início"
+            label={t('form.start')}
             date={input.data_inicio}
             setDate={(d) => setInput((p) => ({ ...p, data_inicio: d }))}
           />
           <DatePicker
-            label="Fim"
+            label={t('form.end')}
             date={input.data_fim}
             setDate={(d) => setInput((p) => ({ ...p, data_fim: d }))}
           />
@@ -185,11 +187,11 @@ export function CotacaoForm({ className }: { className?: string }) {
 
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
-          4. Viajantes (Idade)
+          {t('form.travelers')}
         </Label>
         <div className="grid grid-cols-2 gap-3 pt-1">
           <div>
-            <Label className="text-[10px] text-blue-200 mb-1 block">Até 75 anos</Label>
+            <Label className="text-[10px] text-blue-200 mb-1 block">{t('form.up_to_75')}</Label>
             <Input
               type="number"
               min={0}
@@ -199,7 +201,7 @@ export function CotacaoForm({ className }: { className?: string }) {
             />
           </div>
           <div>
-            <Label className="text-[10px] text-blue-200 mb-1 block">76 a 85 anos</Label>
+            <Label className="text-[10px] text-blue-200 mb-1 block">{t('form.76_to_85')}</Label>
             <Input
               type="number"
               min={0}

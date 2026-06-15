@@ -16,10 +16,12 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useTranslation } from '@/hooks/use-translation'
 
 export default function Index() {
   const { input, resultado, carregandoProdutos, erroCarregamento, recarregarDados } =
     useCotacaoStore()
+  const { t } = useTranslation()
   const [selecionados, setSelecionados] = useState<string[]>([])
   const [modalAcao, setModalAcao] = useState<'RASCUNHO' | 'PROPOSTA_ENVIADA' | null>(null)
   const [nomeAgencia, setNomeAgencia] = useState('')
@@ -31,8 +33,8 @@ export default function Index() {
     if (selecionados.length === 0) {
       toast({
         variant: 'destructive',
-        title: 'Atenção',
-        description: 'Selecione pelo menos um produto para salvar.',
+        title: t('index.warning'),
+        description: t('index.select_one'),
       })
       return
     }
@@ -46,18 +48,16 @@ export default function Index() {
     try {
       await salvarCotacao(input, resultado, selecionados, modalAcao, nomeAgencia)
       toast({
-        title: 'Sucesso',
+        title: t('index.success'),
         description:
-          modalAcao === 'PROPOSTA_ENVIADA'
-            ? 'Proposta salva e marcada como enviada.'
-            : 'Rascunho salvo com sucesso.',
+          modalAcao === 'PROPOSTA_ENVIADA' ? t('index.proposal_saved') : t('index.draft_saved'),
       })
       navigate('/historico')
     } catch (err) {
       toast({
         variant: 'destructive',
-        title: 'Erro',
-        description: 'Não foi possível salvar a cotação.',
+        title: t('index.error'),
+        description: t('index.error_saving'),
       })
     } finally {
       setSalvando(false)
@@ -80,24 +80,22 @@ export default function Index() {
     <div className="p-6 max-w-7xl mx-auto w-full flex flex-col h-full gap-6 animate-in fade-in zoom-in duration-300">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Cotação Atual</h1>
-          <p className="text-sm text-gray-500">
-            Selecione os produtos desejados e finalize a proposta.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('index.title')}</h1>
+          <p className="text-sm text-gray-500">{t('index.subtitle')}</p>
         </div>
         <div className="flex gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
-            className="flex-1 sm:flex-none border-gray-300 text-gray-700"
+            className="flex-1 sm:flex-none border-gray-300 text-gray-700 whitespace-nowrap"
             onClick={() => openModal('RASCUNHO')}
           >
-            <Save className="w-4 h-4 mr-2" /> Salvar Rascunho
+            <Save className="w-4 h-4 mr-2 hidden sm:block" /> {t('index.save_draft')}
           </Button>
           <Button
-            className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 shadow-sm"
+            className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 shadow-sm whitespace-nowrap"
             onClick={() => openModal('PROPOSTA_ENVIADA')}
           >
-            <Send className="w-4 h-4 mr-2" /> Salvar como Enviada
+            <Send className="w-4 h-4 mr-2 hidden sm:block" /> {t('index.save_sent')}
           </Button>
         </div>
       </div>
@@ -121,32 +119,30 @@ export default function Index() {
       <Dialog open={!!modalAcao} onOpenChange={(open) => !open && setModalAcao(null)}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Salvar Cotação</DialogTitle>
-            <DialogDescription>
-              Informe o nome da agência para identificar esta cotação.
-            </DialogDescription>
+            <DialogTitle>{t('index.save_quote')}</DialogTitle>
+            <DialogDescription>{t('index.agency_name_desc')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="nome_agencia" className="text-right">
-                Agência
+                {t('index.agency')}
               </Label>
               <Input
                 id="nome_agencia"
                 value={nomeAgencia}
                 onChange={(e) => setNomeAgencia(e.target.value)}
                 className="col-span-3"
-                placeholder="Ex: Agência Viagens Inc"
+                placeholder={t('index.agency_placeholder')}
                 autoFocus
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalAcao(null)} disabled={salvando}>
-              Cancelar
+              {t('header.cancel')}
             </Button>
             <Button onClick={handleConfirmSave} disabled={salvando}>
-              {salvando ? 'Salvando...' : 'Confirmar'}
+              {salvando ? t('index.saving') : t('index.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>
