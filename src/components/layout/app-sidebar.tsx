@@ -31,7 +31,7 @@ export function AppSidebar() {
           >
             <Link to="/cotacao">
               <Calculator className="w-4 h-4 mr-2" /> {t('sidebar.quote')}
-            </Link>{' '}
+            </Link>
           </Button>
           <Button
             asChild
@@ -40,7 +40,7 @@ export function AppSidebar() {
           >
             <Link to="/historico">
               <History className="w-4 h-4 mr-2" /> {t('sidebar.history')}
-            </Link>{' '}
+            </Link>
           </Button>
           {temRole('ADMIN') && (
             <Button
@@ -50,7 +50,7 @@ export function AppSidebar() {
             >
               <Link to="/admin">
                 <Settings className="w-4 h-4 mr-2" /> {t('sidebar.backoffice')}
-              </Link>{' '}
+              </Link>
             </Button>
           )}
         </div>
