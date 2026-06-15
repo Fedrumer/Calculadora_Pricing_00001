@@ -4,6 +4,7 @@ import { CotacaoForm } from '@/components/CotacaoForm'
 import { Link, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
+import { useTranslation } from '@/hooks/use-translation'
 
 export function AppSidebar() {
   const location = useLocation()
@@ -11,13 +12,14 @@ export function AppSidebar() {
   const isHistorico = location.pathname === '/historico'
   const isAdmin = location.pathname === '/admin'
   const { temRole } = useAuth()
+  const { t } = useTranslation()
 
   return (
     <Sidebar variant="inset" className="border-none">
       <SidebarHeader className="h-16 flex justify-center border-b border-blue-800/30 px-6 bg-blue-950">
         <div className="flex items-center gap-2 font-bold text-white tracking-tight">
           <ShieldAlert className="w-5 h-5 text-blue-400" />
-          <span>Motor de Cálculo</span>
+          <span>{t('sidebar.engine')}</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="space-y-2 bg-blue-900/30 p-3 shadow-inner custom-scrollbar">
@@ -28,8 +30,8 @@ export function AppSidebar() {
             className="inline-flex items-center justify-center text-xs"
           >
             <Link to="/cotacao">
-              <Calculator className="w-4 h-4 mr-2" /> Cotação
-            </Link>
+              <Calculator className="w-4 h-4 mr-2" /> {t('sidebar.quote')}
+            </Link>{' '}
           </Button>
           <Button
             asChild
@@ -37,8 +39,8 @@ export function AppSidebar() {
             className="inline-flex items-center justify-center text-xs"
           >
             <Link to="/historico">
-              <History className="w-4 h-4 mr-2" /> Histórico
-            </Link>
+              <History className="w-4 h-4 mr-2" /> {t('sidebar.history')}
+            </Link>{' '}
           </Button>
           {temRole('ADMIN') && (
             <Button
@@ -47,8 +49,8 @@ export function AppSidebar() {
               className="inline-flex items-center justify-center text-xs"
             >
               <Link to="/admin">
-                <Settings className="w-4 h-4 mr-2" /> Backoffice
-              </Link>
+                <Settings className="w-4 h-4 mr-2" /> {t('sidebar.backoffice')}
+              </Link>{' '}
             </Button>
           )}
         </div>
