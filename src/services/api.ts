@@ -1,150 +1,26 @@
 import pb from '@/lib/pocketbase/client'
-import { CalculoInput, CotacaoState } from '@/types/cotacao'
-import { differenceInDays, startOfDay } from 'date-fns'
+import { getCurrentCountry } from '@/lib/country'
 
 export const fetchProdutos = async () => {
-  const fields =
-    'id,nome,categoria,codigo,ordem_exibicao,tags,precos_base_por_forma_pagamento,destinos,faixas_etarias,tipo_cobranca'
-  const response = await pb.send(`/backend/v1/produtos?sort=ordem_exibicao&fields=${fields}`, {
-    method: 'GET',
+  const pais = getCurrentCountry()
+  return pb.collection('produtos').getFullList({
+    filter: `pais = '${pais}'`,
+    sort: 'ordem_exibicao',
   })
-
-  const normalizeFaixas = (faixas: any) => {
-    if (!faixas) return {}
-
-    if (Array.isArray(faixas)) {
-      const normalized: any = {}
-      for (const item of faixas) {
-        const key = item.faixa_nome || item.nome || ''
-        const lowerKey = String(key).toLowerCase()
-        let mappedKey = key
-        if (lowerKey.includes('75')) mappedKey = 'ate_75'
-        else if (lowerKey.includes('76') && lowerKey.includes('85')) mappedKey = 'de_76_a_85'
-        normalized[mappedKey] = { fator_multiplicador: item.fator_multiplicador }
-      }
-      return normalized
-    }
-
-    const normalized: any = {}
-    for (const [key, value] of Object.entries(faixas)) {
-      const lowerKey = String(key).toLowerCase()
-      let mappedKey = key
-      if (lowerKey.includes('75')) {
-        mappedKey = 'ate_75'
-      } else if (lowerKey.includes('76') && lowerKey.includes('85')) {
-        mappedKey = 'de_76_a_85'
-      }
-      normalized[mappedKey] = value
-    }
-    return normalized
-  }
-
-  if (Array.isArray(response)) {
-    return response.map((p: any) => ({
-      ...p,
-      faixas_etarias: normalizeFaixas(p.faixas_etarias),
-    }))
-  }
-
-  if (response?.items && Array.isArray(response.items)) {
-    return response.items.map((p: any) => ({
-      ...p,
-      faixas_etarias: normalizeFaixas(p.faixas_etarias),
-    }))
-  }
-
-  return response
 }
 
 export const fetchFormasPagamento = async () => {
-  return pb.send('/backend/v1/formas-pagamento', { method: 'GET' })
+  return pb.collection('formas_pagamento').getFullList({ sort: 'codigo' })
 }
 
-export const salvarCotacao = async (
-  input: Partial<CalculoInput>,
-  resultado: CotacaoState,
-  selecionados: string[],
-  acao: 'RASCUNHO' | 'PROPOSTA_ENVIADA',
-  nome_agencia?: string,
-) => {
-  const usuario_id = pb.authStore.record?.id
-  if (!usuario_id) throw new Error('Usuário não autenticado')
-
-  const formas = await fetchFormasPagamento()
-  const forma_pagamento_id = formas.find((f: any) => f.codigo === input.forma_pagamento)?.id
-  if (!forma_pagamento_id) throw new Error('Forma de pagamento inválida')
-
-  const produtosSelecionados = resultado.produtos_calculados.filter((p) =>
-    selecionados.includes(p.id),
-  )
-
-  const fatura_total = produtosSelecionados.reduce((acc, p) => acc + p.preco_total_produto, 0)
-
-  const qtd_75 = input.viajantes_por_faixa?.ate_75 || 0
-  const qtd_85 = input.viajantes_por_faixa?.de_76_a_85 || 0
-  const total_viajantes = qtd_75 + qtd_85
-  const preco_unitario_total = total_viajantes > 0 ? fatura_total / total_viajantes : 0
-
-  const qtd_dias =
-    input.data_inicio && input.data_fim
-      ? Math.max(1, differenceInDays(startOfDay(input.data_fim), startOfDay(input.data_inicio)) + 1)
-      : 1
-
-  const payload = {
-    usuario_id,
-    status: acao,
-    forma_pagamento_id,
-    comissao: input.comissao || 0,
-    data_inicio: input.data_inicio?.toISOString(),
-    data_fim: input.data_fim?.toISOString(),
-    qtd_dias,
-    fatura_total,
-    preco_unitario_total,
-    tipo_preco: resultado.tipo_preco,
-    moeda: resultado.moeda,
-    nome_agencia,
-    markup_percentual: input.markup || 0,
-    produtos: produtosSelecionados.map((p) => ({
-      produto_id: p.id,
-      qtd_ate_75: p.breakdown.ate_75.quantidade,
-      qtd_76_a_85: p.breakdown.de_76_a_85.quantidade,
-      preco_total_produto: p.preco_total_produto,
-      detalhes: [
-        {
-          destino_codigo: input.destino,
-          faixa_etaria: 'ate_75',
-          preco_unitario_dia:
-            qtd_dias > 0
-              ? p.breakdown.ate_75.preco_unitario /
-                (qtd_dias * (p.breakdown.ate_75.quantidade || 1))
-              : 0,
-          preco_total_faixa: p.breakdown.ate_75.preco_total,
-        },
-        {
-          destino_codigo: input.destino,
-          faixa_etaria: 'de_76_a_85',
-          preco_unitario_dia:
-            qtd_dias > 0
-              ? p.breakdown.de_76_a_85.preco_unitario /
-                (qtd_dias * (p.breakdown.de_76_a_85.quantidade || 1))
-              : 0,
-          preco_total_faixa: p.breakdown.de_76_a_85.preco_total,
-        },
-      ].filter((d) => d.preco_total_faixa > 0),
-    })),
-  }
-
-  return pb.send('/backend/v1/cotacoes', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' },
-  })
+export const salvarCotacao = async (data: any) => {
+  return pb.collection('cotacoes').create(data)
 }
 
 export const getCotacoes = async () => {
-  return pb.send('/backend/v1/cotacoes', { method: 'GET' })
+  return pb.collection('cotacoes').getFullList({ sort: '-created', expand: 'forma_pagamento_id' })
 }
 
 export const getCotacao = async (id: string) => {
-  return pb.send(`/backend/v1/cotacoes/${id}`, { method: 'GET' })
+  return pb.collection('cotacoes').getOne(id, { expand: 'forma_pagamento_id' })
 }

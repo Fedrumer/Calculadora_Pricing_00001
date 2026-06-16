@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-15T18:31:16.898Z",
+  "generatedAt": "2026-06-16T01:40:14.223Z",
   "collections": [
     {
       "name": "users",
@@ -50,6 +50,13 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "pais",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Brasil", "Argentina"]
         }
       ],
       "indexes": [
@@ -130,6 +137,13 @@
           "type": "json",
           "required": false,
           "system": false
+        },
+        {
+          "name": "pais",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Brasil", "Argentina"]
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_produtos_codigo ON produtos (codigo)"]
@@ -737,6 +751,52 @@
         "CREATE INDEX idx_produto_coberturas_produto ON produto_coberturas (produto_id)",
         "CREATE INDEX idx_produto_coberturas_cobertura ON produto_coberturas (cobertura_id)"
       ]
+    },
+    {
+      "name": "taxas_cambio",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.role = 'ADMIN'",
+        "update": "@request.auth.role = 'ADMIN'",
+        "delete": "@request.auth.role = 'ADMIN'"
+      },
+      "fields": [
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "moeda",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "valor",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_taxas_cambio_data_moeda ON taxas_cambio (data DESC, moeda)"]
     }
   ]
 }

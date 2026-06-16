@@ -11,6 +11,8 @@ import { useCalculadoraCotacao } from '@/hooks/use-calculadora-cotacao'
 import useCotacaoStore from '@/stores/useCotacaoStore'
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/hooks/use-translation'
+import { getCurrentCountry, getCurrencyForCountry } from '@/lib/country'
+import { useExchangeRate } from '@/hooks/use-exchange-rate'
 
 export interface GridProdutosProps {
   produtos: Produto[]
@@ -47,6 +49,20 @@ export function GridProdutos({
 }: GridProdutosProps) {
   const { input: storeInput } = useCotacaoStore()
   const { t } = useTranslation()
+
+  const country = getCurrentCountry()
+  const localCurrency = getCurrencyForCountry(country)
+  const exchangeRate = useExchangeRate(localCurrency)
+
+  const formatLocalCurrency = (val: number) => {
+    if (!exchangeRate) return null
+    const converted = val * exchangeRate
+    return new Intl.NumberFormat(localCurrency === 'BRL' ? 'pt-BR' : 'es-AR', {
+      style: 'currency',
+      currency: localCurrency,
+      maximumFractionDigits: 2,
+    }).format(converted)
+  }
 
   const produtosFiltrados = useMemo(() => {
     return produtos
@@ -145,7 +161,7 @@ export function GridProdutos({
             key={prodCalc.id}
             className={cn(
               'animate-fade-in-up transition-all duration-300 relative overflow-hidden rounded-xl',
-              'hover:shadow-xl hover:-translate-y-1 cursor-pointer select-none group',
+              'hover:shadow-xl hover:-translate-y-1 cursor-pointer select-none group flex flex-col',
               isSelected
                 ? 'ring-2 ring-primary border-primary bg-primary/[0.03] shadow-md'
                 : 'hover:border-primary/40 border-border/60 shadow-sm bg-card',
@@ -159,7 +175,7 @@ export function GridProdutos({
               </div>
             )}
 
-            <div className="p-4 sm:p-5 flex gap-3 sm:gap-4 items-start h-full flex-col sm:flex-row">
+            <div className="p-4 sm:p-5 flex gap-3 sm:gap-4 items-start flex-col sm:flex-row flex-1">
               <div className="flex items-center gap-3 w-full sm:w-auto border-b sm:border-b-0 pb-3 sm:pb-0 border-border/50 mt-0.5">
                 <Checkbox
                   checked={isSelected}
@@ -172,8 +188,8 @@ export function GridProdutos({
                 </h3>
               </div>
 
-              <div className="flex-1 min-w-0 w-full flex flex-col justify-between h-full">
-                <div>
+              <div className="flex-1 min-w-0 w-full flex flex-col h-full">
+                <div className="flex-1">
                   <div className="hidden sm:flex justify-between items-start mb-3 gap-2">
                     <h3 className="font-semibold text-[1.05rem] leading-tight break-words group-hover:text-primary transition-colors text-foreground">
                       {prodCalc.nome}
@@ -207,9 +223,16 @@ export function GridProdutos({
                     <span className="text-xs text-blue-700/80 dark:text-blue-400/80 font-bold uppercase tracking-wider line-clamp-1 mr-2">
                       {t('grid.total_invoice')}
                     </span>
-                    <span className="font-extrabold text-lg text-blue-700 dark:text-blue-400 tracking-tight whitespace-nowrap">
-                      {formatCurrency(prodCalc.preco_total_produto, moeda)}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="font-extrabold text-lg text-blue-700 dark:text-blue-400 tracking-tight whitespace-nowrap">
+                        {formatCurrency(prodCalc.preco_total_produto, moeda)}
+                      </span>
+                      {exchangeRate && (
+                        <span className="text-[11px] text-muted-foreground font-semibold">
+                          ~ {formatLocalCurrency(prodCalc.preco_total_produto)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -246,9 +269,22 @@ export function GridProdutos({
                           </span>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="font-mono text-[15px] font-bold text-green-600 dark:text-green-500 cursor-help decoration-green-600/30 underline decoration-dotted underline-offset-4 w-max">
-                                {formatCurrency(prodCalc.breakdown['ate_75'].preco_unitario, moeda)}
-                              </span>
+                              <div className="flex flex-col w-max">
+                                <span className="font-mono text-[15px] font-bold text-green-600 dark:text-green-500 cursor-help decoration-green-600/30 underline decoration-dotted underline-offset-4">
+                                  {formatCurrency(
+                                    prodCalc.breakdown['ate_75'].preco_unitario,
+                                    moeda,
+                                  )}
+                                </span>
+                                {exchangeRate && (
+                                  <span className="text-[10px] text-muted-foreground font-semibold">
+                                    ~{' '}
+                                    {formatLocalCurrency(
+                                      prodCalc.breakdown['ate_75'].preco_unitario,
+                                    )}
+                                  </span>
+                                )}
+                              </div>
                             </TooltipTrigger>
                             <TooltipContent className="text-xs font-mono p-3 z-50 shadow-xl border-green-200 dark:border-green-900">
                               <p className="text-green-600 dark:text-green-400 font-bold mb-1">
@@ -288,15 +324,24 @@ export function GridProdutos({
                             return (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span
-                                    className={cn(
-                                      'font-mono text-[15px] font-bold cursor-help underline decoration-dotted underline-offset-4 w-max',
-                                      textColorClass,
-                                      isAgravo ? 'decoration-red-600/30' : 'decoration-blue-600/30',
+                                  <div className="flex flex-col w-max">
+                                    <span
+                                      className={cn(
+                                        'font-mono text-[15px] font-bold cursor-help underline decoration-dotted underline-offset-4',
+                                        textColorClass,
+                                        isAgravo
+                                          ? 'decoration-red-600/30'
+                                          : 'decoration-blue-600/30',
+                                      )}
+                                    >
+                                      {formatCurrency(thisPrice, moeda)}
+                                    </span>
+                                    {exchangeRate && (
+                                      <span className="text-[10px] text-muted-foreground font-semibold">
+                                        ~ {formatLocalCurrency(thisPrice)}
+                                      </span>
                                     )}
-                                  >
-                                    {formatCurrency(thisPrice, moeda)}
-                                  </span>
+                                  </div>
                                 </TooltipTrigger>
                                 <TooltipContent
                                   className={cn(

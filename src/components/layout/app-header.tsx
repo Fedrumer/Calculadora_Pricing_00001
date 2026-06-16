@@ -24,16 +24,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { getCurrentCountry, getCurrencyForCountry } from '@/lib/country'
+import { useExchangeRate } from '@/hooks/use-exchange-rate'
 
 export function AppHeader() {
   const { resultado } = useCotacaoStore()
-  const { usuario, logout, temRole } = useAuth()
+  const { user, signOut, temRole } = useAuth()
   const { t, language, setLanguage } = useTranslation()
   const navigate = useNavigate()
 
+  const country = getCurrentCountry()
+  const currency = getCurrencyForCountry(country)
+  const exchangeRate = useExchangeRate(currency)
+
   const handleLogout = () => {
-    logout()
+    if (signOut) signOut()
     navigate('/login')
+  }
+
+  const handleCountryChange = (c: string) => {
+    localStorage.setItem('selected_country', c)
+    window.location.reload()
   }
 
   return (
@@ -41,9 +52,25 @@ export function AppHeader() {
       <div className="flex items-center gap-4">
         <SidebarTrigger className="-ml-2" />
         <div className="font-semibold text-lg hidden sm:block">{t('header.title')}</div>
+        {exchangeRate && (
+          <Badge variant="secondary" className="hidden md:inline-flex text-xs font-mono ml-2">
+            Câmbio USD/{currency}: {exchangeRate.toFixed(2)}
+          </Badge>
+        )}
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
+        {temRole('ADMIN') && (
+          <Select value={country} onValueChange={handleCountryChange}>
+            <SelectTrigger className="w-[100px] h-8 text-xs bg-transparent border-border focus:ring-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Brasil">Brasil</SelectItem>
+              <SelectItem value="Argentina">Argentina</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
         <div className="flex items-center mr-1">
           <Globe className="w-4 h-4 text-muted-foreground mr-1 hidden sm:block" />
           <Select value={language} onValueChange={(v) => setLanguage(v as any)}>
@@ -79,18 +106,20 @@ export function AppHeader() {
           {t('header.tests')}
         </Link>
         <Badge variant="outline" className="font-mono bg-muted hidden md:inline-flex">
-          {t('header.currency')}: {resultado.moeda}
+          {t('header.currency')}: {resultado?.moeda || 'USD'}
         </Badge>
-        <Badge
-          variant={resultado.tipo_preco === 'NET' ? 'secondary' : 'default'}
-          className="hidden lg:inline-flex"
-        >
-          {t('header.price')}: {resultado.tipo_preco}
-        </Badge>
-        {usuario && (
+        {resultado?.tipo_preco && (
+          <Badge
+            variant={resultado.tipo_preco === 'NET' ? 'secondary' : 'default'}
+            className="hidden lg:inline-flex"
+          >
+            {t('header.price')}: {resultado.tipo_preco}
+          </Badge>
+        )}
+        {user && (
           <div className="flex items-center gap-2 ml-1 sm:ml-2 sm:pl-4 sm:border-l">
             <span className="text-sm font-medium text-muted-foreground hidden xl:block">
-              {usuario.email}
+              {user.email}
             </span>
             <AlertDialog>
               <AlertDialogTrigger asChild>
