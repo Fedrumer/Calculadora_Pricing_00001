@@ -405,7 +405,7 @@ export function gerarPDFProposta(
       0.4,
     )
 
-    const validadeStr = `Validade 72h \u00B7 Câmbio US$\u2192R$ ${taxaCambio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    const validadeStr = `Validade 72h \u00B7 Câmbio US$1 = R$ ${taxaCambio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
     const valW = validadeStr.length * 4.5
     pdf.addTextToPage(
       pageIndex,
@@ -421,7 +421,7 @@ export function gerarPDFProposta(
   }
 
   const drawFooter = (pageIndex: number) => {
-    const footerText = `Now Assistance \u00B7 nowassistance.com \u00B7 Condições conforme apólice Sabemi/SUSEP. Valores em R$ convertidos ao câmbio US$\u2192R$ ${taxaCambio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}; sujeitos a confirmação.`
+    const footerText = `Now Assistance \u00B7 nowassistance.com \u00B7 Condições conforme apólice Sabemi/SUSEP. Valores em R$ convertidos ao câmbio US$1 = R$ ${taxaCambio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}; sujeitos a confirmação.`
     pdf.addTextToPage(pageIndex, footerText, MARGIN, 30, 7, 'F1', 0.4, 0.4, 0.4)
   }
 
@@ -435,7 +435,7 @@ export function gerarPDFProposta(
   currentY -= 12
   pdf.addTextToPage(
     0,
-    'Seu parceiro em viagens \u2014 assistência 24/7, 365 dias por ano.',
+    'Seu parceiro em viagens - assistência 24/7, 365 dias por ano.',
     MARGIN,
     currentY,
     10,
@@ -464,8 +464,8 @@ export function gerarPDFProposta(
     currentY - 20,
     CONTENT_W,
     20,
-    4,
-    4,
+    8,
+    8,
     0,
     0,
     darkR,
@@ -545,8 +545,8 @@ export function gerarPDFProposta(
     currentY - 20,
     CONTENT_W,
     20,
-    4,
-    4,
+    8,
+    8,
     0,
     0,
     blueR,
@@ -609,8 +609,8 @@ export function gerarPDFProposta(
         currentY - 20,
         CONTENT_W,
         20,
-        4,
-        4,
+        8,
+        8,
         0,
         0,
         blueR,
@@ -658,7 +658,7 @@ export function gerarPDFProposta(
     const rowData = [cov.nome]
     produtos.forEach((p) => {
       const pCov = p.coberturas.find((c) => c.nome === cov.nome)
-      rowData.push(pCov ? pCov.valor : '-')
+      rowData.push(pCov ? pCov.valor : '')
     })
 
     curX = MARGIN
@@ -701,7 +701,13 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
 
   let taxaCambio = 5.09
   try {
-    const taxasRes = await pb.collection('taxas_cambio').getList(1, 1, { sort: '-data' })
+    const filterDate = cotacao.created
+      ? new Date(cotacao.created).toISOString().replace('T', ' ')
+      : new Date().toISOString().replace('T', ' ')
+    const taxasRes = await pb.collection('taxas_cambio').getList(1, 1, {
+      filter: `data <= "${filterDate}"`,
+      sort: '-data',
+    })
     if (taxasRes.items.length > 0) {
       taxaCambio = taxasRes.items[0].valor
     }
@@ -731,7 +737,7 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
         let valFinal = ''
 
         if (!valRaw || valRaw.trim() === '') {
-          valFinal = 'Não configurado'
+          valFinal = ''
         } else {
           if (c.moeda) {
             let normalized = valRaw.trim()
