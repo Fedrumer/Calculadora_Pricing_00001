@@ -51,7 +51,7 @@ export function AppHeader() {
     <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-background/95 backdrop-blur z-10 sticky top-0">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="-ml-2" />
-        <div className="font-semibold text-lg hidden sm:block">{t('header.title')}</div>
+        <div className="font-semibold text-lg hidden sm:block">Cotador Now - Sales</div>
         {exchangeRate && (
           <Badge variant="secondary" className="hidden md:inline-flex text-xs font-mono ml-2">
             Câmbio USD/{currency}: {exchangeRate.toFixed(2)}

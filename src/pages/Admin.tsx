@@ -6,9 +6,11 @@ import { FaixasTab } from '@/components/admin/FaixasTab'
 import { FormasPagamentoTab } from '@/components/admin/FormasPagamentoTab'
 import { CoberturasTab } from '@/components/admin/CoberturasTab'
 import { ProdutoCoberturasTab } from '@/components/admin/ProdutoCoberturasTab'
+import { CambioTab } from '@/components/admin/CambioTab'
 import { ShieldAlert } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { getCurrentCountry } from '@/lib/country'
 import {
   Select,
   SelectContent,
@@ -22,7 +24,9 @@ export default function Admin() {
   const [produtoSelecionado, setProdutoSelecionado] = useState<string>('all')
 
   useEffect(() => {
-    pb.collection('produtos').getFullList().then(setProdutos)
+    pb.collection('produtos')
+      .getFullList({ filter: `pais = '${getCurrentCountry()}'` })
+      .then(setProdutos)
   }, [])
 
   return (
@@ -65,6 +69,7 @@ export default function Admin() {
           <TabsTrigger value="formas">Formas Pagto</TabsTrigger>
           <TabsTrigger value="coberturas">Coberturas</TabsTrigger>
           <TabsTrigger value="produto_coberturas">Cob. Produto</TabsTrigger>
+          <TabsTrigger value="cambio">Câmbio</TabsTrigger>
         </TabsList>
 
         <div className="mt-6 bg-white p-6 rounded-lg shadow-sm border">
@@ -88,6 +93,9 @@ export default function Admin() {
           </TabsContent>
           <TabsContent value="produto_coberturas">
             <ProdutoCoberturasTab produtoId={produtoSelecionado} />
+          </TabsContent>
+          <TabsContent value="cambio">
+            <CambioTab />
           </TabsContent>
         </div>
       </Tabs>

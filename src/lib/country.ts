@@ -1,14 +1,14 @@
 import pb from '@/lib/pocketbase/client'
 
-export function getCurrentCountry(): 'Brasil' | 'Argentina' {
+export function getCurrentCountry(): string {
   const user = pb.authStore.record
-  if (!user) return 'Brasil'
-  if (user.role === 'ADMIN') {
-    return (localStorage.getItem('selected_country') as 'Brasil' | 'Argentina') || 'Brasil'
+  if (user?.role === 'ADMIN') {
+    return localStorage.getItem('selected_country') || user?.pais || 'Brasil'
   }
-  return (user.pais as 'Brasil' | 'Argentina') || 'Brasil'
+  return user?.pais || 'Brasil'
 }
 
-export function getCurrencyForCountry(country: string) {
-  return country === 'Argentina' ? 'ARS' : 'BRL'
+export function getCurrencyForCountry(country: string): string {
+  if (country === 'Argentina') return 'ARS'
+  return 'BRL'
 }

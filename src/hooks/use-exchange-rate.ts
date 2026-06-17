@@ -5,17 +5,26 @@ export function useExchangeRate(currency: string) {
   const [rate, setRate] = useState<number | null>(null)
 
   useEffect(() => {
-    let active = true
-    pb.collection('taxas_cambio')
-      .getList(1, 1, { filter: `moeda = '${currency}'`, sort: '-data' })
-      .then((res) => {
-        if (active) setRate(res.items[0]?.valor || null)
-      })
-      .catch(() => {
-        if (active) setRate(null)
-      })
+    let mounted = true
+    async function fetchRate() {
+      try {
+        const records = await pb.collection('taxas_cambio').getList(1, 1, {
+          filter: `moeda = '${currency}'`,
+          sort: '-data',
+        })
+        if (mounted && records.items.length > 0) {
+          setRate(records.items[0].valor)
+        } else if (mounted) {
+          setRate(null)
+        }
+      } catch (err) {
+        console.error('Error fetching exchange rate:', err)
+        if (mounted) setRate(null)
+      }
+    }
+    fetchRate()
     return () => {
-      active = false
+      mounted = false
     }
   }, [currency])
 
