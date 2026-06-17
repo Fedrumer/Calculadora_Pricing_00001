@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
-import { gerarPDFProposta } from '@/lib/pdf'
+import { generateAndDownloadCotacaoPdf } from '@/lib/pdf'
 
 export function useHistorico() {
   const { toast } = useToast()
@@ -140,54 +140,9 @@ export function useHistorico() {
   const downloadPDF = async (cotacao: any) => {
     if (isGeneratingPdf) return
     setIsGeneratingPdf(true)
-    toast({ title: 'Gerando PDF...', description: 'Buscando detalhes dos produtos e coberturas.' })
+    toast({ title: 'Gerando PDF...', description: 'Aguarde um momento.' })
     try {
-      const produtosList = cotacao.expand?.cotacao_produtos_via_cotacao_id || []
-      const produtos_detalhes = await Promise.all(
-        produtosList.map(async (cp: any) => {
-          const produto = cp.expand?.produto_id
-          if (!produto) return null
-
-          const cobRes = await pb.collection('produto_coberturas').getFullList({
-            filter: `produto_id = "${produto.id}" && ativo = true`,
-            expand: 'cobertura_id',
-            sort: 'ordem_exibicao',
-          })
-
-          return {
-            produto_nome: produto.nome,
-            tipo_cobranca: produto.tipo_cobranca,
-            preco_total_produto: cp.preco_total_produto,
-            coberturas: cobRes.map((c: any) => ({
-              nome: c.expand?.cobertura_id?.nome || 'Desconhecida',
-              valor: c.valor || 'Incluído',
-            })),
-          }
-        }),
-      )
-
-      const validProdutos = produtos_detalhes.filter(Boolean) as any[]
-
-      const blob = gerarPDFProposta(
-        {
-          id: cotacao.id,
-          nome_agencia: cotacao.nome_agencia,
-          created: cotacao.created,
-          fatura_total: cotacao.fatura_total || 0,
-          moeda: cotacao.moeda || 'USD',
-          forma_pagamento: cotacao.expand?.forma_pagamento_id?.nome,
-        },
-        validProdutos,
-      )
-
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `proposta_${cotacao.id}_${new Date().toISOString().split('T')[0]}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      await generateAndDownloadCotacaoPdf(cotacao.id)
     } catch (err) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível gerar o PDF' })
     } finally {
