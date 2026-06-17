@@ -350,110 +350,100 @@ export function gerarPDFProposta(
   const MARGIN = 40
   const CONTENT_W = PAGE_W - 2 * MARGIN
 
-  const blueR = 0.05,
-    blueG = 0.1,
-    blueB = 0.9
-  const cyanR = 0.0,
-    cyanG = 0.8,
-    cyanB = 0.9
+  const blueR = 0.11,
+    blueG = 0.21,
+    blueB = 0.83
   const darkR = 0.15,
     darkG = 0.15,
     darkB = 0.15
-  const grayR = 0.95,
-    grayG = 0.95,
-    grayB = 0.95
+  const grayR = 0.96,
+    grayG = 0.96,
+    grayB = 0.96
   const whiteR = 1,
     whiteG = 1,
     whiteB = 1
 
   const taxaCambio = cotacao.taxa_cambio || 5.09
 
-  const drawHeader = (pageIndex: number) => {
-    if (logoData) {
-      const logoW = 140
-      const logoH = (logoW / logoData.width) * logoData.height
-      pdf.drawImage(pageIndex, 'logo', MARGIN, PAGE_H - MARGIN - logoH, logoW, logoH)
-    } else {
-      pdf.addTextToPage(
-        pageIndex,
-        'Now Assistance',
-        MARGIN,
-        PAGE_H - MARGIN - 20,
-        20,
-        'F2',
-        blueR,
-        blueG,
-        blueB,
-      )
-    }
-
-    const dataStr = cotacao.created
-      ? new Date(cotacao.created).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
-      : new Date().toLocaleDateString('pt-BR')
-    const rightX = PAGE_W - MARGIN
-
-    const dateW = dataStr.length * 5
-    pdf.addTextToPage(
-      pageIndex,
-      dataStr,
-      rightX - dateW,
-      PAGE_H - MARGIN - 10,
-      9,
-      'F1',
-      0.4,
-      0.4,
-      0.4,
-    )
-
-    const validadeStr = `Validade 72h \u00B7 Câmbio US$1 = R$ ${taxaCambio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-    const valW = validadeStr.length * 4.5
-    pdf.addTextToPage(
-      pageIndex,
-      validadeStr,
-      rightX - valW,
-      PAGE_H - MARGIN - 22,
-      9,
-      'F1',
-      0.4,
-      0.4,
-      0.4,
-    )
-  }
+  pdf.addPage()
 
   const drawFooter = (pageIndex: number) => {
-    const footerText = `Now Assistance \u00B7 nowassistance.com \u00B7 Condições conforme apólice Sabemi/SUSEP. Valores em R$ convertidos ao câmbio US$1 = R$ ${taxaCambio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}; sujeitos a confirmação.`
+    const footerText = `Now Assistance \u00B7 nowassistance.com \u00B7 Valores em R$ convertidos ao câmbio US$1 = R$ ${taxaCambio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}; sujeitos a confirmação.`
     pdf.addTextToPage(pageIndex, footerText, MARGIN, 30, 7, 'F1', 0.4, 0.4, 0.4)
   }
 
-  pdf.addPage()
-  drawHeader(0)
   drawFooter(0)
 
-  let currentY = PAGE_H - MARGIN - 60
+  if (logoData) {
+    const logoW = 120
+    const logoH = (logoW / logoData.width) * logoData.height
+    pdf.drawImage(0, 'logo', MARGIN, PAGE_H - MARGIN - logoH, logoW, logoH)
+  }
 
-  pdf.addTextToPage(0, 'Proposta Now Assistance', MARGIN, currentY, 18, 'F2', blueR, blueG, blueB)
-  currentY -= 12
+  let currentY = PAGE_H - MARGIN - 70
+
+  const leftColX = MARGIN + 20
+  const leftColValX = leftColX + 60
+  const rightColX = PAGE_W / 2 + 30
+  const rightColValX = rightColX + 80
+
+  const formatDate = (d: string | Date | undefined) => {
+    if (!d) return ''
+    return new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+  }
+
+  const pDataInicio = formatDate(cotacao.data_inicio)
+  const pDataFim = formatDate(cotacao.data_fim)
+  const periodoStr = pDataInicio && pDataFim ? `${pDataInicio} a ${pDataFim}` : ''
+
+  const headerFontSize = 10
+
+  pdf.addTextToPage(0, 'Agência:', leftColX, currentY, headerFontSize, 'F2')
+  pdf.addTextToPage(0, cotacao.nome_agencia || '', leftColValX, currentY, headerFontSize, 'F1')
+  pdf.addTextToPage(0, 'Data da Cotação:', rightColX, currentY, headerFontSize, 'F2')
+  pdf.addTextToPage(0, formatDate(cotacao.created), rightColValX, currentY, headerFontSize, 'F1')
+
+  currentY -= 16
+  pdf.addTextToPage(0, 'Período:', leftColX, currentY, headerFontSize, 'F2')
+  pdf.addTextToPage(0, periodoStr, leftColValX, currentY, headerFontSize, 'F1')
+  pdf.addTextToPage(0, 'Total de Dias:', rightColX, currentY, headerFontSize, 'F2')
   pdf.addTextToPage(
     0,
-    'Seu parceiro em viagens - assistência 24/7, 365 dias por ano.',
-    MARGIN,
+    (cotacao.qtd_dias || 0).toString(),
+    rightColValX,
     currentY,
-    10,
+    headerFontSize,
     'F1',
-    0.4,
-    0.4,
-    0.4,
   )
-  currentY -= 15
 
-  pdf.addLineToPage(0, MARGIN, currentY, PAGE_W - MARGIN, currentY, cyanR, cyanG, cyanB, 2)
+  currentY -= 16
+  pdf.addTextToPage(0, 'Passageiros:', leftColX, currentY, headerFontSize, 'F2')
+  pdf.addTextToPage(
+    0,
+    (cotacao.total_passageiros || 1).toString(),
+    leftColValX,
+    currentY,
+    headerFontSize,
+    'F1',
+  )
+  pdf.addTextToPage(0, 'Comissão:', rightColX, currentY, headerFontSize, 'F2')
+  pdf.addTextToPage(0, `${cotacao.comissao || 0}%`, rightColValX, currentY, headerFontSize, 'F1')
+
+  currentY -= 16
+  pdf.addTextToPage(0, 'Pagamento:', leftColX, currentY, headerFontSize, 'F2')
+  pdf.addTextToPage(0, cotacao.forma_pagamento || '', leftColValX, currentY, headerFontSize, 'F1')
+  pdf.addTextToPage(0, 'Fatura Total:', rightColX, currentY, headerFontSize, 'F2')
+
+  const faturaVal = `${cotacao.moeda || 'USD'} ${cotacao.fatura_total?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  pdf.addTextToPage(0, faturaVal, rightColValX, currentY, headerFontSize, 'F2', blueR, blueG, blueB)
+
   currentY -= 30
 
   const prodCols = [
     { label: 'Produto', width: CONTENT_W * 0.4, align: 'L' },
     { label: 'Participação', width: CONTENT_W * 0.2, align: 'C' },
     { label: 'Preço/viagem (R$)', width: CONTENT_W * 0.25, align: 'C' },
-    { label: 'US$', width: CONTENT_W * 0.15, align: 'R' },
+    { label: `${cotacao.moeda || 'US$'}`, width: CONTENT_W * 0.15, align: 'R' },
   ]
 
   const participacao =
@@ -461,11 +451,11 @@ export function gerarPDFProposta(
 
   pdf.addRoundedRect(
     MARGIN,
-    currentY - 20,
+    currentY - 16,
     CONTENT_W,
-    20,
-    8,
-    8,
+    22,
+    6,
+    6,
     0,
     0,
     darkR,
@@ -480,14 +470,14 @@ export function gerarPDFProposta(
   let curX = MARGIN
   prodCols.forEach((col) => {
     const textW = col.label.length * 5.5
-    let textX = curX + 5
+    let textX = curX + 10
     if (col.align === 'C') textX = curX + (col.width - textW) / 2
-    if (col.align === 'R') textX = curX + col.width - textW - 5
-    pdf.addTextToPage(0, col.label, textX, currentY - 14, 10, 'F2', whiteR, whiteG, whiteB)
+    if (col.align === 'R') textX = curX + col.width - textW - 10
+    pdf.addTextToPage(0, col.label, textX, currentY - 10, 10, 'F2', whiteR, whiteG, whiteB)
     curX += col.width
   })
 
-  currentY -= 20
+  currentY -= 16
 
   produtos.forEach((prod, idx) => {
     const isEven = idx % 2 === 0
@@ -502,17 +492,17 @@ export function gerarPDFProposta(
       prod.produto_nome,
       participacao,
       `R$ ${precoBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      `US$ ${precoUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      `${cotacao.moeda || 'US$'} ${precoUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     ]
 
     curX = MARGIN
     prodCols.forEach((col, cIdx) => {
       const text = rowData[cIdx]
       const textW = text.length * 5
-      let textX = curX + 5
+      let textX = curX + 10
       if (col.align === 'C') textX = curX + (col.width - textW) / 2
-      if (col.align === 'R') textX = curX + col.width - textW - 5
-      pdf.addTextToPage(0, text, textX, currentY - 14, 9, 'F1', 0, 0, 0)
+      if (col.align === 'R') textX = curX + col.width - textW - 10
+      pdf.addTextToPage(0, text, textX, currentY - 13, 9, 'F1', 0, 0, 0)
       curX += col.width
     })
 
@@ -521,70 +511,94 @@ export function gerarPDFProposta(
 
   currentY -= 30
 
-  pdf.addTextToPage(
-    pdf.pages.length - 1,
-    'Coberturas por produto',
-    MARGIN,
-    currentY,
-    12,
-    'F2',
-    0,
-    0,
-    0,
-  )
+  pdf.addTextToPage(0, 'Coberturas por produto', MARGIN, currentY, 12, 'F2', 0, 0, 0)
   currentY -= 15
 
   const covCols = [{ label: 'COBERTURA', width: CONTENT_W * 0.4, align: 'L' }]
-  const prodColW = (CONTENT_W * 0.6) / produtos.length
+  const prodColW = (CONTENT_W * 0.6) / (produtos.length || 1)
   produtos.forEach((p) => {
     covCols.push({ label: p.produto_nome, width: prodColW, align: 'C' })
   })
 
-  pdf.addRoundedRect(
-    MARGIN,
-    currentY - 20,
-    CONTENT_W,
-    20,
-    8,
-    8,
-    0,
-    0,
-    blueR,
-    blueG,
-    blueB,
-    blueR,
-    blueG,
-    blueB,
-    true,
-    false,
-  )
-  curX = MARGIN
-  covCols.forEach((col) => {
-    const textW = col.label.length * 5
-    let textX = curX + 5
-    if (col.align === 'C') textX = Math.max(curX + 2, curX + (col.width - textW) / 2)
+  const wrapText = (
+    text: string,
+    maxWidth: number,
+    fontSize: number,
+    isBold: boolean = false,
+  ): string[] => {
+    const avgCharWidth = fontSize * (isBold ? 0.55 : 0.5)
+    const maxChars = Math.max(1, Math.floor(maxWidth / avgCharWidth))
+    const words = text.split(' ')
+    const lines: string[] = []
+    let currentLine = ''
 
-    const maxChars = Math.max(5, Math.floor(col.width / 5.5) - 1)
-    let printText = col.label
-    if (printText.length > maxChars) {
-      printText = printText.substring(0, maxChars - 3) + '...'
-    }
+    words.forEach((word) => {
+      if ((currentLine + (currentLine ? ' ' : '') + word).trim().length <= maxChars) {
+        currentLine = (currentLine + (currentLine ? ' ' : '') + word).trim()
+      } else {
+        if (currentLine) lines.push(currentLine)
+        if (word.length > maxChars) {
+          let tempWord = word
+          while (tempWord.length > maxChars) {
+            lines.push(tempWord.substring(0, maxChars))
+            tempWord = tempWord.substring(maxChars)
+          }
+          currentLine = tempWord
+        } else {
+          currentLine = word
+        }
+      }
+    })
+    if (currentLine) lines.push(currentLine)
+    return lines
+  }
 
-    pdf.addTextToPage(
-      pdf.pages.length - 1,
-      printText,
-      textX,
-      currentY - 14,
-      9,
-      'F2',
-      whiteR,
-      whiteG,
-      whiteB,
+  const drawCovHeader = (pageIdx: number, y: number) => {
+    let maxHeaderLines = 1
+    const wrappedHeaders = covCols.map((col, idx) => {
+      const lines = wrapText(col.label, col.width - (idx === 0 ? 10 : 4), 9, true)
+      maxHeaderLines = Math.max(maxHeaderLines, lines.length)
+      return lines
+    })
+
+    const headerH = maxHeaderLines * 12 + 10
+    pdf.addRoundedRect(
+      MARGIN,
+      y - headerH + 6,
+      CONTENT_W,
+      headerH,
+      6,
+      6,
+      0,
+      0,
+      blueR,
+      blueG,
+      blueB,
+      blueR,
+      blueG,
+      blueB,
+      true,
+      false,
     )
-    curX += col.width
-  })
 
-  currentY -= 20
+    let cx = MARGIN
+    wrappedHeaders.forEach((lines, cIdx) => {
+      const col = covCols[cIdx]
+      const startY = y - (headerH - lines.length * 10) / 2 + 2
+      lines.forEach((line, lIdx) => {
+        const textW = line.length * 5
+        let textX = cx + 5
+        if (col.align === 'C') textX = Math.max(cx + 2, cx + (col.width - textW) / 2)
+        pdf.addTextToPage(pageIdx, line, textX, startY - lIdx * 10, 9, 'F2', whiteR, whiteG, whiteB)
+      })
+      cx += col.width
+    })
+
+    return headerH
+  }
+
+  let headerH = drawCovHeader(pdf.pages.length - 1, currentY)
+  currentY -= headerH
 
   const allCoberturasMap = new Map<string, { nome: string; ordem: number }>()
   produtos.forEach((p) => {
@@ -598,97 +612,64 @@ export function gerarPDFProposta(
   const coberturasList = Array.from(allCoberturasMap.values()).sort((a, b) => a.ordem - b.ordem)
 
   coberturasList.forEach((cov, idx) => {
-    if (currentY < MARGIN + 40) {
-      pdf.addPage()
-      drawHeader(pdf.pages.length - 1)
-      drawFooter(pdf.pages.length - 1)
-      currentY = PAGE_H - MARGIN - 40
-
-      pdf.addRoundedRect(
-        MARGIN,
-        currentY - 20,
-        CONTENT_W,
-        20,
-        8,
-        8,
-        0,
-        0,
-        blueR,
-        blueG,
-        blueB,
-        blueR,
-        blueG,
-        blueB,
-        true,
-        false,
-      )
-      curX = MARGIN
-      covCols.forEach((col) => {
-        const textW = col.label.length * 5
-        let textX = curX + 5
-        if (col.align === 'C') textX = Math.max(curX + 2, curX + (col.width - textW) / 2)
-
-        const maxChars = Math.max(5, Math.floor(col.width / 5.5) - 1)
-        let printText = col.label
-        if (printText.length > maxChars) {
-          printText = printText.substring(0, maxChars - 3) + '...'
-        }
-
-        pdf.addTextToPage(
-          pdf.pages.length - 1,
-          printText,
-          textX,
-          currentY - 14,
-          9,
-          'F2',
-          whiteR,
-          whiteG,
-          whiteB,
-        )
-        curX += col.width
-      })
-      currentY -= 20
-    }
-
     const isEven = idx % 2 === 0
-    if (isEven) {
-      pdf.addRect(MARGIN, currentY - 20, CONTENT_W, 20, grayR, grayG, grayB, true, 0)
-    }
-
     const rowData = [cov.nome]
     produtos.forEach((p) => {
       const pCov = p.coberturas.find((c) => c.nome === cov.nome)
       rowData.push(pCov ? pCov.valor : '')
     })
 
-    curX = MARGIN
-    covCols.forEach((col, cIdx) => {
-      const text = rowData[cIdx]
-      const textW = text.length * 4.5
-      let textX = curX + 5
-      if (col.align === 'C') textX = Math.max(curX + 2, curX + (col.width - textW) / 2)
-
-      const maxChars = Math.max(5, Math.floor(col.width / 4.8) - 1)
-      let printText = text
-      if (printText.length > maxChars) {
-        printText = printText.substring(0, maxChars - 3) + '...'
-      }
-
-      pdf.addTextToPage(
-        pdf.pages.length - 1,
-        printText,
-        textX,
-        currentY - 14,
-        8,
-        cIdx === 0 ? 'F1' : 'F2',
-        0,
-        0,
-        0,
-      )
-      curX += col.width
+    let maxLines = 1
+    const wrappedRowData = rowData.map((text, cIdx) => {
+      const colW = covCols[cIdx].width
+      const isBold = cIdx > 0
+      const fontSize = 8
+      const lines = wrapText(text, colW - (cIdx === 0 ? 10 : 4), fontSize, isBold)
+      maxLines = Math.max(maxLines, lines.length)
+      return lines
     })
 
-    currentY -= 20
+    const rowH = Math.max(20, maxLines * 10 + 6)
+
+    if (currentY - rowH < MARGIN + 20) {
+      pdf.addPage()
+      const newPageIdx = pdf.pages.length - 1
+      drawFooter(newPageIdx)
+      currentY = PAGE_H - MARGIN
+      headerH = drawCovHeader(newPageIdx, currentY)
+      currentY -= headerH
+    }
+
+    if (isEven) {
+      pdf.addRect(MARGIN, currentY - rowH + 6, CONTENT_W, rowH, grayR, grayG, grayB, true, 0)
+    }
+
+    let cx = MARGIN
+    wrappedRowData.forEach((lines, cIdx) => {
+      const col = covCols[cIdx]
+      const startY = currentY - (rowH - lines.length * 10) / 2 + 2
+      lines.forEach((line, lIdx) => {
+        const isBold = cIdx > 0
+        const fontSize = 8
+        const textW = line.length * (isBold ? 4.5 : 4)
+        let textX = cx + 5
+        if (col.align === 'C') textX = Math.max(cx + 2, cx + (col.width - textW) / 2)
+        pdf.addTextToPage(
+          pdf.pages.length - 1,
+          line,
+          textX,
+          startY - lIdx * 10,
+          fontSize,
+          isBold ? 'F2' : 'F1',
+          0,
+          0,
+          0,
+        )
+      })
+      cx += col.width
+    })
+
+    currentY -= rowH
   })
 
   return pdf.build()
