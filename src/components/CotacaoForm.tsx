@@ -167,11 +167,11 @@ export function CotacaoForm({ className }: { className?: string }) {
         </div>
       </div>
 
-      <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50 overflow-hidden">
+      <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50 overflow-hidden w-full">
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
           {t('form.period')}
         </Label>
-        <div className="flex flex-col gap-2 w-full overflow-hidden [&>button]:w-full [&>button]:bg-white [&>button]:text-slate-900 [&>button]:h-9">
+        <div className="flex flex-col gap-2 w-full overflow-hidden [&>button]:w-full [&>button]:bg-white [&>button]:text-slate-900 [&>button]:h-9 [&>button]:px-2 [&>button]:justify-start [&>button]:overflow-hidden [&>button_span]:truncate [&>button_span]:w-full [&>button_span]:text-left">
           <DatePicker
             label={t('form.start')}
             date={input.data_inicio}

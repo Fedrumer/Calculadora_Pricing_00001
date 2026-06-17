@@ -67,6 +67,9 @@ routerAdd(
     if (body.nome_agencia !== undefined) {
       cotacao.set('nome_agencia', body.nome_agencia)
     }
+    if (body.markup_percentual !== undefined) {
+      cotacao.set('markup_percentual', body.markup_percentual)
+    }
 
     $app.runInTransaction((txApp) => {
       txApp.save(cotacao)
