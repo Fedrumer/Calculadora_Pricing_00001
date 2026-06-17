@@ -79,6 +79,14 @@ export function HistoricoList({
   }
   const { user } = useAuth()
   const { toast } = useToast()
+
+  const getLocalCurrencyData = (item: any) => {
+    const pais = item.expand?.usuario_id?.pais || user?.pais || 'Brasil'
+    return {
+      symbol: pais === 'Argentina' ? 'ARS' : 'R$',
+      locale: pais === 'Argentina' ? 'es-AR' : 'pt-BR',
+    }
+  }
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const [editAgenciaName, setEditAgenciaName] = useState('')
@@ -160,9 +168,16 @@ export function HistoricoList({
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">
-                    {item.moeda || 'USD'} {item.fatura_total?.toFixed(2)}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">
+                      {item.moeda || 'USD'} {item.fatura_total?.toFixed(2)}
+                    </span>
+                    <span className="text-xs font-medium text-blue-700">
+                      {item.taxa_cambio
+                        ? `${getLocalCurrencyData(item).symbol} ${(item.fatura_total * item.taxa_cambio).toLocaleString(getLocalCurrencyData(item).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : 'N/A'}
+                    </span>
+                  </div>
                   {user?.role === 'ADMIN' ? (
                     <Select
                       defaultValue={item.status}
@@ -201,7 +216,8 @@ export function HistoricoList({
                 <TableHead>Data</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Pagamento</TableHead>
-                <TableHead>Fatura Total</TableHead>
+                <TableHead>Fatura (USD)</TableHead>
+                <TableHead>Fatura (Local)</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -232,7 +248,16 @@ export function HistoricoList({
                   </TableCell>
                   <TableCell>{item.expand?.forma_pagamento_id?.nome || 'N/A'}</TableCell>
                   <TableCell className="font-medium text-gray-900">
-                    {item.moeda || 'USD'} {item.fatura_total?.toFixed(2)}
+                    {item.moeda || 'USD'}{' '}
+                    {item.fatura_total?.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </TableCell>
+                  <TableCell className="font-medium text-blue-700">
+                    {item.taxa_cambio
+                      ? `${getLocalCurrencyData(item).symbol} ${(item.fatura_total * item.taxa_cambio).toLocaleString(getLocalCurrencyData(item).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : 'N/A'}
                   </TableCell>
                   <TableCell>
                     <ActionsMenu item={item} />
@@ -307,9 +332,21 @@ export function HistoricoList({
               <span className="block mt-1">{viewItem?.expand?.forma_pagamento_id?.nome}</span>
             </div>
             <div>
-              <strong>Fatura:</strong>{' '}
+              <strong>Fatura (USD):</strong>{' '}
               <span className="block mt-1 font-bold text-green-600">
-                {viewItem?.moeda || 'USD'} {viewItem?.fatura_total?.toFixed(2)}
+                {viewItem?.moeda || 'USD'}{' '}
+                {viewItem?.fatura_total?.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+            <div>
+              <strong>Fatura (Local):</strong>{' '}
+              <span className="block mt-1 font-bold text-blue-600">
+                {viewItem?.taxa_cambio
+                  ? `${getLocalCurrencyData(viewItem).symbol} ${(viewItem.fatura_total * viewItem.taxa_cambio).toLocaleString(getLocalCurrencyData(viewItem).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : 'N/A'}
               </span>
             </div>
             <div>
@@ -333,6 +370,14 @@ export function HistoricoList({
                 {viewItem?.comissao ? (viewItem.comissao * 100).toFixed(0) : 0}%
               </span>
             </div>
+            <div>
+              <strong>Câmbio:</strong>{' '}
+              <span className="block mt-1">
+                {viewItem?.taxa_cambio
+                  ? `${getLocalCurrencyData(viewItem).symbol} ${viewItem.taxa_cambio.toLocaleString(getLocalCurrencyData(viewItem).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : 'N/A'}
+              </span>
+            </div>
           </div>
           <h3 className="font-semibold mb-2">Produtos Selecionados</h3>
           <div className="overflow-x-auto border rounded-md">
@@ -342,7 +387,8 @@ export function HistoricoList({
                   <TableHead>Produto</TableHead>
                   <TableHead>Viajantes (Até 75)</TableHead>
                   <TableHead>Viajantes (76-85)</TableHead>
-                  <TableHead>Preço Total</TableHead>
+                  <TableHead>Preço (USD)</TableHead>
+                  <TableHead>Preço (Local)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -353,6 +399,11 @@ export function HistoricoList({
                     <TableCell>{cp.qtd_76_a_85}</TableCell>
                     <TableCell>
                       {viewItem?.moeda || 'USD'} {cp.preco_total_produto.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-blue-700">
+                      {viewItem?.taxa_cambio
+                        ? `${getLocalCurrencyData(viewItem).symbol} ${(cp.preco_total_produto * viewItem.taxa_cambio).toLocaleString(getLocalCurrencyData(viewItem).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : 'N/A'}
                     </TableCell>
                   </TableRow>
                 ))}

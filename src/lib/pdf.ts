@@ -333,6 +333,7 @@ class PDFBuilder {
 
 export interface CotacaoPDFDataExt extends CotacaoPDFData {
   taxa_cambio?: number
+  pais_usuario?: string
 }
 
 export function gerarPDFProposta(
@@ -364,11 +365,14 @@ export function gerarPDFProposta(
     whiteB = 1
 
   const taxaCambio = cotacao.taxa_cambio || 5.09
+  const pais = cotacao.pais_usuario || 'Brasil'
+  const localSymbol = pais === 'Argentina' ? 'ARS' : 'R$'
+  const localLocale = pais === 'Argentina' ? 'es-AR' : 'pt-BR'
 
   pdf.addPage()
 
   const drawFooter = (pageIndex: number) => {
-    const footerText = `Now Assistance \u00B7 nowassistance.com \u00B7 Valores em R$ convertidos ao câmbio US$1 = R$ ${taxaCambio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}; sujeitos a confirmação.`
+    const footerText = `Now Assistance \u00B7 nowassistance.com \u00B7 Valores convertidos ao câmbio US$1 = ${localSymbol} ${taxaCambio.toLocaleString(localLocale, { minimumFractionDigits: 2 })}; sujeitos a confirmação.`
     pdf.addTextToPage(pageIndex, footerText, MARGIN, 30, 7, 'F1', 0.4, 0.4, 0.4)
   }
 
@@ -432,17 +436,37 @@ export function gerarPDFProposta(
   currentY -= 16
   pdf.addTextToPage(0, 'Pagamento:', leftColX, currentY, headerFontSize, 'F2')
   pdf.addTextToPage(0, cotacao.forma_pagamento || '', leftColValX, currentY, headerFontSize, 'F1')
-  pdf.addTextToPage(0, 'Fatura Total:', rightColX, currentY, headerFontSize, 'F2')
+  pdf.addTextToPage(0, 'Fatura (USD):', rightColX, currentY, headerFontSize, 'F2')
 
   const faturaVal = `${cotacao.moeda || 'USD'} ${cotacao.fatura_total?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   pdf.addTextToPage(0, faturaVal, rightColValX, currentY, headerFontSize, 'F2', blueR, blueG, blueB)
+
+  currentY -= 16
+  pdf.addTextToPage(0, `Fatura (${localSymbol}):`, rightColX, currentY, headerFontSize, 'F2')
+  const faturaLocalVal = `${localSymbol} ${(cotacao.fatura_total * taxaCambio).toLocaleString(localLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  pdf.addTextToPage(
+    0,
+    faturaLocalVal,
+    rightColValX,
+    currentY,
+    headerFontSize,
+    'F2',
+    blueR,
+    blueG,
+    blueB,
+  )
+
+  currentY -= 16
+  pdf.addTextToPage(0, 'Câmbio Utilizado:', rightColX, currentY, headerFontSize, 'F2')
+  const cambioVal = `${localSymbol} ${taxaCambio.toLocaleString(localLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  pdf.addTextToPage(0, cambioVal, rightColValX, currentY, headerFontSize, 'F1')
 
   currentY -= 30
 
   const prodCols = [
     { label: 'Produto', width: CONTENT_W * 0.4, align: 'L' },
     { label: 'Participação', width: CONTENT_W * 0.2, align: 'C' },
-    { label: 'Preço/viagem (R$)', width: CONTENT_W * 0.25, align: 'C' },
+    { label: `Preço/viagem (${localSymbol})`, width: CONTENT_W * 0.25, align: 'C' },
     { label: `${cotacao.moeda || 'US$'}`, width: CONTENT_W * 0.15, align: 'R' },
   ]
 
@@ -479,34 +503,83 @@ export function gerarPDFProposta(
 
   currentY -= 16
 
+  const wrapTextLocal = (
+    text: string,
+    maxWidth: number,
+    fontSize: number,
+    isBold: boolean = false,
+  ): string[] => {
+    const avgCharWidth = fontSize * (isBold ? 0.55 : 0.5)
+    const maxChars = Math.max(1, Math.floor(maxWidth / avgCharWidth))
+    const words = text.split(' ')
+    const lines: string[] = []
+    let currentLine = ''
+
+    words.forEach((word) => {
+      if ((currentLine + (currentLine ? ' ' : '') + word).trim().length <= maxChars) {
+        currentLine = (currentLine + (currentLine ? ' ' : '') + word).trim()
+      } else {
+        if (currentLine) lines.push(currentLine)
+        if (word.length > maxChars) {
+          let tempWord = word
+          while (tempWord.length > maxChars) {
+            lines.push(tempWord.substring(0, maxChars))
+            tempWord = tempWord.substring(maxChars)
+          }
+          currentLine = tempWord
+        } else {
+          currentLine = word
+        }
+      }
+    })
+    if (currentLine) lines.push(currentLine)
+    return lines
+  }
+
   produtos.forEach((prod, idx) => {
     const isEven = idx % 2 === 0
-    if (isEven) {
-      pdf.addRect(MARGIN, currentY - 20, CONTENT_W, 20, grayR, grayG, grayB, true, 0)
-    }
-
     const precoUsd = prod.preco_total_produto
-    const precoBrl = precoUsd * taxaCambio
+    const precoLocal = precoUsd * taxaCambio
 
     const rowData = [
       prod.produto_nome,
       participacao,
-      `R$ ${precoBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      `${localSymbol} ${precoLocal.toLocaleString(localLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       `${cotacao.moeda || 'US$'} ${precoUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     ]
 
+    let maxLines = 1
+    const wrappedRowData = rowData.map((text, cIdx) => {
+      const colW = prodCols[cIdx].width
+      const lines = wrapTextLocal(text, colW - 10, 9, false)
+      maxLines = Math.max(maxLines, lines.length)
+      return lines
+    })
+
+    const rowH = Math.max(20, maxLines * 10 + 10)
+
+    if (isEven) {
+      pdf.addRect(MARGIN, currentY - rowH, CONTENT_W, rowH, grayR, grayG, grayB, true, 0)
+    }
+
     curX = MARGIN
-    prodCols.forEach((col, cIdx) => {
-      const text = rowData[cIdx]
-      const textW = text.length * 5
-      let textX = curX + 10
-      if (col.align === 'C') textX = curX + (col.width - textW) / 2
-      if (col.align === 'R') textX = curX + col.width - textW - 10
-      pdf.addTextToPage(0, text, textX, currentY - 13, 9, 'F1', 0, 0, 0)
+    wrappedRowData.forEach((lines, cIdx) => {
+      const col = prodCols[cIdx]
+      const blockH = lines.length * 10
+      const padding = (rowH - blockH) / 2
+      const startY = currentY - padding - 8
+
+      lines.forEach((line, lIdx) => {
+        const textW = line.length * 4.5
+        let textX = curX + 10
+        if (col.align === 'C') textX = Math.max(curX + 2, curX + (col.width - textW) / 2)
+        if (col.align === 'R') textX = curX + col.width - textW - 10
+        pdf.addTextToPage(0, line, textX, startY - lIdx * 10, 9, 'F1', 0, 0, 0)
+      })
       curX += col.width
     })
 
-    currentY -= 20
+    currentY -= rowH
   })
 
   currentY -= 30
@@ -680,20 +753,26 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
     expand: 'forma_pagamento_id,cotacao_produtos_via_cotacao_id.produto_id,usuario_id',
   })
 
-  let taxaCambio = 5.09
-  try {
-    const filterDate = cotacao.created
-      ? new Date(cotacao.created).toISOString().replace('T', ' ')
-      : new Date().toISOString().replace('T', ' ')
-    const taxasRes = await pb.collection('taxas_cambio').getList(1, 1, {
-      filter: `data <= "${filterDate}"`,
-      sort: '-data',
-    })
-    if (taxasRes.items.length > 0) {
-      taxaCambio = taxasRes.items[0].valor
+  const userPais = cotacao.expand?.usuario_id?.pais || 'Brasil'
+  const targetMoeda = userPais === 'Argentina' ? 'ARS' : 'BRL'
+
+  let taxaCambio = cotacao.taxa_cambio
+  if (!taxaCambio) {
+    taxaCambio = targetMoeda === 'ARS' ? 980.5 : 5.09
+    try {
+      const filterDate = cotacao.created
+        ? new Date(cotacao.created).toISOString().replace('T', ' ')
+        : new Date().toISOString().replace('T', ' ')
+      const taxasRes = await pb.collection('taxas_cambio').getList(1, 1, {
+        filter: `data <= "${filterDate}" && moeda = "${targetMoeda}"`,
+        sort: '-data',
+      })
+      if (taxasRes.items.length > 0) {
+        taxaCambio = taxasRes.items[0].valor
+      }
+    } catch {
+      /* intentionally ignored */
     }
-  } catch {
-    /* intentionally ignored */
   }
 
   const produtosRel = cotacao.expand?.cotacao_produtos_via_cotacao_id || []
@@ -769,6 +848,7 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
     total_passageiros: totalPassageiros,
     comissao: cotacao.comissao,
     taxa_cambio: taxaCambio,
+    pais_usuario: userPais,
   }
 
   const logoData = await getJpegData(logoImgUrl).catch(() => null)
