@@ -83,6 +83,7 @@ export async function salvarCotacao(
   selecionados: string[],
   status: string,
   nomeAgencia: string,
+  formaPagamentoId?: string,
 ) {
   const dtInicio = input.data_inicio ? new Date(input.data_inicio) : new Date()
   const dtFim = input.data_fim ? new Date(input.data_fim) : new Date()
@@ -123,7 +124,7 @@ export async function salvarCotacao(
     body: JSON.stringify({
       usuario_id: pb.authStore.record?.id,
       status,
-      forma_pagamento_id: input.forma_pagamento,
+      forma_pagamento_id: formaPagamentoId || input.forma_pagamento,
       comissao: input.comissao || 0,
       data_inicio: dtInicio.toISOString(),
       data_fim: dtFim.toISOString(),

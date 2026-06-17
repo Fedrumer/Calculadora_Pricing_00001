@@ -19,8 +19,14 @@ import { Label } from '@/components/ui/label'
 import { useTranslation } from '@/hooks/use-translation'
 
 export default function Index() {
-  const { input, resultado, carregandoProdutos, erroCarregamento, recarregarDados } =
-    useCotacaoStore()
+  const {
+    input,
+    resultado,
+    carregandoProdutos,
+    erroCarregamento,
+    recarregarDados,
+    formasPagamento,
+  } = useCotacaoStore()
   const { t } = useTranslation()
   const [selecionados, setSelecionados] = useState<string[]>([])
   const [modalAcao, setModalAcao] = useState<'RASCUNHO' | 'PROPOSTA_ENVIADA' | null>(null)
@@ -46,7 +52,8 @@ export default function Index() {
     if (!modalAcao) return
     setSalvando(true)
     try {
-      await salvarCotacao(input, resultado, selecionados, modalAcao, nomeAgencia)
+      const formaPagamentoId = formasPagamento.find((fp) => fp.codigo === input.forma_pagamento)?.id
+      await salvarCotacao(input, resultado, selecionados, modalAcao, nomeAgencia, formaPagamentoId)
       toast({
         title: t('index.success'),
         description:
