@@ -4,7 +4,7 @@ import useCotacaoStore from '@/stores/useCotacaoStore'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
-import { LogOut, Globe } from 'lucide-react'
+import { LogOut, Globe, MapPin } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -62,16 +62,19 @@ export function AppHeader() {
 
       <div className="flex items-center gap-2 sm:gap-4">
         {temRole('ADMIN') && (
-          <Select value={country} onValueChange={handleCountryChange}>
-            <SelectTrigger className="w-[100px] h-8 text-xs bg-transparent border-border focus:ring-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Brasil">Brasil</SelectItem>
-              <SelectItem value="Argentina">Argentina</SelectItem>
-              <SelectItem value="Todos">Todos</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center mr-1">
+            <MapPin className="w-4 h-4 text-muted-foreground mr-1 hidden sm:block" />
+            <Select value={country} onValueChange={handleCountryChange}>
+              <SelectTrigger className="w-[90px] sm:w-[110px] h-8 text-xs bg-transparent border-border focus:ring-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Brasil">Brasil</SelectItem>
+                <SelectItem value="Argentina">Argentina</SelectItem>
+                <SelectItem value="Todos">Todos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         )}
         <div className="flex items-center mr-1">
           <Globe className="w-4 h-4 text-muted-foreground mr-1 hidden sm:block" />

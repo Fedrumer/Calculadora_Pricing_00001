@@ -43,6 +43,7 @@ export function ProdutosTab() {
         tipo_cobranca: 'dia',
         cobertura_medica: 0,
         ativo: true,
+        pais: 'Brasil',
       },
     )
     setOpen(true)
@@ -70,6 +71,7 @@ export function ProdutosTab() {
               <TableHead>Código</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Categoria</TableHead>
+              <TableHead>País</TableHead>
               <TableHead>Ativo</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
@@ -80,6 +82,7 @@ export function ProdutosTab() {
                 <TableCell>{item.codigo}</TableCell>
                 <TableCell>{item.nome}</TableCell>
                 <TableCell>{item.categoria}</TableCell>
+                <TableCell>{item.pais || '-'}</TableCell>
                 <TableCell>
                   <Switch
                     checked={item.ativo}
@@ -141,6 +144,18 @@ export function ProdutosTab() {
                 value={form.categoria}
                 onChange={(e) => setForm({ ...form, categoria: e.target.value })}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>País</Label>
+              <Select value={form.pais} onValueChange={(v) => setForm({ ...form, pais: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Brasil">Brasil</SelectItem>
+                  <SelectItem value="Argentina">Argentina</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label>Tipo Cobrança</Label>
