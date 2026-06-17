@@ -170,7 +170,11 @@ export function HistoricoList({
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">
-                      {item.moeda || 'USD'} {item.fatura_total?.toFixed(2)}
+                      {item.moeda || 'USD'}{' '}
+                      {item.fatura_total?.toLocaleString(getLocalCurrencyData(item).locale, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </span>
                     <span className="text-xs font-medium text-blue-700">
                       {item.taxa_cambio
@@ -217,7 +221,7 @@ export function HistoricoList({
                 <TableHead>Status</TableHead>
                 <TableHead>Pagamento</TableHead>
                 <TableHead>Fatura (USD)</TableHead>
-                <TableHead>Fatura (Local)</TableHead>
+                <TableHead>Fatura (Moeda Local)</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -249,7 +253,7 @@ export function HistoricoList({
                   <TableCell>{item.expand?.forma_pagamento_id?.nome || 'N/A'}</TableCell>
                   <TableCell className="font-medium text-gray-900">
                     {item.moeda || 'USD'}{' '}
-                    {item.fatura_total?.toLocaleString('en-US', {
+                    {item.fatura_total?.toLocaleString(getLocalCurrencyData(item).locale, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -335,14 +339,14 @@ export function HistoricoList({
               <strong>Fatura (USD):</strong>{' '}
               <span className="block mt-1 font-bold text-green-600">
                 {viewItem?.moeda || 'USD'}{' '}
-                {viewItem?.fatura_total?.toLocaleString('en-US', {
+                {viewItem?.fatura_total?.toLocaleString(getLocalCurrencyData(viewItem).locale, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </span>
             </div>
             <div>
-              <strong>Fatura (Local):</strong>{' '}
+              <strong>Fatura (Moeda Local):</strong>{' '}
               <span className="block mt-1 font-bold text-blue-600">
                 {viewItem?.taxa_cambio
                   ? `${getLocalCurrencyData(viewItem).symbol} ${(viewItem.fatura_total * viewItem.taxa_cambio).toLocaleString(getLocalCurrencyData(viewItem).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -388,7 +392,7 @@ export function HistoricoList({
                   <TableHead>Viajantes (Até 75)</TableHead>
                   <TableHead>Viajantes (76-85)</TableHead>
                   <TableHead>Preço (USD)</TableHead>
-                  <TableHead>Preço (Local)</TableHead>
+                  <TableHead>Preço (Moeda Local)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -398,7 +402,11 @@ export function HistoricoList({
                     <TableCell>{cp.qtd_ate_75}</TableCell>
                     <TableCell>{cp.qtd_76_a_85}</TableCell>
                     <TableCell>
-                      {viewItem?.moeda || 'USD'} {cp.preco_total_produto.toFixed(2)}
+                      {viewItem?.moeda || 'USD'}{' '}
+                      {cp.preco_total_produto.toLocaleString(
+                        getLocalCurrencyData(viewItem).locale,
+                        { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                      )}
                     </TableCell>
                     <TableCell className="text-blue-700">
                       {viewItem?.taxa_cambio

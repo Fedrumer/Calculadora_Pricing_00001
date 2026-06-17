@@ -123,10 +123,25 @@ export async function salvarCotacao(
     produtos.reduce((acc, curr) => acc + (curr.preco_total_produto || 0), 0).toFixed(2),
   )
 
+  const targetMoeda = getCurrentCountry() === 'Argentina' ? 'ARS' : 'BRL'
+  let taxaCambio = targetMoeda === 'ARS' ? 980.5 : 5.09
+  try {
+    const taxasRes = await pb.collection('taxas_cambio').getList(1, 1, {
+      filter: `moeda = "${targetMoeda}"`,
+      sort: '-data',
+    })
+    if (taxasRes.items.length > 0) {
+      taxaCambio = taxasRes.items[0].valor
+    }
+  } catch {
+    // ignore
+  }
+
   const res = await pb.send('/backend/v1/cotacoes', {
     method: 'POST',
     body: JSON.stringify({
       usuario_id: pb.authStore.record?.id,
+      taxa_cambio: taxaCambio,
       status,
       forma_pagamento_id: formaPagamentoId || input.forma_pagamento,
       comissao: input.comissao || 0,

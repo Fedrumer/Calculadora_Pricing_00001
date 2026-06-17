@@ -107,40 +107,6 @@ class PDFBuilder {
     )
   }
 
-  addLineToPage(
-    pageIndex: number,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    r = 0,
-    g = 0,
-    b = 0,
-    lineWidth = 1,
-  ) {
-    if (pageIndex < 0 || pageIndex >= this.pages.length) return
-    this.pages[pageIndex].push(
-      `${lineWidth.toFixed(2)} w ${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} RG ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S 1 w 0 0 0 RG`,
-    )
-  }
-
-  addText(
-    text: string,
-    x: number,
-    y: number,
-    size: number = 10,
-    font: 'F1' | 'F2' = 'F1',
-    r = 0,
-    g = 0,
-    b = 0,
-  ) {
-    if (this.pages.length === 0) this.addPage()
-    const escaped = this.escapeText(text)
-    this.pages[this.pages.length - 1].push(
-      `${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} rg BT /${font} ${size} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${escaped}) Tj ET 0 0 0 rg`,
-    )
-  }
-
   addRect(
     x: number,
     y: number,
@@ -163,85 +129,6 @@ class PDFBuilder {
       `1 w 0 0 0 RG 0 0 0 rg`,
     ]
     this.pages[this.pages.length - 1].push(cmds.join(' '))
-  }
-
-  addLine(x1: number, y1: number, x2: number, y2: number, r = 0, g = 0, b = 0, lineWidth = 1) {
-    if (this.pages.length === 0) this.addPage()
-    this.pages[this.pages.length - 1].push(
-      `${lineWidth.toFixed(2)} w ${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} RG ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S 1 w 0 0 0 RG`,
-    )
-  }
-
-  addRoundedRect(
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    rTL: number,
-    rTR: number,
-    rBR: number,
-    rBL: number,
-    rL = 0,
-    gL = 0,
-    bL = 0,
-    rF = 1,
-    gF = 1,
-    bF = 1,
-    fill = false,
-    stroke = true,
-    lineWidth = 1,
-  ) {
-    if (this.pages.length === 0) this.addPage()
-    const op = fill && stroke ? 'B' : fill ? 'f' : stroke ? 'S' : 'n'
-    const cmds = [
-      `${lineWidth.toFixed(2)} w`,
-      `${rL.toFixed(2)} ${gL.toFixed(2)} ${bL.toFixed(2)} RG`,
-      `${rF.toFixed(2)} ${gF.toFixed(2)} ${bF.toFixed(2)} rg`,
-    ]
-
-    cmds.push(`${(x + rBL).toFixed(2)} ${y.toFixed(2)} m`)
-    cmds.push(`${(x + w - rBR).toFixed(2)} ${y.toFixed(2)} l`)
-    if (rBR > 0) {
-      const kappa = 0.552284749831 * rBR
-      cmds.push(
-        `${(x + w - rBR + kappa).toFixed(2)} ${y.toFixed(2)} ${(x + w).toFixed(2)} ${(y + rBR - kappa).toFixed(2)} ${(x + w).toFixed(2)} ${(y + rBR).toFixed(2)} c`,
-      )
-    }
-
-    cmds.push(`${(x + w).toFixed(2)} ${(y + h - rTR).toFixed(2)} l`)
-    if (rTR > 0) {
-      const kappa = 0.552284749831 * rTR
-      cmds.push(
-        `${(x + w).toFixed(2)} ${(y + h - rTR + kappa).toFixed(2)} ${(x + w - rTR + kappa).toFixed(2)} ${(y + h).toFixed(2)} ${(x + w - rTR).toFixed(2)} ${(y + h).toFixed(2)} c`,
-      )
-    }
-
-    cmds.push(`${(x + rTL).toFixed(2)} ${(y + h).toFixed(2)} l`)
-    if (rTL > 0) {
-      const kappa = 0.552284749831 * rTL
-      cmds.push(
-        `${(x + rTL - kappa).toFixed(2)} ${(y + h).toFixed(2)} ${x.toFixed(2)} ${(y + h - rTL + kappa).toFixed(2)} ${x.toFixed(2)} ${(y + h - rTL).toFixed(2)} c`,
-      )
-    }
-
-    cmds.push(`${x.toFixed(2)} ${(y + rBL).toFixed(2)} l`)
-    if (rBL > 0) {
-      const kappa = 0.552284749831 * rBL
-      cmds.push(
-        `${x.toFixed(2)} ${(y + rBL - kappa).toFixed(2)} ${(x + rBL - kappa).toFixed(2)} ${y.toFixed(2)} ${(x + rBL).toFixed(2)} ${y.toFixed(2)} c`,
-      )
-    }
-
-    cmds.push(`h`)
-    cmds.push(op)
-    cmds.push(`1 w 0 0 0 RG 0 0 0 rg`)
-
-    this.pages[this.pages.length - 1].push(cmds.join(' '))
-  }
-
-  addShadow(x: number, y: number, w: number, h: number, r: number) {
-    this.addRoundedRect(x, y - 2, w, h, r, r, r, r, 0.92, 0.92, 0.92, 0.92, 0.92, 0.92, true, false)
-    this.addRoundedRect(x, y - 4, w, h, r, r, r, r, 0.96, 0.96, 0.96, 0.96, 0.96, 0.96, true, false)
   }
 
   build(): Blob {
@@ -351,15 +238,15 @@ export function gerarPDFProposta(
   const MARGIN = 40
   const CONTENT_W = PAGE_W - 2 * MARGIN
 
-  const blueR = 0.11,
-    blueG = 0.21,
-    blueB = 0.83
+  const blueR = 0.08,
+    blueG = 0.16,
+    blueB = 0.75
   const darkR = 0.15,
     darkG = 0.15,
     darkB = 0.15
-  const grayR = 0.96,
-    grayG = 0.96,
-    grayB = 0.96
+  const grayR = 0.95,
+    grayG = 0.95,
+    grayB = 0.95
   const whiteR = 1,
     whiteG = 1,
     whiteB = 1
@@ -369,11 +256,18 @@ export function gerarPDFProposta(
   const localSymbol = pais === 'Argentina' ? 'ARS' : 'R$'
   const localLocale = pais === 'Argentina' ? 'es-AR' : 'pt-BR'
 
+  const formatNum = (n: number, minDec = 2, maxDec = 2) => {
+    return n.toLocaleString(localLocale, {
+      minimumFractionDigits: minDec,
+      maximumFractionDigits: maxDec,
+    })
+  }
+
   pdf.addPage()
 
   const drawFooter = (pageIndex: number) => {
-    const footerText = `Now Assistance \u00B7 nowassistance.com \u00B7 Valores convertidos ao câmbio US$1 = ${localSymbol} ${taxaCambio.toLocaleString(localLocale, { minimumFractionDigits: 2 })}; sujeitos a confirmação.`
-    pdf.addTextToPage(pageIndex, footerText, MARGIN, 30, 7, 'F1', 0.4, 0.4, 0.4)
+    const footerText = `Now Assistance \u00B7 nowassistance.com \u00B7 Valores convertidos ao câmbio US$1 = ${localSymbol} ${formatNum(taxaCambio)}; sujeitos a confirmação.`
+    pdf.addTextToPage(pageIndex, footerText, MARGIN, 30, 7, 'F1', 0.5, 0.5, 0.5)
   }
 
   drawFooter(0)
@@ -384,12 +278,12 @@ export function gerarPDFProposta(
     pdf.drawImage(0, 'logo', MARGIN, PAGE_H - MARGIN - logoH, logoW, logoH)
   }
 
-  let currentY = PAGE_H - MARGIN - 70
+  let currentY = PAGE_H - MARGIN - 60
 
-  const leftColX = MARGIN + 20
-  const leftColValX = leftColX + 60
-  const rightColX = PAGE_W / 2 + 30
-  const rightColValX = rightColX + 80
+  const leftColX = MARGIN
+  const leftColValX = leftColX + 90
+  const rightColX = PAGE_W / 2 + 10
+  const rightColValX = rightColX + 90
 
   const formatDate = (d: string | Date | undefined) => {
     if (!d) return ''
@@ -401,15 +295,18 @@ export function gerarPDFProposta(
   const periodoStr = pDataInicio && pDataFim ? `${pDataInicio} a ${pDataFim}` : ''
 
   const headerFontSize = 10
+  const lineHeight = 16
 
   pdf.addTextToPage(0, 'Agência:', leftColX, currentY, headerFontSize, 'F2')
   pdf.addTextToPage(0, cotacao.nome_agencia || '', leftColValX, currentY, headerFontSize, 'F1')
+
   pdf.addTextToPage(0, 'Data da Cotação:', rightColX, currentY, headerFontSize, 'F2')
   pdf.addTextToPage(0, formatDate(cotacao.created), rightColValX, currentY, headerFontSize, 'F1')
 
-  currentY -= 16
+  currentY -= lineHeight
   pdf.addTextToPage(0, 'Período:', leftColX, currentY, headerFontSize, 'F2')
   pdf.addTextToPage(0, periodoStr, leftColValX, currentY, headerFontSize, 'F1')
+
   pdf.addTextToPage(0, 'Total de Dias:', rightColX, currentY, headerFontSize, 'F2')
   pdf.addTextToPage(
     0,
@@ -420,7 +317,7 @@ export function gerarPDFProposta(
     'F1',
   )
 
-  currentY -= 16
+  currentY -= lineHeight
   pdf.addTextToPage(0, 'Passageiros:', leftColX, currentY, headerFontSize, 'F2')
   pdf.addTextToPage(
     0,
@@ -430,35 +327,43 @@ export function gerarPDFProposta(
     headerFontSize,
     'F1',
   )
-  pdf.addTextToPage(0, 'Comissão:', rightColX, currentY, headerFontSize, 'F2')
-  pdf.addTextToPage(0, `${cotacao.comissao || 0}%`, rightColValX, currentY, headerFontSize, 'F1')
 
-  currentY -= 16
+  pdf.addTextToPage(0, 'Comissão:', rightColX, currentY, headerFontSize, 'F2')
+  pdf.addTextToPage(
+    0,
+    `${cotacao.comissao ? formatNum(cotacao.comissao * 100, 0, 0) : 0}%`,
+    rightColValX,
+    currentY,
+    headerFontSize,
+    'F1',
+  )
+
+  currentY -= lineHeight
   pdf.addTextToPage(0, 'Pagamento:', leftColX, currentY, headerFontSize, 'F2')
   pdf.addTextToPage(0, cotacao.forma_pagamento || '', leftColValX, currentY, headerFontSize, 'F1')
+
   pdf.addTextToPage(0, 'Fatura (USD):', rightColX, currentY, headerFontSize, 'F2')
+  const faturaVal = `USD ${formatNum(cotacao.fatura_total)}`
+  pdf.addTextToPage(0, faturaVal, rightColValX, currentY, headerFontSize, 'F1', blueR, blueG, blueB)
 
-  const faturaVal = `${cotacao.moeda || 'USD'} ${cotacao.fatura_total?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  pdf.addTextToPage(0, faturaVal, rightColValX, currentY, headerFontSize, 'F2', blueR, blueG, blueB)
-
-  currentY -= 16
+  currentY -= lineHeight
   pdf.addTextToPage(0, `Fatura (${localSymbol}):`, rightColX, currentY, headerFontSize, 'F2')
-  const faturaLocalVal = `${localSymbol} ${(cotacao.fatura_total * taxaCambio).toLocaleString(localLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const faturaLocalVal = `${localSymbol} ${formatNum(cotacao.fatura_total * taxaCambio)}`
   pdf.addTextToPage(
     0,
     faturaLocalVal,
     rightColValX,
     currentY,
     headerFontSize,
-    'F2',
+    'F1',
     blueR,
     blueG,
     blueB,
   )
 
-  currentY -= 16
+  currentY -= lineHeight
   pdf.addTextToPage(0, 'Câmbio Utilizado:', rightColX, currentY, headerFontSize, 'F2')
-  const cambioVal = `${localSymbol} ${taxaCambio.toLocaleString(localLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const cambioVal = `${localSymbol} ${formatNum(taxaCambio)}`
   pdf.addTextToPage(0, cambioVal, rightColValX, currentY, headerFontSize, 'F1')
 
   currentY -= 30
@@ -467,30 +372,13 @@ export function gerarPDFProposta(
     { label: 'Produto', width: CONTENT_W * 0.4, align: 'L' },
     { label: 'Participação', width: CONTENT_W * 0.2, align: 'C' },
     { label: `Preço/viagem (${localSymbol})`, width: CONTENT_W * 0.25, align: 'C' },
-    { label: `${cotacao.moeda || 'US$'}`, width: CONTENT_W * 0.15, align: 'R' },
+    { label: `USD`, width: CONTENT_W * 0.15, align: 'R' },
   ]
 
-  const participacao =
-    (100 / (produtos.length || 1)).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%'
+  const participacao = formatNum(100 / (produtos.length || 1), 0, 1) + '%'
 
-  pdf.addRoundedRect(
-    MARGIN,
-    currentY - 16,
-    CONTENT_W,
-    22,
-    6,
-    6,
-    0,
-    0,
-    darkR,
-    darkG,
-    darkB,
-    darkR,
-    darkG,
-    darkB,
-    true,
-    false,
-  )
+  pdf.addRect(MARGIN, currentY - 16, CONTENT_W, 22, darkR, darkG, darkB, true, 0)
+
   let curX = MARGIN
   prodCols.forEach((col) => {
     const textW = col.label.length * 5.5
@@ -544,8 +432,8 @@ export function gerarPDFProposta(
     const rowData = [
       prod.produto_nome,
       participacao,
-      `${localSymbol} ${precoLocal.toLocaleString(localLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      `${cotacao.moeda || 'US$'} ${precoUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      `${localSymbol} ${formatNum(precoLocal)}`,
+      `USD ${formatNum(precoUsd)}`,
     ]
 
     let maxLines = 1
@@ -584,7 +472,7 @@ export function gerarPDFProposta(
 
   currentY -= 30
 
-  pdf.addTextToPage(0, 'Coberturas por produto', MARGIN, currentY, 12, 'F2', 0, 0, 0)
+  pdf.addTextToPage(0, 'Coberturas por produto', MARGIN, currentY, 14, 'F2', 0, 0, 0)
   currentY -= 15
 
   const covCols = [{ label: 'COBERTURA', width: CONTENT_W * 0.4, align: 'L' }]
@@ -593,66 +481,16 @@ export function gerarPDFProposta(
     covCols.push({ label: p.produto_nome, width: prodColW, align: 'C' })
   })
 
-  const wrapText = (
-    text: string,
-    maxWidth: number,
-    fontSize: number,
-    isBold: boolean = false,
-  ): string[] => {
-    const avgCharWidth = fontSize * (isBold ? 0.55 : 0.5)
-    const maxChars = Math.max(1, Math.floor(maxWidth / avgCharWidth))
-    const words = text.split(' ')
-    const lines: string[] = []
-    let currentLine = ''
-
-    words.forEach((word) => {
-      if ((currentLine + (currentLine ? ' ' : '') + word).trim().length <= maxChars) {
-        currentLine = (currentLine + (currentLine ? ' ' : '') + word).trim()
-      } else {
-        if (currentLine) lines.push(currentLine)
-        if (word.length > maxChars) {
-          let tempWord = word
-          while (tempWord.length > maxChars) {
-            lines.push(tempWord.substring(0, maxChars))
-            tempWord = tempWord.substring(maxChars)
-          }
-          currentLine = tempWord
-        } else {
-          currentLine = word
-        }
-      }
-    })
-    if (currentLine) lines.push(currentLine)
-    return lines
-  }
-
   const drawCovHeader = (pageIdx: number, y: number) => {
     let maxHeaderLines = 1
     const wrappedHeaders = covCols.map((col, idx) => {
-      const lines = wrapText(col.label, col.width - (idx === 0 ? 10 : 4), 9, true)
+      const lines = wrapTextLocal(col.label, col.width - (idx === 0 ? 10 : 4), 9, true)
       maxHeaderLines = Math.max(maxHeaderLines, lines.length)
       return lines
     })
 
     const headerH = maxHeaderLines * 12 + 10
-    pdf.addRoundedRect(
-      MARGIN,
-      y - headerH + 6,
-      CONTENT_W,
-      headerH,
-      6,
-      6,
-      0,
-      0,
-      blueR,
-      blueG,
-      blueB,
-      blueR,
-      blueG,
-      blueB,
-      true,
-      false,
-    )
+    pdf.addRect(MARGIN, y - headerH + 6, CONTENT_W, headerH, blueR, blueG, blueB, true, 0)
 
     let cx = MARGIN
     wrappedHeaders.forEach((lines, cIdx) => {
@@ -697,7 +535,7 @@ export function gerarPDFProposta(
       const colW = covCols[cIdx].width
       const isBold = cIdx > 0
       const fontSize = 8
-      const lines = wrapText(text, colW - (cIdx === 0 ? 10 : 4), fontSize, isBold)
+      const lines = wrapTextLocal(text, colW - (cIdx === 0 ? 10 : 4), fontSize, isBold)
       maxLines = Math.max(maxLines, lines.length)
       return lines
     })
@@ -812,9 +650,13 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
             }
 
             if (numVal !== null && !isNaN(numVal)) {
-              valFinal = `${c.moeda} ${numVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+              const locale = targetMoeda === 'ARS' ? 'es-AR' : 'pt-BR'
+              valFinal = numVal.toLocaleString(locale, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+              })
             } else {
-              valFinal = `${c.moeda} ${valRaw}`
+              valFinal = valRaw
             }
           } else {
             valFinal = valRaw
