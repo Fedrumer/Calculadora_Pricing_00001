@@ -51,11 +51,11 @@ export function GridProdutos({
   const { t } = useTranslation()
 
   const country = getCurrentCountry()
-  const localCurrency = getCurrencyForCountry(country)
+  const localCurrency = country === 'Todos' ? 'BRL' : getCurrencyForCountry(country)
   const exchangeRate = useExchangeRate(localCurrency)
 
-  const formatLocalCurrency = (val: number) => {
-    if (!exchangeRate) return null
+  const formatLocalCurrency = (val: number, prodMoeda: string) => {
+    if (!exchangeRate || prodMoeda !== 'USD') return null
     const converted = val * exchangeRate
     return new Intl.NumberFormat(localCurrency === 'BRL' ? 'pt-BR' : 'es-AR', {
       style: 'currency',
@@ -227,9 +227,9 @@ export function GridProdutos({
                       <span className="font-extrabold text-lg text-blue-700 dark:text-blue-400 tracking-tight whitespace-nowrap">
                         {formatCurrency(prodCalc.preco_total_produto, moeda)}
                       </span>
-                      {exchangeRate && (
+                      {exchangeRate && moeda === 'USD' && (
                         <span className="text-[11px] text-muted-foreground font-semibold">
-                          ~ {formatLocalCurrency(prodCalc.preco_total_produto)}
+                          ~ {formatLocalCurrency(prodCalc.preco_total_produto, moeda)}
                         </span>
                       )}
                     </div>
@@ -276,11 +276,12 @@ export function GridProdutos({
                                     moeda,
                                   )}
                                 </span>
-                                {exchangeRate && (
+                                {exchangeRate && moeda === 'USD' && (
                                   <span className="text-[10px] text-muted-foreground font-semibold">
                                     ~{' '}
                                     {formatLocalCurrency(
                                       prodCalc.breakdown['ate_75'].preco_unitario,
+                                      moeda,
                                     )}
                                   </span>
                                 )}
@@ -336,9 +337,9 @@ export function GridProdutos({
                                     >
                                       {formatCurrency(thisPrice, moeda)}
                                     </span>
-                                    {exchangeRate && (
+                                    {exchangeRate && moeda === 'USD' && (
                                       <span className="text-[10px] text-muted-foreground font-semibold">
-                                        ~ {formatLocalCurrency(thisPrice)}
+                                        ~ {formatLocalCurrency(thisPrice, moeda)}
                                       </span>
                                     )}
                                   </div>

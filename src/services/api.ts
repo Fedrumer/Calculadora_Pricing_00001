@@ -4,8 +4,9 @@ import { getCurrentCountry } from '@/lib/country'
 
 export async function fetchProdutos(): Promise<Produto[]> {
   const country = getCurrentCountry()
+  const filter = country === 'Todos' ? 'ativo = true' : `ativo = true && pais = '${country}'`
   const records = await pb.collection('produtos').getFullList({
-    filter: `ativo = true && pais = '${country}'`,
+    filter,
     expand:
       'produto_precos_forma_pagamento_via_produto_id,produto_destinos_via_produto_id,produto_faixas_etarias_via_produto_id',
     sort: 'ordem_exibicao',
@@ -34,8 +35,16 @@ export async function fetchProdutos(): Promise<Produto[]> {
     for (const f of faixasExpand) {
       const rawNome = (f.faixa_nome || '').toLowerCase().trim()
       let nomeFaixa = null
-      if (rawNome.includes('75')) nomeFaixa = 'ate_75'
-      else if (rawNome.includes('76') || rawNome.includes('85')) nomeFaixa = 'de_76_a_85'
+      if (rawNome.includes('75') || rawNome.includes('até') || rawNome.includes('ate')) {
+        nomeFaixa = 'ate_75'
+      } else if (
+        rawNome.includes('76') ||
+        rawNome.includes('85') ||
+        rawNome.includes('maior') ||
+        rawNome.includes('mais')
+      ) {
+        nomeFaixa = 'de_76_a_85'
+      }
 
       if (nomeFaixa) {
         faixas[nomeFaixa] = {

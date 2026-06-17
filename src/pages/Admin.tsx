@@ -24,8 +24,10 @@ export default function Admin() {
   const [produtoSelecionado, setProdutoSelecionado] = useState<string>('all')
 
   useEffect(() => {
+    const country = getCurrentCountry()
+    const filter = country === 'Todos' ? '' : `pais = '${country}'`
     pb.collection('produtos')
-      .getFullList({ filter: `pais = '${getCurrentCountry()}'` })
+      .getFullList(filter ? { filter } : undefined)
       .then(setProdutos)
   }, [])
 

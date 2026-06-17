@@ -35,7 +35,8 @@ export function AppHeader() {
 
   const country = getCurrentCountry()
   const currency = getCurrencyForCountry(country)
-  const exchangeRate = useExchangeRate(currency)
+  // Use BRL if country is Todos to still show some exchange rate, or handle specifically
+  const exchangeRate = useExchangeRate(currency === 'Todos' ? 'BRL' : currency)
 
   const handleLogout = () => {
     if (signOut) signOut()
@@ -54,7 +55,7 @@ export function AppHeader() {
         <div className="font-semibold text-lg hidden sm:block">Cotador Now - Sales</div>
         {exchangeRate && (
           <Badge variant="secondary" className="hidden md:inline-flex text-xs font-mono ml-2">
-            Câmbio USD/{currency}: {exchangeRate.toFixed(2)}
+            Câmbio USD/{currency === 'Todos' ? 'BRL' : currency}: {exchangeRate.toFixed(2)}
           </Badge>
         )}
       </div>
@@ -68,6 +69,7 @@ export function AppHeader() {
             <SelectContent>
               <SelectItem value="Brasil">Brasil</SelectItem>
               <SelectItem value="Argentina">Argentina</SelectItem>
+              <SelectItem value="Todos">Todos</SelectItem>
             </SelectContent>
           </Select>
         )}

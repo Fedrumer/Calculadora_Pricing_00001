@@ -171,17 +171,21 @@ export function CotacaoForm({ className }: { className?: string }) {
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
           {t('form.period')}
         </Label>
-        <div className="flex flex-col gap-2 w-full overflow-hidden [&>button]:w-full [&>button]:bg-white [&>button]:text-slate-900 [&>button]:h-9 [&>button]:px-2 [&>button]:justify-start [&>button]:overflow-hidden [&>button_span]:truncate [&>button_span]:w-full [&>button_span]:text-left">
-          <DatePicker
-            label={t('form.start')}
-            date={input.data_inicio}
-            setDate={(d) => setInput((p) => ({ ...p, data_inicio: d }))}
-          />
-          <DatePicker
-            label={t('form.end')}
-            date={input.data_fim}
-            setDate={(d) => setInput((p) => ({ ...p, data_fim: d }))}
-          />
+        <div className="flex flex-col gap-2 w-full min-w-0">
+          <div className="w-full overflow-hidden [&_button]:w-full [&_button]:h-9 [&_button]:px-2 [&_button]:text-xs [&_button]:bg-white [&_button]:text-slate-900 [&_button]:justify-start [&_button_span]:truncate [&_button_span]:w-full [&_button_span]:text-left">
+            <DatePicker
+              label={t('form.start')}
+              date={input.data_inicio}
+              setDate={(d) => setInput((p) => ({ ...p, data_inicio: d }))}
+            />
+          </div>
+          <div className="w-full overflow-hidden [&_button]:w-full [&_button]:h-9 [&_button]:px-2 [&_button]:text-xs [&_button]:bg-white [&_button]:text-slate-900 [&_button]:justify-start [&_button_span]:truncate [&_button_span]:w-full [&_button_span]:text-left">
+            <DatePicker
+              label={t('form.end')}
+              date={input.data_fim}
+              setDate={(d) => setInput((p) => ({ ...p, data_fim: d }))}
+            />
+          </div>
         </div>
       </div>
 

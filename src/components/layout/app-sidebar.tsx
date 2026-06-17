@@ -1,5 +1,6 @@
 import { Sidebar, SidebarContent, SidebarHeader } from '@/components/ui/sidebar'
-import { ShieldAlert, Calculator, History, Settings } from 'lucide-react'
+import { Calculator, History, Settings } from 'lucide-react'
+import isoAzul from '@/assets/iso-azul-58ac1.png'
 import { CotacaoForm } from '@/components/CotacaoForm'
 import { Link, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -18,7 +19,7 @@ export function AppSidebar() {
     <Sidebar variant="inset" className="border-none">
       <SidebarHeader className="h-16 flex justify-center border-b border-blue-800/30 px-6 bg-blue-950">
         <div className="flex items-center gap-2 font-bold text-white tracking-tight">
-          <ShieldAlert className="w-5 h-5 text-blue-400" />
+          <img src={isoAzul} alt="Cotador Now" className="w-5 h-5 object-contain" />
           <span>{t('sidebar.engine')}</span>
         </div>
       </SidebarHeader>
