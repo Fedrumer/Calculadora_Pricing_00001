@@ -119,6 +119,10 @@ export async function salvarCotacao(
     }
   })
 
+  const computedTotal = Number(
+    produtos.reduce((acc, curr) => acc + (curr.preco_total_produto || 0), 0).toFixed(2),
+  )
+
   const res = await pb.send('/backend/v1/cotacoes', {
     method: 'POST',
     body: JSON.stringify({
@@ -129,8 +133,8 @@ export async function salvarCotacao(
       data_inicio: dtInicio.toISOString(),
       data_fim: dtFim.toISOString(),
       qtd_dias,
-      fatura_total: resultado?.fatura_total || 0,
-      preco_unitario_total: resultado?.preco_unitario_total || 0,
+      fatura_total: computedTotal,
+      preco_unitario_total: computedTotal,
       tipo_preco: resultado?.tipo_preco || 'NET',
       moeda: resultado?.moeda || 'USD',
       nome_agencia: nomeAgencia,
