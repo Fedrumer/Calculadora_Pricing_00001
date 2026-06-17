@@ -1,7 +1,7 @@
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/layout/app-sidebar'
-import { Outlet } from 'react-router-dom'
-import { LogOut, User, Globe } from 'lucide-react'
+import { Outlet, useLocation } from 'react-router-dom'
+import { LogOut, User, Globe, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { useTranslation } from '@/hooks/use-translation'
@@ -11,10 +11,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useState } from 'react'
+import { getCurrentCountry } from '@/lib/country'
+import useCotacaoStore from '@/stores/useCotacaoStore'
 
 export default function Layout() {
-  const { user, signOut } = useAuth()
+  const { user, signOut, temRole } = useAuth()
   const { language, setLanguage, t } = useTranslation()
+  const location = useLocation()
+  const isCotacao = location.pathname === '/cotacao' || location.pathname === '/'
+  const [country, setCountry] = useState(getCurrentCountry())
+  const { recarregarDados } = useCotacaoStore()
+
+  const handleCountryChange = (c: string) => {
+    localStorage.setItem('selected_country', c)
+    setCountry(c)
+    recarregarDados()
+  }
 
   return (
     <SidebarProvider>
@@ -26,6 +46,21 @@ export default function Layout() {
             {t('header.title')}
           </h1>
           <div className="flex items-center gap-3">
+            {isCotacao && temRole('ADMIN') && (
+              <div className="flex items-center mr-1 sm:mr-3 border-r pr-3">
+                <MapPin className="w-4 h-4 text-muted-foreground mr-1 hidden sm:block" />
+                <Select value={country} onValueChange={handleCountryChange}>
+                  <SelectTrigger className="w-[90px] sm:w-[110px] h-8 text-xs bg-transparent border-border focus:ring-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Brasil">Brasil</SelectItem>
+                    <SelectItem value="Argentina">Argentina</SelectItem>
+                    <SelectItem value="Todos">Todos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground mr-2">
               <User className="w-4 h-4" />
               <span>{user?.name || user?.email}</span>
