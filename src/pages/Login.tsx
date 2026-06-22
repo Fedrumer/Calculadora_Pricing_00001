@@ -5,8 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { ShieldAlert, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import logoImg from '@/assets/logo-3585e.png'
+import pb from '@/lib/pocketbase/client'
 import {
   Dialog,
   DialogContent,
@@ -43,7 +45,11 @@ export default function Login() {
         variant: 'destructive',
       })
     } else {
-      navigate('/cotacao')
+      if (pb.authStore.record?.forcar_troca_senha) {
+        navigate('/perfil')
+      } else {
+        navigate('/cotacao')
+      }
     }
   }
 
@@ -51,8 +57,8 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md shadow-xl border-primary/10">
         <CardHeader className="text-center space-y-2 pb-6">
-          <div className="mx-auto bg-primary/10 w-14 h-14 rounded-full flex items-center justify-center mb-2">
-            <ShieldAlert className="w-7 h-7 text-primary" />
+          <div className="mx-auto mb-4">
+            <img src={logoImg} alt="Now Logo" className="h-12 w-auto mx-auto object-contain" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Acesso ao Sistema</CardTitle>
           <CardDescription>Calculadora de Cotação de Seguros</CardDescription>
@@ -76,11 +82,12 @@ export default function Login() {
                 <Label htmlFor="password">Senha</Label>
                 <Button
                   variant="link"
-                  className="px-0 h-auto font-normal text-xs"
+                  className="px-0 h-auto font-normal text-xs flex flex-col items-end gap-0"
                   type="button"
                   onClick={() => setIsForgotPasswordOpen(true)}
                 >
-                  Esqueci minha senha
+                  <span>Esqueci minha senha</span>
+                  <span className="text-muted-foreground/80">¿Olvidaste tu contraseña?</span>
                 </Button>
               </div>
               <Input
@@ -107,12 +114,18 @@ export default function Login() {
       <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Recuperação de Senha</DialogTitle>
-            <DialogDescription>Informação importante sobre o acesso.</DialogDescription>
+            <DialogTitle>Assistência / Asistencia</DialogTitle>
+            <DialogDescription>
+              Informação sobre o acesso / Información sobre el acceso.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-center text-sm font-medium">
-              para resetar a senha contate a área de pricing
+            <p className="text-center text-sm font-medium leading-relaxed">
+              Para resetar a senha contate a área de pricing
+              <br />
+              <span className="text-muted-foreground font-normal mt-1 block">
+                Para restablecer su contraseña, contacte al área de pricing
+              </span>
             </p>
           </div>
           <DialogFooter>
