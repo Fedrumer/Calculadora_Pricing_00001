@@ -110,7 +110,8 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
 
           const fator = faixaData.fator_multiplicador
 
-          const preco_dia = preco_bruto * (1 + agravo) * fator
+          const juros = (input.taxa_juros || 0) / 100
+          const preco_dia = preco_bruto * (1 + agravo) * fator * (1 + juros)
           const preco_faixa = preco_dia * diasParaEstaFaixa * qtd
 
           return {

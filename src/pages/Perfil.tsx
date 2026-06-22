@@ -252,6 +252,14 @@ export default function Perfil() {
                   <p className="text-sm text-destructive font-medium">{profileErrors.name}</p>
                 )}
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">{t('profile.role_label')}</Label>
+                <Input id="role" value={user.role} disabled className="bg-muted" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="country">{t('profile.country_label')}</Label>
+                <Input id="country" value={user.pais} disabled className="bg-muted" />
+              </div>
             </form>
           </CardContent>
           <CardFooter className="bg-muted/30 pt-6 mt-auto">

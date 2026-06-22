@@ -14,10 +14,20 @@ import { FormaPagamentoId } from '@/types/cotacao'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
 import { useTranslation } from '@/hooks/use-translation'
+import { useAuth } from '@/hooks/use-auth'
 
 export function CotacaoForm({ className }: { className?: string }) {
   const { input, setInput, formasPagamento } = useCotacaoStore()
   const { t } = useTranslation()
+  const { user } = useAuth()
+
+  const formasPagamentoFiltradas = useMemo(() => {
+    return (formasPagamento || []).filter((fp: any) => !fp.pais || fp.pais === user?.pais)
+  }, [formasPagamento, user?.pais])
+
+  const fpSelecionada = formasPagamentoFiltradas.find(
+    (fp: any) => fp.codigo === input.forma_pagamento,
+  )
 
   const produtosDisponiveis = useMemo(() => {
     let prods = input.produtos || []
@@ -114,11 +124,19 @@ export function CotacaoForm({ className }: { className?: string }) {
           type="single"
           className="flex flex-wrap justify-start gap-1 pt-1"
           value={input.forma_pagamento}
-          onValueChange={(v) =>
-            v && setInput((p) => ({ ...p, forma_pagamento: v as FormaPagamentoId }))
-          }
+          onValueChange={(v) => {
+            if (v) {
+              const fp = formasPagamentoFiltradas.find((f: any) => f.codigo === v)
+              setInput((p) => ({
+                ...p,
+                forma_pagamento: v as FormaPagamentoId,
+                taxa_juros: fp?.taxa_juros || 0,
+                parcelas: 1,
+              }))
+            }
+          }}
         >
-          {formasPagamento.map((fp) => (
+          {formasPagamentoFiltradas.map((fp: any) => (
             <ToggleGroupItem
               key={fp.codigo}
               value={fp.codigo}
@@ -128,6 +146,28 @@ export function CotacaoForm({ className }: { className?: string }) {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
+
+        {fpSelecionada && fpSelecionada.max_parcelas > 1 && (
+          <div className="mt-3">
+            <Label className="text-[10px] text-blue-200 mb-1 block">
+              Parcelas (Máx {fpSelecionada.max_parcelas})
+            </Label>
+            <Input
+              type="number"
+              min={1}
+              max={fpSelecionada.max_parcelas}
+              value={input.parcelas || 1}
+              onChange={(e) => {
+                let val = parseInt(e.target.value) || 1
+                setInput((p) => ({
+                  ...p,
+                  parcelas: Math.min(fpSelecionada.max_parcelas, Math.max(1, val)),
+                }))
+              }}
+              className={cn(inputStyle, 'w-24 font-mono text-center')}
+            />
+          </div>
+        )}
       </div>
 
       <div className="space-y-2 bg-blue-900/30 p-3 rounded-lg border border-blue-800/50">

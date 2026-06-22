@@ -565,13 +565,13 @@ export function gerarPDFProposta(
       return lines
     })
 
-    const headerH = maxHeaderLines * 10 + 10
+    const headerH = maxHeaderLines * 10 + 6
     pdf.addRoundedRect(
       MARGIN,
       y - headerH + 6,
       CONTENT_W,
       headerH,
-      6,
+      8,
       blueR,
       blueG,
       blueB,
@@ -622,13 +622,13 @@ export function gerarPDFProposta(
     const wrappedRowData = rowData.map((text, cIdx) => {
       const colW = covCols[cIdx].width
       const isBold = cIdx > 0
-      const fontSize = 8
+      const fontSize = 7
       const lines = wrapTextLocal(text, colW - (cIdx === 0 ? 10 : 4), fontSize, isBold)
       maxLines = Math.max(maxLines, lines.length)
       return lines
     })
 
-    const rowH = Math.max(16, maxLines * 8 + 6)
+    const rowH = Math.max(12, maxLines * 7 + 4)
 
     if (currentY - rowH < MARGIN + 20) {
       pdf.addPage()
@@ -639,25 +639,43 @@ export function gerarPDFProposta(
       currentY -= headerH
     }
 
+    const isLast = idx === coberturasList.length - 1
+
     if (isEven) {
-      pdf.addRect(MARGIN, currentY - rowH + 6, CONTENT_W, rowH, grayR, grayG, grayB, true, 0)
+      if (isLast) {
+        pdf.addRoundedRect(
+          MARGIN,
+          currentY - rowH + 6,
+          CONTENT_W,
+          rowH,
+          8,
+          grayR,
+          grayG,
+          grayB,
+          true,
+          0,
+          { tl: false, tr: false, br: true, bl: true },
+        )
+      } else {
+        pdf.addRect(MARGIN, currentY - rowH + 6, CONTENT_W, rowH, grayR, grayG, grayB, true, 0)
+      }
     }
 
     let cx = MARGIN
     wrappedRowData.forEach((lines, cIdx) => {
       const col = covCols[cIdx]
-      const startY = currentY - (rowH - lines.length * 8) / 2 + 2
+      const startY = currentY - (rowH - lines.length * 7) / 2 + 3
       lines.forEach((line, lIdx) => {
         const isBold = cIdx > 0
-        const fontSize = 8
-        const textW = line.length * (isBold ? 4.5 : 4)
+        const fontSize = 7
+        const textW = line.length * (isBold ? 4.0 : 3.5)
         let textX = cx + 5
         if (col.align === 'C') textX = Math.max(cx + 2, cx + (col.width - textW) / 2)
         pdf.addTextToPage(
           pdf.pages.length - 1,
           line,
           textX,
-          startY - lIdx * 8,
+          startY - lIdx * 7,
           fontSize,
           isBold ? 'F2' : 'F1',
           0,
@@ -746,7 +764,7 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string, onlyCover
               if (!isNaN(parsedNum)) {
                 valFinal =
                   prefix +
-                  parsedNum.toLocaleString('pt-BR', {
+                  parsedNum.toLocaleString(userPais === 'Argentina' ? 'es-AR' : 'pt-BR', {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 2,
                   })
@@ -797,7 +815,7 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string, onlyCover
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = onlyCoverages ? `Coberturas_${cotacao.id}.pdf` : `Cotacao_${cotacao.id}.pdf`
+  a.download = onlyCoverages ? `Resumo_Coberturas_${cotacao.id}.pdf` : `Cotacao_${cotacao.id}.pdf`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
