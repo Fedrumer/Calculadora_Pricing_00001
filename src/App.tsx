@@ -26,6 +26,15 @@ const RequireAuth = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>
 }
 
+const ForcePasswordChangeGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, isAutenticado, status } = useAuth()
+  if (status === 'loading') return null
+  if (isAutenticado() && user?.forcar_troca_senha) {
+    return <Navigate to="/perfil" replace />
+  }
+  return <>{children}</>
+}
+
 const RequireRole = ({ role, children }: { role: Role | Role[]; children: React.ReactNode }) => {
   const { temRole, status } = useAuth()
   if (status === 'loading') return null
@@ -94,17 +103,21 @@ const App = () => (
               <Route
                 path="/cotacao"
                 element={
-                  <RequireRole role={['COMERCIAL', 'ADMIN']}>
-                    <Index />
-                  </RequireRole>
+                  <ForcePasswordChangeGuard>
+                    <RequireRole role={['COMERCIAL', 'ADMIN']}>
+                      <Index />
+                    </RequireRole>
+                  </ForcePasswordChangeGuard>
                 }
               />
               <Route
                 path="/historico"
                 element={
-                  <RequireRole role={['COMERCIAL', 'ADMIN']}>
-                    <Historico />
-                  </RequireRole>
+                  <ForcePasswordChangeGuard>
+                    <RequireRole role={['COMERCIAL', 'ADMIN']}>
+                      <Historico />
+                    </RequireRole>
+                  </ForcePasswordChangeGuard>
                 }
               />
               <Route
@@ -118,28 +131,41 @@ const App = () => (
               <Route
                 path="/admin"
                 element={
-                  <RequireRole role="ADMIN">
-                    <Admin />
-                  </RequireRole>
+                  <ForcePasswordChangeGuard>
+                    <RequireRole role="ADMIN">
+                      <Admin />
+                    </RequireRole>
+                  </ForcePasswordChangeGuard>
                 }
               />
               <Route
                 path="/admin/coberturas"
                 element={
-                  <RequireRole role="ADMIN">
-                    <Coberturas />
-                  </RequireRole>
+                  <ForcePasswordChangeGuard>
+                    <RequireRole role="ADMIN">
+                      <Coberturas />
+                    </RequireRole>
+                  </ForcePasswordChangeGuard>
                 }
               />
               <Route
                 path="/admin/produtos/:id/coberturas"
                 element={
-                  <RequireRole role="ADMIN">
-                    <ProdutoCoberturasForm />
-                  </RequireRole>
+                  <ForcePasswordChangeGuard>
+                    <RequireRole role="ADMIN">
+                      <ProdutoCoberturasForm />
+                    </RequireRole>
+                  </ForcePasswordChangeGuard>
                 }
               />
-              <Route path="/testes" element={<Testes />} />
+              <Route
+                path="/testes"
+                element={
+                  <ForcePasswordChangeGuard>
+                    <Testes />
+                  </ForcePasswordChangeGuard>
+                }
+              />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

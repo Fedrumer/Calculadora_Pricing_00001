@@ -11,16 +11,19 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, User as UserIcon, Lock, Camera } from 'lucide-react'
+import { Loader2, User as UserIcon, Lock, Camera, ShieldAlert } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useToast } from '@/hooks/use-toast'
 import { updateProfile } from '@/services/users'
 import { useAuth } from '@/hooks/use-auth'
 import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 import pb from '@/lib/pocketbase/client'
+import { useNavigate } from 'react-router-dom'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 export default function Perfil() {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -129,7 +132,19 @@ export default function Perfil() {
         oldPassword,
         password,
         passwordConfirm,
+        forcar_troca_senha: false,
       })
+
+      if (user.forcar_troca_senha) {
+        toast({
+          title: 'Senha alterada com sucesso',
+          description: 'Por favor, faça login com sua nova senha.',
+        })
+        signOut()
+        navigate('/login')
+        return
+      }
+
       toast({
         title: 'Senha alterada',
         description: 'Sua senha foi alterada com sucesso.',
@@ -158,6 +173,16 @@ export default function Perfil() {
 
   return (
     <div className="container max-w-4xl mx-auto py-8 space-y-8 animate-in fade-in-up duration-500">
+      {user.forcar_troca_senha && (
+        <Alert variant="destructive" className="mb-6">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Atenção</AlertTitle>
+          <AlertDescription>
+            Para sua segurança, você deve alterar sua senha no primeiro acesso.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Configurações do Perfil</h1>
         <p className="text-muted-foreground mt-2">

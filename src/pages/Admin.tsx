@@ -7,6 +7,7 @@ import { FormasPagamentoTab } from '@/components/admin/FormasPagamentoTab'
 import { CoberturasTab } from '@/components/admin/CoberturasTab'
 import { ProdutoCoberturasTab } from '@/components/admin/ProdutoCoberturasTab'
 import { CambioTab } from '@/components/admin/CambioTab'
+import { UsuariosTab } from '@/components/admin/UsuariosTab'
 import { ShieldAlert } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
@@ -72,6 +73,7 @@ export default function Admin() {
           <TabsTrigger value="coberturas">Coberturas</TabsTrigger>
           <TabsTrigger value="produto_coberturas">Cob. Produto</TabsTrigger>
           <TabsTrigger value="cambio">Câmbio</TabsTrigger>
+          <TabsTrigger value="usuarios">Usuários</TabsTrigger>
         </TabsList>
 
         <div className="mt-6 bg-white p-6 rounded-lg shadow-sm border">
@@ -98,6 +100,9 @@ export default function Admin() {
           </TabsContent>
           <TabsContent value="cambio">
             <CambioTab />
+          </TabsContent>
+          <TabsContent value="usuarios">
+            <UsuariosTab />
           </TabsContent>
         </div>
       </Tabs>
