@@ -131,6 +131,62 @@ class PDFBuilder {
     this.pages[this.pages.length - 1].push(cmds.join(' '))
   }
 
+  addRoundedRect(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    radius = 0,
+    r = 0,
+    g = 0,
+    b = 0,
+    fill = false,
+    lineWidth = 1,
+    corners = { tl: true, tr: true, br: true, bl: true },
+  ) {
+    if (this.pages.length === 0) this.addPage()
+    const op = fill ? 'f' : 'S'
+
+    const k = 0.552284749831 * radius
+
+    const cmds = [
+      `${lineWidth.toFixed(2)} w`,
+      `${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} RG`,
+      `${r.toFixed(2)} ${g.toFixed(2)} ${b.toFixed(2)} rg`,
+    ]
+
+    cmds.push(`${(x + (corners.bl ? radius : 0)).toFixed(2)} ${y.toFixed(2)} m`)
+    cmds.push(`${(x + w - (corners.br ? radius : 0)).toFixed(2)} ${y.toFixed(2)} l`)
+    if (corners.br) {
+      cmds.push(
+        `${(x + w - radius + k).toFixed(2)} ${y.toFixed(2)} ${(x + w).toFixed(2)} ${(y + radius - k).toFixed(2)} ${(x + w).toFixed(2)} ${(y + radius).toFixed(2)} c`,
+      )
+    }
+    cmds.push(`${(x + w).toFixed(2)} ${(y + h - (corners.tr ? radius : 0)).toFixed(2)} l`)
+    if (corners.tr) {
+      cmds.push(
+        `${(x + w).toFixed(2)} ${(y + h - radius + k).toFixed(2)} ${(x + w - radius + k).toFixed(2)} ${(y + h).toFixed(2)} ${(x + w - radius).toFixed(2)} ${(y + h).toFixed(2)} c`,
+      )
+    }
+    cmds.push(`${(x + (corners.tl ? radius : 0)).toFixed(2)} ${(y + h).toFixed(2)} l`)
+    if (corners.tl) {
+      cmds.push(
+        `${(x + radius - k).toFixed(2)} ${(y + h).toFixed(2)} ${x.toFixed(2)} ${(y + h - radius + k).toFixed(2)} ${x.toFixed(2)} ${(y + h - radius).toFixed(2)} c`,
+      )
+    }
+    cmds.push(`${x.toFixed(2)} ${(y + (corners.bl ? radius : 0)).toFixed(2)} l`)
+    if (corners.bl) {
+      cmds.push(
+        `${x.toFixed(2)} ${(y + radius - k).toFixed(2)} ${(x + radius - k).toFixed(2)} ${y.toFixed(2)} ${(x + radius).toFixed(2)} ${y.toFixed(2)} c`,
+      )
+    }
+
+    cmds.push(op)
+    cmds.push(`1 w 0 0 0 RG 0 0 0 rg`)
+
+    this.pages[this.pages.length - 1].push(cmds.join(' '))
+  }
+
   build(): Blob {
     const header = '%PDF-1.4\n'
     const objects: (string | Uint8Array)[] = []
@@ -227,6 +283,7 @@ export function gerarPDFProposta(
   cotacao: CotacaoPDFDataExt,
   produtos: ProdutoDetalhePDF[],
   logoData: { width: number; height: number; data: string } | null = null,
+  onlyCoverages = false,
 ): Blob {
   const pdf = new PDFBuilder()
   if (logoData) {
@@ -280,117 +337,6 @@ export function gerarPDFProposta(
 
   let currentY = PAGE_H - MARGIN - 60
 
-  const leftColX = MARGIN
-  const leftColValX = leftColX + 90
-  const rightColX = PAGE_W / 2 + 10
-  const rightColValX = rightColX + 90
-
-  const formatDate = (d: string | Date | undefined) => {
-    if (!d) return ''
-    return new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
-  }
-
-  const pDataInicio = formatDate(cotacao.data_inicio)
-  const pDataFim = formatDate(cotacao.data_fim)
-  const periodoStr = pDataInicio && pDataFim ? `${pDataInicio} a ${pDataFim}` : ''
-
-  const headerFontSize = 10
-  const lineHeight = 16
-
-  pdf.addTextToPage(0, 'Agência:', leftColX, currentY, headerFontSize, 'F2')
-  pdf.addTextToPage(0, cotacao.nome_agencia || '', leftColValX, currentY, headerFontSize, 'F1')
-
-  pdf.addTextToPage(0, 'Data da Cotação:', rightColX, currentY, headerFontSize, 'F2')
-  pdf.addTextToPage(0, formatDate(cotacao.created), rightColValX, currentY, headerFontSize, 'F1')
-
-  currentY -= lineHeight
-  pdf.addTextToPage(0, 'Período:', leftColX, currentY, headerFontSize, 'F2')
-  pdf.addTextToPage(0, periodoStr, leftColValX, currentY, headerFontSize, 'F1')
-
-  pdf.addTextToPage(0, 'Total de Dias:', rightColX, currentY, headerFontSize, 'F2')
-  pdf.addTextToPage(
-    0,
-    (cotacao.qtd_dias || 0).toString(),
-    rightColValX,
-    currentY,
-    headerFontSize,
-    'F1',
-  )
-
-  currentY -= lineHeight
-  pdf.addTextToPage(0, 'Passageiros:', leftColX, currentY, headerFontSize, 'F2')
-  pdf.addTextToPage(
-    0,
-    (cotacao.total_passageiros || 1).toString(),
-    leftColValX,
-    currentY,
-    headerFontSize,
-    'F1',
-  )
-
-  pdf.addTextToPage(0, 'Comissão:', rightColX, currentY, headerFontSize, 'F2')
-  pdf.addTextToPage(
-    0,
-    `${cotacao.comissao ? formatNum(cotacao.comissao * 100, 0, 0) : 0}%`,
-    rightColValX,
-    currentY,
-    headerFontSize,
-    'F1',
-  )
-
-  currentY -= lineHeight
-  pdf.addTextToPage(0, 'Pagamento:', leftColX, currentY, headerFontSize, 'F2')
-  pdf.addTextToPage(0, cotacao.forma_pagamento || '', leftColValX, currentY, headerFontSize, 'F1')
-
-  pdf.addTextToPage(0, 'Fatura (USD):', rightColX, currentY, headerFontSize, 'F2')
-  const faturaVal = `USD ${formatNum(cotacao.fatura_total)}`
-  pdf.addTextToPage(0, faturaVal, rightColValX, currentY, headerFontSize, 'F1', blueR, blueG, blueB)
-
-  currentY -= lineHeight
-  pdf.addTextToPage(0, `Fatura (${localSymbol}):`, rightColX, currentY, headerFontSize, 'F2')
-  const faturaLocalVal = `${localSymbol} ${formatNum(cotacao.fatura_total * taxaCambio)}`
-  pdf.addTextToPage(
-    0,
-    faturaLocalVal,
-    rightColValX,
-    currentY,
-    headerFontSize,
-    'F1',
-    blueR,
-    blueG,
-    blueB,
-  )
-
-  currentY -= lineHeight
-  pdf.addTextToPage(0, 'Câmbio Utilizado:', rightColX, currentY, headerFontSize, 'F2')
-  const cambioVal = `${localSymbol} ${formatNum(taxaCambio)}`
-  pdf.addTextToPage(0, cambioVal, rightColValX, currentY, headerFontSize, 'F1')
-
-  currentY -= 30
-
-  const prodCols = [
-    { label: 'Produto', width: CONTENT_W * 0.4, align: 'L' },
-    { label: 'Participação', width: CONTENT_W * 0.2, align: 'C' },
-    { label: `Preço/viagem (${localSymbol})`, width: CONTENT_W * 0.25, align: 'C' },
-    { label: `USD`, width: CONTENT_W * 0.15, align: 'R' },
-  ]
-
-  const participacao = formatNum(100 / (produtos.length || 1), 0, 1) + '%'
-
-  pdf.addRect(MARGIN, currentY - 16, CONTENT_W, 22, darkR, darkG, darkB, true, 0)
-
-  let curX = MARGIN
-  prodCols.forEach((col) => {
-    const textW = col.label.length * 5.5
-    let textX = curX + 10
-    if (col.align === 'C') textX = curX + (col.width - textW) / 2
-    if (col.align === 'R') textX = curX + col.width - textW - 10
-    pdf.addTextToPage(0, col.label, textX, currentY - 10, 10, 'F2', whiteR, whiteG, whiteB)
-    curX += col.width
-  })
-
-  currentY -= 16
-
   const wrapTextLocal = (
     text: string,
     maxWidth: number,
@@ -424,53 +370,183 @@ export function gerarPDFProposta(
     return lines
   }
 
-  produtos.forEach((prod, idx) => {
-    const isEven = idx % 2 === 0
-    const precoUsd = prod.preco_total_produto
-    const precoLocal = precoUsd * taxaCambio
+  if (!onlyCoverages) {
+    const leftColX = MARGIN
+    const leftColValX = leftColX + 90
+    const rightColX = PAGE_W / 2 + 10
+    const rightColValX = rightColX + 90
 
-    const rowData = [
-      prod.produto_nome,
-      participacao,
-      `${localSymbol} ${formatNum(precoLocal)}`,
-      `USD ${formatNum(precoUsd)}`,
-    ]
-
-    let maxLines = 1
-    const wrappedRowData = rowData.map((text, cIdx) => {
-      const colW = prodCols[cIdx].width
-      const lines = wrapTextLocal(text, colW - 10, 9, false)
-      maxLines = Math.max(maxLines, lines.length)
-      return lines
-    })
-
-    const rowH = Math.max(20, maxLines * 10 + 10)
-
-    if (isEven) {
-      pdf.addRect(MARGIN, currentY - rowH, CONTENT_W, rowH, grayR, grayG, grayB, true, 0)
+    const formatDate = (d: string | Date | undefined) => {
+      if (!d) return ''
+      return new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
     }
 
-    curX = MARGIN
-    wrappedRowData.forEach((lines, cIdx) => {
-      const col = prodCols[cIdx]
-      const blockH = lines.length * 10
-      const padding = (rowH - blockH) / 2
-      const startY = currentY - padding - 8
+    const pDataInicio = formatDate(cotacao.data_inicio)
+    const pDataFim = formatDate(cotacao.data_fim)
+    const periodoStr = pDataInicio && pDataFim ? `${pDataInicio} a ${pDataFim}` : ''
 
-      lines.forEach((line, lIdx) => {
-        const textW = line.length * 4.5
-        let textX = curX + 10
-        if (col.align === 'C') textX = Math.max(curX + 2, curX + (col.width - textW) / 2)
-        if (col.align === 'R') textX = curX + col.width - textW - 10
-        pdf.addTextToPage(0, line, textX, startY - lIdx * 10, 9, 'F1', 0, 0, 0)
-      })
+    const headerFontSize = 10
+    const lineHeight = 16
+
+    pdf.addTextToPage(0, 'Agência:', leftColX, currentY, headerFontSize, 'F2')
+    pdf.addTextToPage(0, cotacao.nome_agencia || '', leftColValX, currentY, headerFontSize, 'F1')
+
+    pdf.addTextToPage(0, 'Data da Cotação:', rightColX, currentY, headerFontSize, 'F2')
+    pdf.addTextToPage(0, formatDate(cotacao.created), rightColValX, currentY, headerFontSize, 'F1')
+
+    currentY -= lineHeight
+    pdf.addTextToPage(0, 'Período:', leftColX, currentY, headerFontSize, 'F2')
+    pdf.addTextToPage(0, periodoStr, leftColValX, currentY, headerFontSize, 'F1')
+
+    pdf.addTextToPage(0, 'Total de Dias:', rightColX, currentY, headerFontSize, 'F2')
+    pdf.addTextToPage(
+      0,
+      (cotacao.qtd_dias || 0).toString(),
+      rightColValX,
+      currentY,
+      headerFontSize,
+      'F1',
+    )
+
+    currentY -= lineHeight
+    pdf.addTextToPage(0, 'Passageiros:', leftColX, currentY, headerFontSize, 'F2')
+    pdf.addTextToPage(
+      0,
+      (cotacao.total_passageiros || 1).toString(),
+      leftColValX,
+      currentY,
+      headerFontSize,
+      'F1',
+    )
+
+    pdf.addTextToPage(0, 'Comissão:', rightColX, currentY, headerFontSize, 'F2')
+    pdf.addTextToPage(
+      0,
+      `${cotacao.comissao ? formatNum(cotacao.comissao * 100, 0, 0) : 0}%`,
+      rightColValX,
+      currentY,
+      headerFontSize,
+      'F1',
+    )
+
+    currentY -= lineHeight
+    pdf.addTextToPage(0, 'Pagamento:', leftColX, currentY, headerFontSize, 'F2')
+    pdf.addTextToPage(0, cotacao.forma_pagamento || '', leftColValX, currentY, headerFontSize, 'F1')
+
+    pdf.addTextToPage(0, 'Fatura (USD):', rightColX, currentY, headerFontSize, 'F2')
+    const faturaVal = `USD ${formatNum(cotacao.fatura_total)}`
+    pdf.addTextToPage(
+      0,
+      faturaVal,
+      rightColValX,
+      currentY,
+      headerFontSize,
+      'F1',
+      blueR,
+      blueG,
+      blueB,
+    )
+
+    currentY -= lineHeight
+    pdf.addTextToPage(0, `Fatura (${localSymbol}):`, rightColX, currentY, headerFontSize, 'F2')
+    const faturaLocalVal = `${localSymbol} ${formatNum(cotacao.fatura_total * taxaCambio)}`
+    pdf.addTextToPage(
+      0,
+      faturaLocalVal,
+      rightColValX,
+      currentY,
+      headerFontSize,
+      'F1',
+      blueR,
+      blueG,
+      blueB,
+    )
+
+    currentY -= lineHeight
+    pdf.addTextToPage(0, 'Câmbio Utilizado:', rightColX, currentY, headerFontSize, 'F2')
+    const cambioVal = `${localSymbol} ${formatNum(taxaCambio)}`
+    pdf.addTextToPage(0, cambioVal, rightColValX, currentY, headerFontSize, 'F1')
+
+    currentY -= 30
+
+    const prodCols = [
+      { label: 'Produto', width: CONTENT_W * 0.4, align: 'L' },
+      { label: 'Participação', width: CONTENT_W * 0.2, align: 'C' },
+      { label: `Preço/viagem (${localSymbol})`, width: CONTENT_W * 0.25, align: 'C' },
+      { label: `USD`, width: CONTENT_W * 0.15, align: 'R' },
+    ]
+
+    const participacao = formatNum(100 / (produtos.length || 1), 0, 1) + '%'
+
+    pdf.addRoundedRect(MARGIN, currentY - 16, CONTENT_W, 22, 6, darkR, darkG, darkB, true, 0, {
+      tl: true,
+      tr: true,
+      br: false,
+      bl: false,
+    })
+
+    let curX = MARGIN
+    prodCols.forEach((col) => {
+      const textW = col.label.length * 5.5
+      let textX = curX + 10
+      if (col.align === 'C') textX = curX + (col.width - textW) / 2
+      if (col.align === 'R') textX = curX + col.width - textW - 10
+      pdf.addTextToPage(0, col.label, textX, currentY - 10, 10, 'F2', whiteR, whiteG, whiteB)
       curX += col.width
     })
 
-    currentY -= rowH
-  })
+    currentY -= 16
 
-  currentY -= 30
+    produtos.forEach((prod, idx) => {
+      const isEven = idx % 2 === 0
+      const precoUsd = prod.preco_total_produto
+      const precoLocal = precoUsd * taxaCambio
+
+      const rowData = [
+        prod.produto_nome,
+        participacao,
+        `${localSymbol} ${formatNum(precoLocal)}`,
+        `USD ${formatNum(precoUsd)}`,
+      ]
+
+      let maxLines = 1
+      const wrappedRowData = rowData.map((text, cIdx) => {
+        const colW = prodCols[cIdx].width
+        const lines = wrapTextLocal(text, colW - 10, 9, false)
+        maxLines = Math.max(maxLines, lines.length)
+        return lines
+      })
+
+      const rowH = Math.max(20, maxLines * 10 + 10)
+
+      if (isEven) {
+        pdf.addRect(MARGIN, currentY - rowH, CONTENT_W, rowH, grayR, grayG, grayB, true, 0)
+      }
+
+      curX = MARGIN
+      wrappedRowData.forEach((lines, cIdx) => {
+        const col = prodCols[cIdx]
+        const blockH = lines.length * 10
+        const padding = (rowH - blockH) / 2
+        const startY = currentY - padding - 8
+
+        lines.forEach((line, lIdx) => {
+          const textW = line.length * 4.5
+          let textX = curX + 10
+          if (col.align === 'C') textX = Math.max(curX + 2, curX + (col.width - textW) / 2)
+          if (col.align === 'R') textX = curX + col.width - textW - 10
+          pdf.addTextToPage(0, line, textX, startY - lIdx * 10, 9, 'F1', 0, 0, 0)
+        })
+        curX += col.width
+      })
+
+      currentY -= rowH
+    })
+
+    currentY -= 30
+  } else {
+    currentY = PAGE_H - MARGIN - 60
+  }
 
   pdf.addTextToPage(0, 'Coberturas por produto', MARGIN, currentY, 14, 'F2', 0, 0, 0)
   currentY -= 15
@@ -489,8 +565,20 @@ export function gerarPDFProposta(
       return lines
     })
 
-    const headerH = maxHeaderLines * 12 + 10
-    pdf.addRect(MARGIN, y - headerH + 6, CONTENT_W, headerH, blueR, blueG, blueB, true, 0)
+    const headerH = maxHeaderLines * 10 + 10
+    pdf.addRoundedRect(
+      MARGIN,
+      y - headerH + 6,
+      CONTENT_W,
+      headerH,
+      6,
+      blueR,
+      blueG,
+      blueB,
+      true,
+      0,
+      { tl: true, tr: true, br: false, bl: false },
+    )
 
     let cx = MARGIN
     wrappedHeaders.forEach((lines, cIdx) => {
@@ -540,7 +628,7 @@ export function gerarPDFProposta(
       return lines
     })
 
-    const rowH = Math.max(20, maxLines * 10 + 6)
+    const rowH = Math.max(16, maxLines * 8 + 6)
 
     if (currentY - rowH < MARGIN + 20) {
       pdf.addPage()
@@ -558,7 +646,7 @@ export function gerarPDFProposta(
     let cx = MARGIN
     wrappedRowData.forEach((lines, cIdx) => {
       const col = covCols[cIdx]
-      const startY = currentY - (rowH - lines.length * 10) / 2 + 2
+      const startY = currentY - (rowH - lines.length * 8) / 2 + 2
       lines.forEach((line, lIdx) => {
         const isBold = cIdx > 0
         const fontSize = 8
@@ -569,7 +657,7 @@ export function gerarPDFProposta(
           pdf.pages.length - 1,
           line,
           textX,
-          startY - lIdx * 10,
+          startY - lIdx * 8,
           fontSize,
           isBold ? 'F2' : 'F1',
           0,
@@ -586,7 +674,7 @@ export function gerarPDFProposta(
   return pdf.build()
 }
 
-export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
+export async function generateAndDownloadCotacaoPdf(cotacaoId: string, onlyCoverages = false) {
   const cotacao = await pb.collection('cotacoes').getOne(cotacaoId, {
     expand: 'forma_pagamento_id,cotacao_produtos_via_cotacao_id.produto_id,usuario_id',
   })
@@ -637,24 +725,34 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
         if (!valRaw || valRaw.trim() === '') {
           valFinal = ''
         } else {
-          if (c.moeda) {
-            let normalized = valRaw.trim()
-            let numVal: number | null = null
-            if (/^\d+([.,]\d+)?$/.test(normalized)) {
-              if (normalized.includes(',')) {
-                normalized = normalized.replace(',', '.')
+          let text = valRaw.trim()
+          const match = text.match(/^([A-Za-z$]+)?\s*([\d.,\s]+)$/)
+          if (match) {
+            const prefix = match[1] ? match[1] + ' ' : ''
+            const numberStr = match[2].trim()
+            const justDigits = numberStr.replace(/[\s.,]/g, '')
+            if (justDigits.length > 0) {
+              let parsedNum = NaN
+              if (/[,.]\d{1,2}$/.test(numberStr)) {
+                const cleaned = numberStr
+                  .replace(/[,.](\d{1,2})$/, '|$1')
+                  .replace(/[\s.,]/g, '')
+                  .replace('|', '.')
+                parsedNum = parseFloat(cleaned)
+              } else {
+                parsedNum = parseFloat(justDigits)
               }
-              numVal = parseFloat(normalized)
-            } else if (/^[\d.]+$/.test(normalized) && normalized.includes('.')) {
-              numVal = parseFloat(normalized.replace(/\./g, ''))
-            }
 
-            if (numVal !== null && !isNaN(numVal)) {
-              const locale = targetMoeda === 'ARS' ? 'es-AR' : 'pt-BR'
-              valFinal = numVal.toLocaleString(locale, {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2,
-              })
+              if (!isNaN(parsedNum)) {
+                valFinal =
+                  prefix +
+                  parsedNum.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  })
+              } else {
+                valFinal = valRaw
+              }
             } else {
               valFinal = valRaw
             }
@@ -694,12 +792,12 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string) {
   }
 
   const logoData = await getJpegData(logoImgUrl).catch(() => null)
-  const blob = gerarPDFProposta(pdfData, produtosPDF, logoData)
+  const blob = gerarPDFProposta(pdfData, produtosPDF, logoData, onlyCoverages)
 
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `Cotacao_${cotacao.id}.pdf`
+  a.download = onlyCoverages ? `Coberturas_${cotacao.id}.pdf` : `Cotacao_${cotacao.id}.pdf`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)

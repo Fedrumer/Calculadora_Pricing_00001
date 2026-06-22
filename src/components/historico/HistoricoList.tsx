@@ -67,10 +67,10 @@ export function HistoricoList({
   const [localGenerating, setLocalGenerating] = useState(false)
   const generating = isGeneratingPdf || localGenerating
 
-  const handleDownload = async (item: any) => {
+  const handleDownload = async (item: any, onlyCoverages: boolean = false) => {
     try {
       setLocalGenerating(true)
-      await generateAndDownloadCotacaoPdf(item.id)
+      await generateAndDownloadCotacaoPdf(item.id, onlyCoverages)
     } catch (err) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível gerar PDF' })
     } finally {
@@ -130,8 +130,12 @@ export function HistoricoList({
         <DropdownMenuItem onClick={() => openViewModal(item)}>
           <Eye className="w-4 h-4 mr-2" /> Visualizar
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleDownload(item)} disabled={generating}>
+        <DropdownMenuItem onClick={() => handleDownload(item, false)} disabled={generating}>
           <FileText className="w-4 h-4 mr-2" /> {generating ? 'Gerando PDF...' : 'Baixar PDF'}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleDownload(item, true)} disabled={generating}>
+          <FileText className="w-4 h-4 mr-2" />{' '}
+          {generating ? 'Gerando...' : 'Baixar Tabela de Coberturas'}
         </DropdownMenuItem>
         {item.status === 'RASCUNHO' && (
           <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'PROPOSTA_ENVIADA')}>
