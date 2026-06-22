@@ -8,6 +8,9 @@ import Testes from './pages/Testes'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import EsqueciSenha from './pages/EsqueciSenha'
+import ResetPassword from './pages/ResetPassword'
+import Perfil from './pages/Perfil'
 import { AuthProvider, useAuth, Role } from '@/hooks/use-auth'
 import Admin from './pages/Admin'
 import Coberturas from './pages/admin/Coberturas'
@@ -55,6 +58,22 @@ const App = () => (
               }
             />
             <Route
+              path="/esqueci-senha"
+              element={
+                <GuestOnly>
+                  <EsqueciSenha />
+                </GuestOnly>
+              }
+            />
+            <Route
+              path="/confirm-password-reset"
+              element={
+                <GuestOnly>
+                  <ResetPassword />
+                </GuestOnly>
+              }
+            />
+            <Route
               path="/forbidden"
               element={
                 <RequireAuth>
@@ -86,6 +105,14 @@ const App = () => (
                   <RequireRole role={['COMERCIAL', 'ADMIN']}>
                     <Historico />
                   </RequireRole>
+                }
+              />
+              <Route
+                path="/perfil"
+                element={
+                  <RequireAuth>
+                    <Perfil />
+                  </RequireAuth>
                 }
               />
               <Route

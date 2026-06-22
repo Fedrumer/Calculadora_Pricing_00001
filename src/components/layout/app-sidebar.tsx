@@ -1,5 +1,5 @@
 import { Sidebar, SidebarContent, SidebarHeader } from '@/components/ui/sidebar'
-import { Calculator, History, Settings } from 'lucide-react'
+import { Calculator, History, Settings, User } from 'lucide-react'
 import isoAzul from '@/assets/iso-azul-58ac1.png'
 import { CotacaoForm } from '@/components/CotacaoForm'
 import { Link, useLocation } from 'react-router-dom'
@@ -11,7 +11,8 @@ export function AppSidebar() {
   const location = useLocation()
   const isCotacao = location.pathname === '/cotacao'
   const isHistorico = location.pathname === '/historico'
-  const isAdmin = location.pathname === '/admin'
+  const isAdmin = location.pathname.startsWith('/admin')
+  const isPerfil = location.pathname === '/perfil'
   const { temRole } = useAuth()
   const { t } = useTranslation()
 
@@ -54,6 +55,15 @@ export function AppSidebar() {
               </Link>
             </Button>
           )}
+          <Button
+            asChild
+            variant={isPerfil ? 'default' : 'secondary'}
+            className="inline-flex items-center justify-center text-xs"
+          >
+            <Link to="/perfil">
+              <User className="w-4 h-4 mr-2" /> Perfil
+            </Link>
+          </Button>
         </div>
         {isCotacao && <CotacaoForm />}
       </SidebarContent>

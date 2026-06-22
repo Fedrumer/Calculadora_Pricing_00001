@@ -9,6 +9,7 @@ interface AuthContextType {
   isAutenticado: () => boolean
   temRole: (role: Role) => boolean
   signIn: (email: string, password: string) => Promise<{ error: any }>
+  signInWith: (provider: string) => Promise<{ error: any }>
   signOut: () => void
 }
 
@@ -44,6 +45,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const signInWith = async (provider: string) => {
+    try {
+      await pb.collection('users').authWithOAuth2({ provider })
+      return { error: null }
+    } catch (error) {
+      return { error }
+    }
+  }
+
   const signOut = () => {
     pb.authStore.clear()
   }
@@ -51,7 +61,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const temRole = (role: Role) => user?.role === role
 
   return (
-    <AuthContext.Provider value={{ user, status, isAutenticado, temRole, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{ user, status, isAutenticado, temRole, signIn, signInWith, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   )
