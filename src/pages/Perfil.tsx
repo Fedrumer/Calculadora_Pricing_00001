@@ -20,11 +20,13 @@ import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 import pb from '@/lib/pocketbase/client'
 import { useNavigate } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { useTranslation } from '@/hooks/use-translation'
 
 export default function Perfil() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { t } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Profile Form State
@@ -73,7 +75,7 @@ export default function Perfil() {
         // 5MB limit
         toast({
           title: 'Arquivo muito grande',
-          description: 'A imagem deve ter no máximo 5MB.',
+          description: t('profile.toast_file_too_large'),
           variant: 'destructive',
         })
         return
@@ -97,8 +99,8 @@ export default function Perfil() {
       await updateProfile(user.id, formData)
 
       toast({
-        title: 'Perfil atualizado',
-        description: 'Suas informações foram salvas com sucesso.',
+        title: t('profile.toast_profile_updated'),
+        description: t('profile.toast_profile_updated_desc'),
       })
       setAvatarFile(null)
     } catch (err) {
@@ -107,7 +109,7 @@ export default function Perfil() {
         setProfileErrors(errs)
       } else {
         toast({
-          title: 'Erro ao atualizar perfil',
+          title: t('profile.toast_error_updating'),
           description: getErrorMessage(err),
           variant: 'destructive',
         })
@@ -122,7 +124,7 @@ export default function Perfil() {
     setPasswordErrors({})
 
     if (password !== passwordConfirm) {
-      setPasswordErrors({ passwordConfirm: 'As senhas não coincidem' })
+      setPasswordErrors({ passwordConfirm: t('profile.error_password_match') })
       return
     }
 
@@ -137,8 +139,8 @@ export default function Perfil() {
 
       if (user.forcar_troca_senha) {
         toast({
-          title: 'Senha alterada com sucesso',
-          description: 'Por favor, faça login com sua nova senha.',
+          title: t('profile.toast_password_changed'),
+          description: t('profile.toast_password_changed_desc'),
         })
         signOut()
         navigate('/login')
@@ -146,8 +148,8 @@ export default function Perfil() {
       }
 
       toast({
-        title: 'Senha alterada',
-        description: 'Sua senha foi alterada com sucesso.',
+        title: t('profile.toast_password_changed_normal'),
+        description: t('profile.toast_password_changed_normal_desc'),
       })
       setOldPassword('')
       setPassword('')
@@ -156,12 +158,12 @@ export default function Perfil() {
       const errs = extractFieldErrors(err)
       if (Object.keys(errs).length > 0) {
         if (errs.oldPassword && errs.oldPassword.includes('Invalid')) {
-          errs.oldPassword = 'Senha atual incorreta'
+          errs.oldPassword = t('profile.error_wrong_password')
         }
         setPasswordErrors(errs)
       } else {
         toast({
-          title: 'Erro ao alterar senha',
+          title: t('profile.toast_error_password'),
           description: getErrorMessage(err),
           variant: 'destructive',
         })
@@ -176,18 +178,14 @@ export default function Perfil() {
       {user.forcar_troca_senha && (
         <Alert variant="destructive" className="mb-6">
           <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Atenção</AlertTitle>
-          <AlertDescription>
-            Para sua segurança, você deve alterar sua senha no primeiro acesso.
-          </AlertDescription>
+          <AlertTitle>{t('profile.force_password_alert_title')}</AlertTitle>
+          <AlertDescription>{t('profile.force_password_alert_desc')}</AlertDescription>
         </Alert>
       )}
 
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Configurações do Perfil</h1>
-        <p className="text-muted-foreground mt-2">
-          Gerencie suas informações pessoais e credenciais de acesso.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('profile.title')}</h1>
+        <p className="text-muted-foreground mt-2">{t('profile.subtitle')}</p>
       </div>
 
       <Separator />
@@ -197,9 +195,9 @@ export default function Perfil() {
           <CardHeader>
             <CardTitle className="flex items-center text-lg">
               <UserIcon className="w-5 h-5 mr-2 text-primary" />
-              Informações Pessoais
+              {t('profile.personal_info_title')}
             </CardTitle>
-            <CardDescription>Atualize seu nome de exibição e avatar no sistema.</CardDescription>
+            <CardDescription>{t('profile.personal_info_desc')}</CardDescription>
           </CardHeader>
           <CardContent className="flex-1">
             <form id="profile-form" onSubmit={handleProfileSubmit} className="space-y-6">
@@ -231,7 +229,7 @@ export default function Perfil() {
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  Alterar foto
+                  {t('profile.change_photo')}
                 </Button>
                 {profileErrors.avatar && (
                   <p className="text-sm text-destructive">{profileErrors.avatar}</p>
@@ -239,16 +237,16 @@ export default function Perfil() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">E-mail (somente leitura)</Label>
+                <Label htmlFor="email">{t('profile.email_label')}</Label>
                 <Input id="email" type="email" value={user.email} disabled className="bg-muted" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="name">Nome Completo</Label>
+                <Label htmlFor="name">{t('profile.name_label')}</Label>
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Seu nome"
+                  placeholder={t('profile.name_placeholder')}
                 />
                 {profileErrors.name && (
                   <p className="text-sm text-destructive font-medium">{profileErrors.name}</p>
@@ -264,7 +262,7 @@ export default function Perfil() {
               className="w-full sm:w-auto"
             >
               {loadingProfile && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Salvar Alterações
+              {t('profile.save_changes')}
             </Button>
           </CardFooter>
         </Card>
@@ -273,14 +271,14 @@ export default function Perfil() {
           <CardHeader>
             <CardTitle className="flex items-center text-lg">
               <Lock className="w-5 h-5 mr-2 text-primary" />
-              Segurança
+              {t('profile.security_title')}
             </CardTitle>
-            <CardDescription>Altere sua senha de acesso.</CardDescription>
+            <CardDescription>{t('profile.security_desc')}</CardDescription>
           </CardHeader>
           <CardContent className="flex-1">
             <form id="password-form" onSubmit={handlePasswordSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="oldPassword">Senha Atual</Label>
+                <Label htmlFor="oldPassword">{t('profile.current_password')}</Label>
                 <Input
                   id="oldPassword"
                   type="password"
@@ -296,7 +294,7 @@ export default function Perfil() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="newPassword">Nova Senha</Label>
+                <Label htmlFor="newPassword">{t('profile.new_password')}</Label>
                 <Input
                   id="newPassword"
                   type="password"
@@ -311,7 +309,7 @@ export default function Perfil() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="newPasswordConfirm">Confirmar Nova Senha</Label>
+                <Label htmlFor="newPasswordConfirm">{t('profile.confirm_new_password')}</Label>
                 <Input
                   id="newPasswordConfirm"
                   type="password"
@@ -336,7 +334,7 @@ export default function Perfil() {
               className="w-full sm:w-auto"
             >
               {loadingPassword && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Atualizar Senha
+              {t('profile.update_password')}
             </Button>
           </CardFooter>
         </Card>

@@ -37,16 +37,22 @@ import {
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslation } from '@/hooks/use-translation'
 
 const StatusBadge = ({ status }: { status: string }) => {
+  const { t } = useTranslation()
   const colors: any = {
     RASCUNHO: 'bg-gray-100 text-gray-800',
     PROPOSTA_ENVIADA: 'bg-blue-100 text-blue-800',
     APROVADA: 'bg-green-100 text-green-800',
   }
+  let displayStatus = status.replace('_', ' ')
+  if (status === 'RASCUNHO') displayStatus = t('history.status_draft')
+  if (status === 'PROPOSTA_ENVIADA') displayStatus = t('history.status_sent')
+  if (status === 'APROVADA') displayStatus = t('history.status_approved')
   return (
     <Badge className={colors[status] || ''} variant="secondary">
-      {status.replace('_', ' ')}
+      {displayStatus}
     </Badge>
   )
 }
@@ -63,6 +69,7 @@ export function HistoricoList({
   isGeneratingPdf,
 }: any) {
   const isMobile = useIsMobile()
+  const { t } = useTranslation()
   const [viewItem, setViewItem] = useState<any>(null)
   const [localGenerating, setLocalGenerating] = useState(false)
   const generating = isGeneratingPdf || localGenerating
@@ -95,10 +102,10 @@ export function HistoricoList({
   const handleStatusChange = async (id: string, status: string) => {
     try {
       await pb.collection('cotacoes').update(id, { status })
-      toast({ title: 'Sucesso', description: 'Status atualizado com sucesso.' })
+      toast({ title: 'Sucesso', description: t('history.toast_status_success') })
       if (onUpdate) onUpdate()
     } catch (err) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao atualizar status.' })
+      toast({ variant: 'destructive', title: 'Erro', description: t('history.toast_status_error') })
     }
   }
 
@@ -128,28 +135,29 @@ export function HistoricoList({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => openViewModal(item)}>
-          <Eye className="w-4 h-4 mr-2" /> Visualizar
+          <Eye className="w-4 h-4 mr-2" /> {t('history.action_view')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleDownload(item, false)} disabled={generating}>
-          <FileText className="w-4 h-4 mr-2" /> {generating ? 'Gerando PDF...' : 'Baixar PDF'}
+          <FileText className="w-4 h-4 mr-2" />{' '}
+          {generating ? t('history.action_generating_pdf') : t('history.action_download_pdf')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleDownload(item, true)} disabled={generating}>
           <FileText className="w-4 h-4 mr-2" />{' '}
-          {generating ? 'Gerando...' : 'Baixar Tabela de Coberturas'}
+          {generating ? t('history.action_generating') : t('history.action_download_coverages')}
         </DropdownMenuItem>
         {item.status === 'RASCUNHO' && (
           <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'PROPOSTA_ENVIADA')}>
-            <Send className="w-4 h-4 mr-2" /> Salvar como Enviada
+            <Send className="w-4 h-4 mr-2" /> {t('history.action_save_sent')}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={() => onDuplicate(item)}>
-          <Copy className="w-4 h-4 mr-2" /> Duplicar
+          <Copy className="w-4 h-4 mr-2" /> {t('history.action_duplicate')}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setDeleteId(item.id)}
           className="text-red-600 focus:text-red-600 focus:bg-red-50"
         >
-          <Trash2 className="w-4 h-4 mr-2" /> Excluir
+          <Trash2 className="w-4 h-4 mr-2" /> {t('history.action_delete')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -195,9 +203,9 @@ export function HistoricoList({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="RASCUNHO">Rascunho</SelectItem>
-                        <SelectItem value="PROPOSTA_ENVIADA">Proposta Enviada</SelectItem>
-                        <SelectItem value="APROVADA">Aprovada</SelectItem>
+                        <SelectItem value="RASCUNHO">{t('history.status_draft')}</SelectItem>
+                        <SelectItem value="PROPOSTA_ENVIADA">{t('history.status_sent')}</SelectItem>
+                        <SelectItem value="APROVADA">{t('history.status_approved')}</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (
@@ -205,10 +213,10 @@ export function HistoricoList({
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground mb-1">
-                  Agência: {item.nome_agencia || 'Não informada'}
+                  {t('history.table_agency')}: {item.nome_agencia || t('history.not_informed')}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Pagamento: {item.expand?.forma_pagamento_id?.nome || 'N/A'}
+                  {t('history.table_payment')}: {item.expand?.forma_pagamento_id?.nome || 'N/A'}
                 </div>
               </CardContent>
             </Card>
@@ -219,13 +227,13 @@ export function HistoricoList({
           <Table>
             <TableHeader className="bg-gray-50">
               <TableRow>
-                <TableHead>ID da Cotação</TableHead>
-                <TableHead>Agência</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Pagamento</TableHead>
-                <TableHead>Fatura (USD)</TableHead>
-                <TableHead>Fatura (Moeda Local)</TableHead>
+                <TableHead>{t('history.table_id')}</TableHead>
+                <TableHead>{t('history.table_agency')}</TableHead>
+                <TableHead>{t('history.table_date')}</TableHead>
+                <TableHead>{t('history.table_status')}</TableHead>
+                <TableHead>{t('history.table_payment')}</TableHead>
+                <TableHead>{t('history.table_invoice_usd')}</TableHead>
+                <TableHead>{t('history.table_invoice_local')}</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -233,7 +241,7 @@ export function HistoricoList({
               {data.map((item: any) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-mono text-sm text-gray-600">{item.id}</TableCell>
-                  <TableCell>{item.nome_agencia || 'Não informada'}</TableCell>
+                  <TableCell>{item.nome_agencia || t('history.not_informed')}</TableCell>
                   <TableCell>{format(new Date(item.created), 'dd/MM/yyyy')}</TableCell>
                   <TableCell>
                     {user?.role === 'ADMIN' ? (
@@ -245,9 +253,13 @@ export function HistoricoList({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="RASCUNHO">Rascunho</SelectItem>
-                          <SelectItem value="PROPOSTA_ENVIADA">Proposta Enviada</SelectItem>
-                          <SelectItem value="APROVADA">Aprovada</SelectItem>
+                          <SelectItem value="RASCUNHO">{t('history.status_draft')}</SelectItem>
+                          <SelectItem value="PROPOSTA_ENVIADA">
+                            {t('history.status_sent')}
+                          </SelectItem>
+                          <SelectItem value="APROVADA">
+                            {t('history.status_approved')}
+                          </SelectItem>{' '}
                         </SelectContent>
                       </Select>
                     ) : (
@@ -280,23 +292,26 @@ export function HistoricoList({
       <Dialog open={!!viewItem} onOpenChange={(open) => !open && setViewItem(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalhes da Cotação - {viewItem?.id}</DialogTitle>
+            <DialogTitle>
+              {t('history.modal_details_title')}
+              {viewItem?.id}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm my-4 bg-gray-50 p-4 rounded-md">
             <div>
-              <strong>Status:</strong>{' '}
+              <strong>{t('history.table_status')}:</strong>{' '}
               <span className="block mt-1">
                 <StatusBadge status={viewItem?.status || ''} />
               </span>
             </div>
             <div>
-              <strong>Data:</strong>{' '}
+              <strong>{t('history.table_date')}:</strong>{' '}
               <span className="block mt-1">
                 {viewItem?.created && format(new Date(viewItem.created), 'dd/MM/yyyy')}
               </span>
             </div>
             <div className="col-span-2">
-              <strong>Agência:</strong>{' '}
+              <strong>{t('history.table_agency')}:</strong>{' '}
               <span className="block mt-1">
                 {isEditingAgencia ? (
                   <div className="flex gap-2 items-center">
@@ -304,10 +319,10 @@ export function HistoricoList({
                       value={editAgenciaName}
                       onChange={(e) => setEditAgenciaName(e.target.value)}
                       className="h-8 text-sm max-w-[200px]"
-                      placeholder="Nome da agência"
+                      placeholder={t('history.search_agency')}
                     />
                     <Button size="sm" onClick={handleSaveAgencia}>
-                      Salvar
+                      {t('history.save')}
                     </Button>
                     <Button
                       variant="ghost"
@@ -317,12 +332,12 @@ export function HistoricoList({
                         setEditAgenciaName(viewItem?.nome_agencia || '')
                       }}
                     >
-                      Cancelar
+                      {t('history.cancel')}
                     </Button>
                   </div>
                 ) : (
                   <div className="flex gap-2 items-center">
-                    <span>{viewItem?.nome_agencia || 'Não informada'}</span>
+                    <span>{viewItem?.nome_agencia || t('history.not_informed')}</span>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -336,11 +351,11 @@ export function HistoricoList({
               </span>
             </div>
             <div>
-              <strong>Pagamento:</strong>{' '}
+              <strong>{t('history.table_payment')}:</strong>{' '}
               <span className="block mt-1">{viewItem?.expand?.forma_pagamento_id?.nome}</span>
             </div>
             <div>
-              <strong>Fatura (USD):</strong>{' '}
+              <strong>{t('history.table_invoice_usd')}:</strong>{' '}
               <span className="block mt-1 font-bold text-green-600">
                 {viewItem?.moeda || 'USD'}{' '}
                 {viewItem?.fatura_total?.toLocaleString(getLocalCurrencyData(viewItem).locale, {
@@ -350,7 +365,7 @@ export function HistoricoList({
               </span>
             </div>
             <div>
-              <strong>Fatura (Moeda Local):</strong>{' '}
+              <strong>{t('history.table_invoice_local')}:</strong>{' '}
               <span className="block mt-1 font-bold text-blue-600">
                 {viewItem?.taxa_cambio
                   ? `${getLocalCurrencyData(viewItem).symbol} ${(viewItem.fatura_total * viewItem.taxa_cambio).toLocaleString(getLocalCurrencyData(viewItem).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -358,28 +373,29 @@ export function HistoricoList({
               </span>
             </div>
             <div>
-              <strong>Início:</strong>{' '}
+              <strong>{t('form.start')}:</strong>{' '}
               <span className="block mt-1">
                 {viewItem?.data_inicio && format(new Date(viewItem.data_inicio), 'dd/MM/yyyy')}
               </span>
             </div>
             <div>
-              <strong>Fim:</strong>{' '}
+              <strong>{t('form.end')}:</strong>{' '}
               <span className="block mt-1">
                 {viewItem?.data_fim && format(new Date(viewItem.data_fim), 'dd/MM/yyyy')}
               </span>
             </div>
             <div>
-              <strong>Dias:</strong> <span className="block mt-1">{viewItem?.qtd_dias}</span>
+              <strong>{t('history.days')}:</strong>{' '}
+              <span className="block mt-1">{viewItem?.qtd_dias}</span>
             </div>
             <div>
-              <strong>Comissão:</strong>{' '}
+              <strong>{t('history.commission')}:</strong>{' '}
               <span className="block mt-1">
                 {viewItem?.comissao ? (viewItem.comissao * 100).toFixed(0) : 0}%
               </span>
             </div>
             <div>
-              <strong>Câmbio:</strong>{' '}
+              <strong>{t('history.exchange_rate')}:</strong>{' '}
               <span className="block mt-1">
                 {viewItem?.taxa_cambio
                   ? `${getLocalCurrencyData(viewItem).symbol} ${viewItem.taxa_cambio.toLocaleString(getLocalCurrencyData(viewItem).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -387,16 +403,16 @@ export function HistoricoList({
               </span>
             </div>
           </div>
-          <h3 className="font-semibold mb-2">Produtos Selecionados</h3>
+          <h3 className="font-semibold mb-2">{t('history.selected_products')}</h3>
           <div className="overflow-x-auto border rounded-md">
             <Table>
               <TableHeader className="bg-gray-100">
                 <TableRow>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>Viajantes (Até 75)</TableHead>
-                  <TableHead>Viajantes (76-85)</TableHead>
-                  <TableHead>Preço (USD)</TableHead>
-                  <TableHead>Preço (Moeda Local)</TableHead>
+                  <TableHead>{t('history.product')}</TableHead>
+                  <TableHead>{t('history.travelers_75')}</TableHead>
+                  <TableHead>{t('history.travelers_85')}</TableHead>
+                  <TableHead>{t('history.price_usd')}</TableHead>
+                  <TableHead>{t('history.price_local')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -424,7 +440,7 @@ export function HistoricoList({
           </div>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setViewItem(null)}>
-              Fechar
+              {t('history.close')}
             </Button>
             <Button
               disabled={generating}
@@ -433,7 +449,7 @@ export function HistoricoList({
                 setViewItem(null)
               }}
             >
-              {generating ? 'Gerando PDF...' : 'Baixar PDF'}
+              {generating ? t('history.action_generating_pdf') : t('history.action_download_pdf')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -442,14 +458,12 @@ export function HistoricoList({
       <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogTitle>{t('history.delete_confirm_title')}</DialogTitle>
           </DialogHeader>
-          <p className="text-gray-600">
-            Tem certeza que deseja excluir esta cotação? Esta ação não pode ser desfeita.
-          </p>
+          <p className="text-gray-600">{t('history.delete_confirm_desc')}</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteId(null)}>
-              Cancelar
+              {t('history.cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -458,7 +472,7 @@ export function HistoricoList({
                 setDeleteId(null)
               }}
             >
-              Excluir
+              {t('history.action_delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
