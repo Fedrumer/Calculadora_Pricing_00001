@@ -113,11 +113,9 @@ const App = () => (
               <Route
                 path="/historico"
                 element={
-                  <ForcePasswordChangeGuard>
-                    <RequireRole role={['COMERCIAL', 'ADMIN']}>
-                      <Historico />
-                    </RequireRole>
-                  </ForcePasswordChangeGuard>
+                  <RequireRole role={['COMERCIAL', 'ADMIN']}>
+                    <Historico />
+                  </RequireRole>
                 }
               />
               <Route

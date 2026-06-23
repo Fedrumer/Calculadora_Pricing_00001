@@ -19,6 +19,7 @@ export interface ProdutoDetalhePDF {
   produto_nome: string
   tipo_cobranca?: string
   preco_total_produto: number
+  moeda?: string
   coberturas: {
     nome: string
     valor: string
@@ -433,8 +434,13 @@ export function gerarPDFProposta(
     pdf.addTextToPage(0, 'Pagamento:', leftColX, currentY, headerFontSize, 'F2')
     pdf.addTextToPage(0, cotacao.forma_pagamento || '', leftColValX, currentY, headerFontSize, 'F1')
 
+    const isLocalStored = cotacao.moeda === 'ARS' || cotacao.moeda === 'BRL'
+    const usdValue =
+      isLocalStored && taxaCambio ? cotacao.fatura_total / taxaCambio : cotacao.fatura_total
+    const localValue = isLocalStored ? cotacao.fatura_total : cotacao.fatura_total * taxaCambio
+
     pdf.addTextToPage(0, 'Fatura (USD):', rightColX, currentY, headerFontSize, 'F2')
-    const faturaVal = `USD ${formatNum(cotacao.fatura_total)}`
+    const faturaVal = `USD ${formatNum(usdValue)}`
     pdf.addTextToPage(
       0,
       faturaVal,
@@ -449,7 +455,7 @@ export function gerarPDFProposta(
 
     currentY -= lineHeight
     pdf.addTextToPage(0, `Fatura (${localSymbol}):`, rightColX, currentY, headerFontSize, 'F2')
-    const faturaLocalVal = `${localSymbol} ${formatNum(cotacao.fatura_total * taxaCambio)}`
+    const faturaLocalVal = `${localSymbol} ${formatNum(localValue)}`
     pdf.addTextToPage(
       0,
       faturaLocalVal,
@@ -499,13 +505,18 @@ export function gerarPDFProposta(
 
     produtos.forEach((prod, idx) => {
       const isEven = idx % 2 === 0
-      const precoUsd = prod.preco_total_produto
-      const precoLocal = precoUsd * taxaCambio
+      const isProdLocal = prod.moeda === 'ARS' || prod.moeda === 'BRL'
+      const precoUsd =
+        isProdLocal && taxaCambio ? prod.preco_total_produto / taxaCambio : prod.preco_total_produto
+      const precoLocal = isProdLocal
+        ? prod.preco_total_produto
+        : prod.preco_total_produto * taxaCambio
+      const pSymbol = prod.moeda === 'ARS' ? '$' : prod.moeda === 'BRL' ? 'R$' : localSymbol
 
       const rowData = [
         prod.produto_nome,
         participacao,
-        `${localSymbol} ${formatNum(precoLocal)}`,
+        `${pSymbol} ${formatNum(precoLocal)}`,
         `USD ${formatNum(precoUsd)}`,
       ]
 
@@ -736,6 +747,7 @@ export async function generateAndDownloadCotacaoPdf(cotacaoId: string, onlyCover
       produto_nome: prod.nome,
       tipo_cobranca: prod.tipo_cobranca,
       preco_total_produto: rel.preco_total_produto,
+      moeda: rel.moeda || cotacao.moeda,
       coberturas: coberturasRel.map((c: any) => {
         let valRaw = c.valor || c.descricao_customizada
         let valFinal = ''

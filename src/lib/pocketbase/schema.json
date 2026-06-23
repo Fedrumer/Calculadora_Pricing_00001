@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-23T14:03:20.011Z",
+  "generatedAt": "2026-06-23T14:17:09.099Z",
   "collections": [
     {
       "name": "users",
@@ -552,6 +552,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "moeda",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -611,6 +617,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "moeda",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

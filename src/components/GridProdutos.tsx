@@ -54,15 +54,17 @@ export function GridProdutos({
   const localCurrency = country === 'Todos' ? 'BRL' : getCurrencyForCountry(country)
   const exchangeRate = useExchangeRate(localCurrency)
 
-  const formatLocalCurrency = (val: number, prodMoeda: string) => {
-    if (!exchangeRate || prodMoeda !== 'USD') return null
-    const converted = val * exchangeRate
-    return new Intl.NumberFormat(localCurrency === 'BRL' ? 'pt-BR' : 'es-AR', {
-      style: 'currency',
-      currency: localCurrency,
-      maximumFractionDigits: 2,
-    }).format(converted)
-  }
+  const exchangeRateBRL = useExchangeRate('BRL')
+  const exchangeRateARS = useExchangeRate('ARS')
+
+  const taxas_cambio = useMemo(
+    () => ({
+      BRL: exchangeRateBRL || 1,
+      ARS: exchangeRateARS || 1,
+      USD: 1,
+    }),
+    [exchangeRateBRL, exchangeRateARS],
+  )
 
   const produtosFiltrados = useMemo(() => {
     return produtos
@@ -89,6 +91,7 @@ export function GridProdutos({
       viajantes_por_faixa,
       data_inicio,
       data_fim,
+      taxas_cambio,
     }),
     [
       produtosFiltrados,
@@ -98,6 +101,7 @@ export function GridProdutos({
       viajantes_por_faixa,
       data_inicio,
       data_fim,
+      taxas_cambio,
     ],
   )
 
@@ -225,11 +229,15 @@ export function GridProdutos({
                     </span>
                     <div className="flex flex-col items-end">
                       <span className="font-extrabold text-lg text-blue-700 dark:text-blue-400 tracking-tight whitespace-nowrap">
-                        {formatCurrency(prodCalc.preco_total_produto, moeda)}
+                        {formatCurrency(prodCalc.preco_total_produto, prodCalc.moeda)}
                       </span>
-                      {exchangeRate && moeda === 'USD' && (
+                      {prodCalc.moeda !== 'USD' && (
                         <span className="text-[11px] text-muted-foreground font-semibold">
-                          ~ {formatLocalCurrency(prodCalc.preco_total_produto, moeda)}
+                          ~{' '}
+                          {formatCurrency(
+                            prodCalc.preco_total_produto / (prodCalc.taxa_cambio || 1),
+                            'USD',
+                          )}
                         </span>
                       )}
                     </div>
@@ -273,15 +281,16 @@ export function GridProdutos({
                                 <span className="font-mono text-[15px] font-bold text-green-600 dark:text-green-500 cursor-help decoration-green-600/30 underline decoration-dotted underline-offset-4">
                                   {formatCurrency(
                                     prodCalc.breakdown['ate_75'].preco_unitario,
-                                    moeda,
+                                    prodCalc.moeda,
                                   )}
                                 </span>
-                                {exchangeRate && moeda === 'USD' && (
+                                {prodCalc.moeda !== 'USD' && (
                                   <span className="text-[10px] text-muted-foreground font-semibold">
                                     ~{' '}
-                                    {formatLocalCurrency(
-                                      prodCalc.breakdown['ate_75'].preco_unitario,
-                                      moeda,
+                                    {formatCurrency(
+                                      prodCalc.breakdown['ate_75'].preco_unitario /
+                                        (prodCalc.taxa_cambio || 1),
+                                      'USD',
                                     )}
                                   </span>
                                 )}
@@ -290,11 +299,17 @@ export function GridProdutos({
                             <TooltipContent className="text-xs font-mono p-3 z-50 shadow-xl border-green-200 dark:border-green-900">
                               <p className="text-green-600 dark:text-green-400 font-bold mb-1">
                                 {t('grid.base_price')}:{' '}
-                                {formatCurrency(prodCalc.breakdown['ate_75'].preco_unitario, moeda)}
+                                {formatCurrency(
+                                  prodCalc.breakdown['ate_75'].preco_unitario,
+                                  prodCalc.moeda,
+                                )}
                               </p>
                               <p className="text-muted-foreground">
                                 {t('grid.total')}:{' '}
-                                {formatCurrency(prodCalc.breakdown['ate_75'].preco_total, moeda)}
+                                {formatCurrency(
+                                  prodCalc.breakdown['ate_75'].preco_total,
+                                  prodCalc.moeda,
+                                )}
                               </p>
                             </TooltipContent>
                           </Tooltip>
@@ -335,11 +350,15 @@ export function GridProdutos({
                                           : 'decoration-blue-600/30',
                                       )}
                                     >
-                                      {formatCurrency(thisPrice, moeda)}
+                                      {formatCurrency(thisPrice, prodCalc.moeda)}
                                     </span>
-                                    {exchangeRate && moeda === 'USD' && (
+                                    {prodCalc.moeda !== 'USD' && (
                                       <span className="text-[10px] text-muted-foreground font-semibold">
-                                        ~ {formatLocalCurrency(thisPrice, moeda)}
+                                        ~{' '}
+                                        {formatCurrency(
+                                          thisPrice / (prodCalc.taxa_cambio || 1),
+                                          'USD',
+                                        )}
                                       </span>
                                     )}
                                   </div>
@@ -356,13 +375,13 @@ export function GridProdutos({
                                     {isAgravo
                                       ? t('grid.price_with_aggravation')
                                       : t('grid.unit_price')}
-                                    : {formatCurrency(thisPrice, moeda)}
+                                    : {formatCurrency(thisPrice, prodCalc.moeda)}
                                   </p>
                                   <p className="text-muted-foreground">
                                     {t('grid.total')}:{' '}
                                     {formatCurrency(
                                       prodCalc.breakdown['de_76_a_85'].preco_total,
-                                      moeda,
+                                      prodCalc.moeda,
                                     )}
                                   </p>
                                 </TooltipContent>

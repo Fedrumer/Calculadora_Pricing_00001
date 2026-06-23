@@ -88,10 +88,13 @@ export function HistoricoList({
   const { toast } = useToast()
 
   const getLocalCurrencyData = (item: any) => {
-    const pais = item.expand?.usuario_id?.pais || user?.pais || 'Brasil'
+    let basePais = item.expand?.usuario_id?.pais || user?.pais || 'Brasil'
+    if (item.moeda === 'ARS') basePais = 'Argentina'
+    if (item.moeda === 'BRL') basePais = 'Brasil'
+
     return {
-      symbol: pais === 'Argentina' ? 'ARS' : 'R$',
-      locale: pais === 'Argentina' ? 'es-AR' : 'pt-BR',
+      symbol: basePais === 'Argentina' ? '$' : 'R$',
+      locale: basePais === 'Argentina' ? 'es-AR' : 'pt-BR',
     }
   }
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -182,15 +185,31 @@ export function HistoricoList({
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">
-                      {item.moeda || 'USD'}{' '}
-                      {item.fatura_total?.toLocaleString(getLocalCurrencyData(item).locale, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                      USD{' '}
+                      {(() => {
+                        const isLocal = item.moeda === 'ARS' || item.moeda === 'BRL'
+                        const val =
+                          isLocal && item.taxa_cambio
+                            ? item.fatura_total / item.taxa_cambio
+                            : item.fatura_total
+                        return val?.toLocaleString(getLocalCurrencyData(item).locale, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      })()}
                     </span>
                     <span className="text-xs font-medium text-blue-700">
                       {item.taxa_cambio
-                        ? `${getLocalCurrencyData(item).symbol} ${(item.fatura_total * item.taxa_cambio).toLocaleString(getLocalCurrencyData(item).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        ? `${getLocalCurrencyData(item).symbol} ${(() => {
+                            const isLocal = item.moeda === 'ARS' || item.moeda === 'BRL'
+                            const val = isLocal
+                              ? item.fatura_total
+                              : item.fatura_total * item.taxa_cambio
+                            return val?.toLocaleString(getLocalCurrencyData(item).locale, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          })()}`
                         : 'N/A'}
                     </span>
                   </div>
@@ -268,15 +287,31 @@ export function HistoricoList({
                   </TableCell>
                   <TableCell>{item.expand?.forma_pagamento_id?.nome || 'N/A'}</TableCell>
                   <TableCell className="font-medium text-gray-900">
-                    {item.moeda || 'USD'}{' '}
-                    {item.fatura_total?.toLocaleString(getLocalCurrencyData(item).locale, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    USD{' '}
+                    {(() => {
+                      const isLocal = item.moeda === 'ARS' || item.moeda === 'BRL'
+                      const val =
+                        isLocal && item.taxa_cambio
+                          ? item.fatura_total / item.taxa_cambio
+                          : item.fatura_total
+                      return val?.toLocaleString(getLocalCurrencyData(item).locale, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })
+                    })()}
                   </TableCell>
                   <TableCell className="font-medium text-blue-700">
                     {item.taxa_cambio
-                      ? `${getLocalCurrencyData(item).symbol} ${(item.fatura_total * item.taxa_cambio).toLocaleString(getLocalCurrencyData(item).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      ? `${getLocalCurrencyData(item).symbol} ${(() => {
+                          const isLocal = item.moeda === 'ARS' || item.moeda === 'BRL'
+                          const val = isLocal
+                            ? item.fatura_total
+                            : item.fatura_total * item.taxa_cambio
+                          return val?.toLocaleString(getLocalCurrencyData(item).locale, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })
+                        })()}`
                       : 'N/A'}
                   </TableCell>
                   <TableCell>
@@ -357,18 +392,34 @@ export function HistoricoList({
             <div>
               <strong>{t('history.table_invoice_usd')}:</strong>{' '}
               <span className="block mt-1 font-bold text-green-600">
-                {viewItem?.moeda || 'USD'}{' '}
-                {viewItem?.fatura_total?.toLocaleString(getLocalCurrencyData(viewItem).locale, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                USD{' '}
+                {(() => {
+                  const isLocal = viewItem?.moeda === 'ARS' || viewItem?.moeda === 'BRL'
+                  const val =
+                    isLocal && viewItem?.taxa_cambio
+                      ? viewItem.fatura_total / viewItem.taxa_cambio
+                      : viewItem?.fatura_total
+                  return val?.toLocaleString(getLocalCurrencyData(viewItem).locale, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })
+                })()}
               </span>
             </div>
             <div>
               <strong>{t('history.table_invoice_local')}:</strong>{' '}
               <span className="block mt-1 font-bold text-blue-600">
                 {viewItem?.taxa_cambio
-                  ? `${getLocalCurrencyData(viewItem).symbol} ${(viewItem.fatura_total * viewItem.taxa_cambio).toLocaleString(getLocalCurrencyData(viewItem).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  ? `${getLocalCurrencyData(viewItem).symbol} ${(() => {
+                      const isLocal = viewItem?.moeda === 'ARS' || viewItem?.moeda === 'BRL'
+                      const val = isLocal
+                        ? viewItem.fatura_total
+                        : viewItem.fatura_total * viewItem.taxa_cambio
+                      return val?.toLocaleString(getLocalCurrencyData(viewItem).locale, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })
+                    })()}`
                   : 'N/A'}
               </span>
             </div>
@@ -422,15 +473,39 @@ export function HistoricoList({
                     <TableCell>{cp.qtd_ate_75}</TableCell>
                     <TableCell>{cp.qtd_76_a_85}</TableCell>
                     <TableCell>
-                      {viewItem?.moeda || 'USD'}{' '}
-                      {cp.preco_total_produto.toLocaleString(
-                        getLocalCurrencyData(viewItem).locale,
-                        { minimumFractionDigits: 2, maximumFractionDigits: 2 },
-                      )}
+                      USD{' '}
+                      {(() => {
+                        const isLocal =
+                          cp.moeda === 'ARS' ||
+                          cp.moeda === 'BRL' ||
+                          viewItem?.moeda === 'ARS' ||
+                          viewItem?.moeda === 'BRL'
+                        const val =
+                          isLocal && viewItem?.taxa_cambio
+                            ? cp.preco_total_produto / viewItem.taxa_cambio
+                            : cp.preco_total_produto
+                        return val?.toLocaleString(getLocalCurrencyData(viewItem).locale, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      })()}
                     </TableCell>
                     <TableCell className="text-blue-700">
                       {viewItem?.taxa_cambio
-                        ? `${getLocalCurrencyData(viewItem).symbol} ${(cp.preco_total_produto * viewItem.taxa_cambio).toLocaleString(getLocalCurrencyData(viewItem).locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        ? `${getLocalCurrencyData(viewItem).symbol} ${(() => {
+                            const isLocal =
+                              cp.moeda === 'ARS' ||
+                              cp.moeda === 'BRL' ||
+                              viewItem?.moeda === 'ARS' ||
+                              viewItem?.moeda === 'BRL'
+                            const val = isLocal
+                              ? cp.preco_total_produto
+                              : cp.preco_total_produto * viewItem.taxa_cambio
+                            return val?.toLocaleString(getLocalCurrencyData(viewItem).locale, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          })()}`
                         : 'N/A'}
                     </TableCell>
                   </TableRow>

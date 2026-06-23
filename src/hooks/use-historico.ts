@@ -87,12 +87,14 @@ export function useHistorico() {
               qtd_ate_75: cp.qtd_ate_75,
               qtd_76_a_85: cp.qtd_76_a_85,
               preco_total_produto: cp.preco_total_produto,
+              moeda: cp.moeda,
               detalhes:
                 cp.expand?.cotacao_produto_detalhes_via_cotacao_produto_id?.map((det: any) => ({
                   destino_codigo: det.destino_codigo,
                   faixa_etaria: det.faixa_etaria,
                   preco_unitario_dia: det.preco_unitario_dia,
                   preco_total_faixa: det.preco_total_faixa,
+                  moeda: det.moeda,
                 })) || [],
             }
           }) || [],

@@ -82,6 +82,17 @@ routerAdd(
           cotProd.set('qtd_ate_75', p.qtd_ate_75)
           cotProd.set('qtd_76_a_85', p.qtd_76_a_85)
           cotProd.set('preco_total_produto', p.preco_total_produto)
+
+          let prodMoeda = p.moeda
+          if (!prodMoeda) {
+            try {
+              const productRec = txApp.findRecordById('produtos', p.produto_id)
+              const isArg = productRec.getString('pais') === 'Argentina'
+              const isBra = productRec.getString('pais') === 'Brasil'
+              prodMoeda = isArg ? 'ARS' : isBra ? 'BRL' : 'USD'
+            } catch (e) {}
+          }
+          if (prodMoeda) cotProd.set('moeda', prodMoeda)
           txApp.save(cotProd)
 
           if (Array.isArray(p.detalhes)) {
@@ -92,6 +103,7 @@ routerAdd(
               cotDet.set('faixa_etaria', d.faixa_etaria)
               cotDet.set('preco_unitario_dia', d.preco_unitario_dia)
               cotDet.set('preco_total_faixa', d.preco_total_faixa)
+              if (d.moeda || prodMoeda) cotDet.set('moeda', d.moeda || prodMoeda)
               txApp.save(cotDet)
             }
           }

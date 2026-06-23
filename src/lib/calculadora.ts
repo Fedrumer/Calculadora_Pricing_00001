@@ -48,7 +48,7 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
   const markup = input.markup || 0
   const isGross = comissao > 0
 
-  let moeda_calculada = 'USD'
+  let quoteMoeda = 'USD'
 
   const produtos_calculados = input.produtos.reduce<CotacaoState['produtos_calculados']>(
     (acc, produto) => {
@@ -56,13 +56,13 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
         const preco_net_base =
           produto.precos_base_por_forma_pagamento?.[input.forma_pagamento!] ?? 0
 
-        if (
-          produto.moedas_por_forma_pagamento &&
-          input.forma_pagamento &&
-          produto.moedas_por_forma_pagamento[input.forma_pagamento]
-        ) {
-          moeda_calculada = produto.moedas_por_forma_pagamento[input.forma_pagamento]
-        }
+        const isArgentina = produto.pais === 'Argentina'
+        const isBrasil = produto.pais === 'Brasil'
+        const prodMoeda = isArgentina ? 'ARS' : isBrasil ? 'BRL' : 'USD'
+
+        quoteMoeda = prodMoeda
+
+        const rate = input.taxas_cambio?.[prodMoeda] || 1
 
         const destinosKeys = Object.keys(produto.destinos || {})
         const destinoData =
@@ -79,6 +79,8 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
               de_76_a_85: { preco_unitario: 0, preco_total: 0, quantidade: qtd85 },
             },
             preco_total_produto: 0,
+            moeda: prodMoeda,
+            taxa_cambio: rate,
           })
           return acc
         }
@@ -111,7 +113,7 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
           const fator = faixaData.fator_multiplicador
 
           const juros = (input.taxa_juros || 0) / 100
-          const preco_dia = preco_bruto * (1 + agravo) * fator * (1 + juros)
+          const preco_dia = preco_bruto * (1 + agravo) * fator * (1 + juros) * rate
           const preco_faixa = preco_dia * diasParaEstaFaixa * qtd
 
           return {
@@ -131,6 +133,8 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
           nome: produto.nome,
           breakdown,
           preco_total_produto: breakdown.ate_75.preco_total + breakdown.de_76_a_85.preco_total,
+          moeda: prodMoeda,
+          taxa_cambio: rate,
         })
       } catch (err) {
         // Ignored for resilience
@@ -140,6 +144,8 @@ export function calcularCotacao(input: Partial<CalculoInput>): CotacaoState {
     },
     [],
   )
+
+  const moeda_calculada = produtos_calculados.length > 0 ? produtos_calculados[0].moeda : quoteMoeda
 
   const fatura_total = produtos_calculados.reduce((acc, p) => acc + p.preco_total_produto, 0)
   const total_viajantes = qtd75 + qtd85
