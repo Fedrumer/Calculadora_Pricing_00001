@@ -22,7 +22,10 @@ export function CotacaoForm({ className }: { className?: string }) {
   const { user } = useAuth()
 
   const formasPagamentoFiltradas = useMemo(() => {
-    return (formasPagamento || []).filter((fp: any) => !fp.pais || fp.pais === user?.pais)
+    return (formasPagamento || []).filter(
+      (fp: any) =>
+        !fp.pais || fp.pais === 'Todos' || user?.pais === 'Todos' || fp.pais === user?.pais,
+    )
   }, [formasPagamento, user?.pais])
 
   const fpSelecionada = formasPagamentoFiltradas.find(

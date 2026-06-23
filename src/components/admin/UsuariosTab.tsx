@@ -44,7 +44,7 @@ export function UsuariosTab() {
     email: '',
     password: '',
     role: 'COMERCIAL',
-    pais: 'Brasil',
+    pais: 'Todos',
     ativo: true,
   })
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({})
@@ -90,7 +90,7 @@ export function UsuariosTab() {
         email: '',
         password: '',
         role: 'COMERCIAL',
-        pais: 'Brasil',
+        pais: 'Todos',
         ativo: true,
       })
       fetchUsers()
@@ -207,6 +207,7 @@ export function UsuariosTab() {
                     <SelectContent>
                       <SelectItem value="Brasil">Brasil</SelectItem>
                       <SelectItem value="Argentina">Argentina</SelectItem>
+                      <SelectItem value="Todos">Todos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

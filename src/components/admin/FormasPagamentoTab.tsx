@@ -36,7 +36,7 @@ export function FormasPagamentoTab() {
 
   const handleOpen = (item?: any) => {
     setForm(
-      item || { codigo: '', nome: '', ativo: true, pais: 'Brasil', taxa_juros: 0, max_parcelas: 1 },
+      item || { codigo: '', nome: '', ativo: true, pais: 'Todos', taxa_juros: 0, max_parcelas: 1 },
     )
     setOpen(true)
   }
@@ -125,6 +125,7 @@ export function FormasPagamentoTab() {
                 <SelectContent>
                   <SelectItem value="Brasil">Brasil</SelectItem>
                   <SelectItem value="Argentina">Argentina</SelectItem>
+                  <SelectItem value="Todos">Todos</SelectItem>
                 </SelectContent>
               </Select>
             </div>
