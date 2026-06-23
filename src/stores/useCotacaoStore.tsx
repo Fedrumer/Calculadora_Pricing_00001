@@ -10,7 +10,14 @@ interface CotacaoContextType {
   carregandoProdutos: boolean
   erroCarregamento: boolean
   recarregarDados: () => void
-  formasPagamento: Array<{ id: string; codigo: string; nome: string }>
+  formasPagamento: Array<{
+    id: string
+    codigo: string
+    nome: string
+    pais?: string
+    taxa_juros?: number
+    max_parcelas?: number
+  }>
 }
 
 const defaultInput: Partial<CalculoInput> = {
@@ -30,7 +37,14 @@ export function CotacaoProvider({ children }: { children: ReactNode }) {
   const [carregandoProdutos, setCarregandoProdutos] = useState(true)
   const [erroCarregamento, setErroCarregamento] = useState(false)
   const [formasPagamento, setFormasPagamento] = useState<
-    Array<{ id: string; codigo: string; nome: string }>
+    Array<{
+      id: string
+      codigo: string
+      nome: string
+      pais?: string
+      taxa_juros?: number
+      max_parcelas?: number
+    }>
   >([])
   const resultado = useCalculadoraCotacao(input)
 

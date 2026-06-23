@@ -30,6 +30,7 @@
   "form.travelers": "4. Viajantes (Idade)",
   "form.up_to_75": "Até 75 anos",
   "form.76_to_85": "76 a 85 anos",
+  "form.no_payment_methods": "Nenhuma forma de pagamento disponível para",
   "grid.error_loading": "Ocorreu um erro ao carregar os produtos",
   "grid.try_again": "Tentar novamente",
   "grid.no_products": "Nenhum produto encontrado com os filtros atuais.",

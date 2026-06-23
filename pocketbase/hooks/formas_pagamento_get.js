@@ -19,6 +19,9 @@ routerAdd(
       id: f.id,
       codigo: f.getString('codigo'),
       nome: f.getString('nome'),
+      pais: f.getString('pais'),
+      taxa_juros: f.getFloat('taxa_juros'),
+      max_parcelas: f.getInt('max_parcelas'),
     }))
     return e.json(200, result)
   },

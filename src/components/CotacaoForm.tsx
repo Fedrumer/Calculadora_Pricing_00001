@@ -120,32 +120,38 @@ export function CotacaoForm({ className }: { className?: string }) {
         <Label className="text-blue-50 font-medium text-xs uppercase tracking-wider">
           {t('form.payment')}
         </Label>
-        <ToggleGroup
-          type="single"
-          className="flex flex-wrap justify-start gap-1 pt-1"
-          value={input.forma_pagamento}
-          onValueChange={(v) => {
-            if (v) {
-              const fp = formasPagamentoFiltradas.find((f: any) => f.codigo === v)
-              setInput((p) => ({
-                ...p,
-                forma_pagamento: v as FormaPagamentoId,
-                taxa_juros: fp?.taxa_juros || 0,
-                parcelas: 1,
-              }))
-            }
-          }}
-        >
-          {formasPagamentoFiltradas.map((fp: any) => (
-            <ToggleGroupItem
-              key={fp.codigo}
-              value={fp.codigo}
-              className="text-xs h-8 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
-            >
-              {fp.nome}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        {formasPagamentoFiltradas.length === 0 ? (
+          <p className="text-xs text-blue-200 pt-2 italic">
+            {t('form.no_payment_methods')} {user?.pais || 'sua região'}
+          </p>
+        ) : (
+          <ToggleGroup
+            type="single"
+            className="flex flex-wrap justify-start gap-1 pt-1"
+            value={input.forma_pagamento}
+            onValueChange={(v) => {
+              if (v) {
+                const fp = formasPagamentoFiltradas.find((f: any) => f.codigo === v)
+                setInput((p) => ({
+                  ...p,
+                  forma_pagamento: v as FormaPagamentoId,
+                  taxa_juros: fp?.taxa_juros || 0,
+                  parcelas: 1,
+                }))
+              }
+            }}
+          >
+            {formasPagamentoFiltradas.map((fp: any) => (
+              <ToggleGroupItem
+                key={fp.codigo}
+                value={fp.codigo}
+                className="text-xs h-8 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
+              >
+                {fp.nome}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
 
         {fpSelecionada && fpSelecionada.max_parcelas > 1 && (
           <div className="mt-3">
