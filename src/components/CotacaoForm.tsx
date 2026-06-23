@@ -37,10 +37,21 @@ export function CotacaoForm({ className }: { className?: string }) {
     (fp: any) => fp.codigo === input.forma_pagamento,
   )
 
+  const tagsDisponiveis = useMemo(() => {
+    const tags = new Set<string>()
+    ;(input.produtos || []).forEach((p) => {
+      p.tags?.forEach((t) => tags.add(t))
+      if (p.categoria) tags.add(p.categoria)
+    })
+    return Array.from(tags).sort()
+  }, [input.produtos])
+
   const produtosDisponiveis = useMemo(() => {
     let prods = input.produtos || []
-    if (input.filtro_tag) {
-      prods = prods.filter((p) => p.tags?.includes(input.filtro_tag!))
+    if (input.filtro_tag && input.filtro_tag.length > 0) {
+      prods = prods.filter((p) =>
+        input.filtro_tag!.some((tag) => p.tags?.includes(tag) || p.categoria === tag),
+      )
     }
     const uniqueNames = Array.from(new Set(prods.map((p) => p.nome)))
     return uniqueNames.sort()
@@ -63,17 +74,24 @@ export function CotacaoForm({ className }: { className?: string }) {
           {t('form.filters')}
         </Label>
         <ToggleGroup
-          type="single"
+          type="multiple"
           className="flex flex-wrap justify-start gap-1 pt-1"
-          value={input.filtro_tag || 'TODOS'}
-          onValueChange={(v) => {
-            if (v) {
+          value={!input.filtro_tag || input.filtro_tag.length === 0 ? ['TODOS'] : input.filtro_tag}
+          onValueChange={(v: string[]) => {
+            if (v.includes('TODOS') && input.filtro_tag && input.filtro_tag.length > 0) {
               setInput((p) => ({
                 ...p,
-                filtro_tag: v === 'TODOS' ? undefined : v,
-                filtro_nome: [], // reseta nome ao mudar tag
+                filtro_tag: [],
+                filtro_nome: [],
               }))
+              return
             }
+            const newTags = v.filter((x) => x !== 'TODOS')
+            setInput((p) => ({
+              ...p,
+              filtro_tag: newTags,
+              filtro_nome: [],
+            }))
           }}
         >
           <ToggleGroupItem
@@ -82,24 +100,15 @@ export function CotacaoForm({ className }: { className?: string }) {
           >
             {t('form.show_all')}
           </ToggleGroupItem>
-          <ToggleGroupItem
-            value="B2B"
-            className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
-          >
-            {t('form.b2b')}
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="B2C"
-            className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
-          >
-            {t('form.b2c')}
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="Acordo"
-            className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
-          >
-            {t('form.agreement')}
-          </ToggleGroupItem>
+          {tagsDisponiveis.map((tag) => (
+            <ToggleGroupItem
+              key={tag}
+              value={tag}
+              className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white text-blue-200 bg-blue-950/40 border border-transparent data-[state=on]:border-blue-400 hover:bg-blue-800"
+            >
+              {tag}
+            </ToggleGroupItem>
+          ))}
         </ToggleGroup>
 
         <div className="pt-2">

@@ -29,7 +29,7 @@ const RequireAuth = ({ children }: { children: React.ReactNode }) => {
 const ForcePasswordChangeGuard = ({ children }: { children: React.ReactNode }) => {
   const { user, isAutenticado, status } = useAuth()
   if (status === 'loading') return null
-  if (isAutenticado() && user?.forcar_troca_senha) {
+  if (isAutenticado() && user?.forcar_troca_senha === true) {
     return <Navigate to="/perfil" replace />
   }
   return <>{children}</>

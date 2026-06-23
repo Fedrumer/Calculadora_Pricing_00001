@@ -74,11 +74,11 @@ export default function Index() {
 
   const produtosFiltrados = (input.produtos || []).filter((p) => {
     let match = true
-    if (input.filtro_tag) {
-      match = match && !!p.tags?.includes(input.filtro_tag)
+    if (input.filtro_tag && input.filtro_tag.length > 0) {
+      match = match && input.filtro_tag.some((tag) => p.tags?.includes(tag) || p.categoria === tag)
     }
-    if (input.filtro_nome) {
-      match = match && p.nome === input.filtro_nome
+    if (input.filtro_nome && input.filtro_nome.length > 0) {
+      match = match && input.filtro_nome.includes(p.nome)
     }
     return match
   })
