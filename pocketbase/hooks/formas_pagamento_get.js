@@ -14,7 +14,12 @@ routerAdd(
     rl.set('endpoint', '/backend/v1/formas-pagamento')
     $app.saveNoValidate(rl)
 
-    const formas = $app.findRecordsByFilter('formas_pagamento', 'ativo = true', 'nome', 1000, 0)
+    const userPais = e.auth?.getString('pais') || ''
+    let filterStr = 'ativo = true'
+    if (userPais && userPais !== 'Todos') {
+      filterStr += ` && (pais = '' || pais = 'Todos' || pais = '${userPais}')`
+    }
+    const formas = $app.findRecordsByFilter('formas_pagamento', filterStr, 'nome', 1000, 0)
     const result = formas.map((f) => ({
       id: f.id,
       codigo: f.getString('codigo'),

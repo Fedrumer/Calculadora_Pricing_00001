@@ -72,8 +72,8 @@ export function GridProdutos({
             ? p.tags?.includes(storeInput.filtro_tag)
             : true
         const matchNome =
-          storeInput.filtro_nome && storeInput.filtro_nome !== 'TODOS'
-            ? p.nome === storeInput.filtro_nome
+          storeInput.filtro_nome && storeInput.filtro_nome.length > 0
+            ? storeInput.filtro_nome.includes(p.nome)
             : true
         return matchTag && matchNome
       })

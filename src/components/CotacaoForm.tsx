@@ -2,13 +2,18 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { DatePicker } from '@/components/ui/date-picker'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Check, ChevronsUpDown } from 'lucide-react'
 import useCotacaoStore from '@/stores/useCotacaoStore'
 import { FormaPagamentoId } from '@/types/cotacao'
 import { cn } from '@/lib/utils'
@@ -66,7 +71,7 @@ export function CotacaoForm({ className }: { className?: string }) {
               setInput((p) => ({
                 ...p,
                 filtro_tag: v === 'TODOS' ? undefined : v,
-                filtro_nome: undefined, // reseta nome ao mudar tag
+                filtro_nome: [], // reseta nome ao mudar tag
               }))
             }
           }}
@@ -98,24 +103,103 @@ export function CotacaoForm({ className }: { className?: string }) {
         </ToggleGroup>
 
         <div className="pt-2">
-          <Select
-            value={input.filtro_nome || 'TODOS'}
-            onValueChange={(v) =>
-              setInput((p) => ({ ...p, filtro_nome: v === 'TODOS' ? undefined : v }))
-            }
-          >
-            <SelectTrigger className="w-full h-9 bg-white text-slate-900 border-white/20 shadow-sm focus-visible:ring-blue-400">
-              <SelectValue placeholder={t('form.filter_placeholder')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="TODOS">{t('form.all_products')}</SelectItem>
-              {produtosDisponiveis.map((nome) => (
-                <SelectItem key={nome} value={nome}>
-                  {nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                className="w-full justify-between h-9 bg-white text-slate-900 border-white/20 shadow-sm focus-visible:ring-blue-400 font-normal hover:bg-white/90"
+              >
+                <div className="flex gap-1 items-center overflow-hidden flex-1">
+                  {!input.filtro_nome || input.filtro_nome.length === 0 ? (
+                    <span className="truncate">{t('form.filter_placeholder')}</span>
+                  ) : (
+                    <>
+                      <Badge
+                        variant="secondary"
+                        className="rounded-sm px-1.5 font-normal h-5 shrink-0 bg-blue-100 text-blue-900 hover:bg-blue-100 border-blue-200"
+                      >
+                        {input.filtro_nome.length} {t('form.items_selected')}
+                      </Badge>
+                      <span className="truncate text-xs text-muted-foreground ml-1 hidden sm:inline">
+                        {input.filtro_nome.join(', ')}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="start">
+              <Command>
+                <CommandInput placeholder={t('form.search_product')} className="h-9" />
+                <CommandList>
+                  <CommandEmpty>{t('form.no_products_found')}</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      onSelect={() => {
+                        setInput((p) => ({ ...p, filtro_nome: [] }))
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <div
+                        className={cn(
+                          'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                          !input.filtro_nome || input.filtro_nome.length === 0
+                            ? 'bg-primary text-primary-foreground'
+                            : 'opacity-50 [&_svg]:invisible',
+                        )}
+                      >
+                        <Check className="h-3 w-3" />
+                      </div>
+                      <span
+                        className={
+                          !input.filtro_nome || input.filtro_nome.length === 0 ? 'font-bold' : ''
+                        }
+                      >
+                        {t('form.all_products')}
+                      </span>
+                    </CommandItem>
+
+                    {produtosDisponiveis.map((nome) => {
+                      const isSelected = input.filtro_nome?.includes(nome) ?? false
+                      return (
+                        <CommandItem
+                          key={nome}
+                          onSelect={() => {
+                            setInput((p) => {
+                              const current = p.filtro_nome || []
+                              if (isSelected) {
+                                return {
+                                  ...p,
+                                  filtro_nome: current.filter((n) => n !== nome),
+                                }
+                              } else {
+                                return { ...p, filtro_nome: [...current, nome] }
+                              }
+                            })
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <div
+                            className={cn(
+                              'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                              isSelected
+                                ? 'bg-primary text-primary-foreground'
+                                : 'opacity-50 [&_svg]:invisible',
+                            )}
+                          >
+                            <Check className="h-3 w-3" />
+                          </div>
+                          <span>{nome}</span>
+                        </CommandItem>
+                      )
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
