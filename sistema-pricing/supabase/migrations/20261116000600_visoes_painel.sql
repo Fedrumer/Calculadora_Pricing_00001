@@ -216,10 +216,10 @@ begin
     'tempoEmissao', (
       select jsonb_build_object(
         'cotacoes', count(*),
-        'medianaSegundos', round((percentile_cont(0.5) within group (order by extract(epoch from (c.emitida_em - c.criado_em))))::numeric, 0))
+        'medianaSegundos', round((percentile_cont(0.5) within group (order by extract(epoch from (c.emitida_em - c.iniciada_em))))::numeric, 0))
       from public.cotacoes c
       join public.cotacao_versoes v on v.id = c.versao_atual_id
-      where c.org_id = v_org and c.emitida_em is not null and v.veredito = 'dentro' and c.origem = 'web'
+      where c.org_id = v_org and c.emitida_em is not null and c.iniciada_em is not null and v.veredito = 'dentro' and c.origem = 'web'
         and c.emitida_em > now() - interval '30 days'),
     'foraDaPoliticaSemAprovacao', (
       select count(*)

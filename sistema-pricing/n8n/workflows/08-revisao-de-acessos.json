@@ -1,0 +1,153 @@
+{
+  "name": "Pricing 08: revisão trimestral de acessos",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Revisão de acessos\nO administrador recebe a lista de usuários ativos, com último acesso, para confirmar ou desativar.",
+        "height": 200,
+        "width": 420
+      },
+      "id": "15cae6d3-807b-43ea-8fda-e903b9fc8dff",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "monthsInterval": 3,
+              "triggerAtDayOfMonth": 1,
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "0de2b41e-dad8-4587-8838-8281102cfc14",
+      "name": "A cada 3 meses",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/revisao-acessos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "5f3525e0-5741-4409-b4f6-a5f75383f13e",
+      "name": "Usuários ativos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst linhas = d.usuarios.map((u) => `${u.nome} <${u.email}> | ${u.status} | ${(u.papeis ?? []).map((p) => p.papel).join(', ')} | último acesso: ${u.ultimo_acesso ? new Date(u.ultimo_acesso).toLocaleDateString('pt-BR') : 'nunca'}`);\nreturn [{ json: { para: d.para.join(','), texto: 'Revisão trimestral de acessos. Confirme quem continua precisando de acesso e desative os demais em Usuários e canais.\\n\\n' + linhas.join('\\n') } }];"
+      },
+      "id": "d9a0800d-690f-4b67-b725-44ccfb5ae40e",
+      "name": "Montar lista",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.PRICING_EMAIL_REMETENTE }}",
+        "toEmail": "={{ $json.para }}",
+        "subject": "Revisão trimestral de acessos ao sistema de pricing",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {}
+      },
+      "id": "8bc8bef5-4b01-42f8-a3d7-240f8b4bf743",
+      "name": "Enviar ao administrador",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        200,
+        0
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE",
+          "name": "SMTP do cliente"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "A cada 3 meses": {
+      "main": [
+        [
+          {
+            "node": "Usuários ativos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usuários ativos": {
+      "main": [
+        [
+          {
+            "node": "Montar lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar lista": {
+      "main": [
+        [
+          {
+            "node": "Enviar ao administrador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "pricing"
+    }
+  ]
+}

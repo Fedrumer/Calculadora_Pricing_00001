@@ -100,7 +100,8 @@ create table public.convites (
   -- só o hash do token de uso único é guardado
   token_hash text not null unique,
   expira_em timestamptz not null,
-  convidado_por uuid not null references public.usuarios (id),
+  -- nulo só no convite do primeiro administrador, criado na instalação
+  convidado_por uuid references public.usuarios (id),
   aceito_em timestamptz,
   aceito_por uuid references public.usuarios (id),
   cancelado_em timestamptz,

@@ -21,6 +21,7 @@ export default function NovaCotacao() {
   const [lendo, setLendo] = useState(false);
   const [rascunhoIA, setRascunhoIA] = useState<{ pedido: Partial<Pedido>; duvidas: string[]; chave: number } | null>(null);
   const acao = useAcao();
+  const [abertaEm] = useState(() => new Date().toISOString());
   const pedirDocumento = s.organizacao.config?.formulario?.pedirDocumento !== false;
   const comIA = s.organizacao.config?.modulos?.ia !== false && !s.externo;
 
@@ -54,7 +55,7 @@ export default function NovaCotacao() {
       if (depois === 'pedir' && motivo.trim().length < 10) throw new Error('Explique o motivo da exceção em pelo menos 10 caracteres.');
       const c = editando
         ? await api('POST', `/cotacoes/${editando.id}/versoes`, { pedido: corpoPedido() }, { idempotente: true })
-        : await api('POST', '/cotacoes', { pedido: corpoPedido(), cliente: { nome: cliente.nome.trim(), email: cliente.email.trim() || null, documento: cliente.documento.trim() || null } }, { idempotente: true });
+        : await api('POST', '/cotacoes', { pedido: corpoPedido(), cliente: { nome: cliente.nome.trim(), email: cliente.email.trim() || null, documento: cliente.documento.trim() || null }, iniciadaEm: abertaEm }, { idempotente: true });
       if (depois === 'emitir') await api('POST', `/cotacoes/${c.id}/emitir`, undefined, { idempotente: true });
       if (depois === 'pedir') await api('POST', `/cotacoes/${c.id}/aprovacao`, { acao: 'pedir', motivo: motivo.trim() }, { idempotente: true });
       router.push(`/cotacoes/${c.id}`);

@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { type Rota, validar } from '../app.ts';
 import { hoje } from '../contexto.ts';
+import { invalido } from '../erros.ts';
 import { vigiar } from './ia.ts';
+import { lerCsvTabela } from './regras.ts';
 
 // Rotas do n8n. Ele usa uma credencial própria (segredo de automação) e só
 // alcança o que está aqui: avisa, importa, relata e copia; nunca calcula preço.
@@ -104,10 +106,23 @@ export const rotasAutomacao: Rota[] = [
     auth: 'automacao',
     async handler(r) {
       const limite = Math.min(Number(r.url.searchParams.get('limite') ?? 100) || 100, 500);
-      const eventos = await r.tx`
+      const eventos = await r.tx<{ id: number; tipo: string; carga: Record<string, any>; criado_em: Date; tentativas: number }[]>`
         select id, tipo, carga, criado_em, tentativas from public.eventos_saida
         where org_id = ${r.ator.orgId} and processado_em is null and tentativas < 10 order by id limit ${limite}`;
-      return { corpo: { eventos } };
+      // quem deve ser avisado de cada evento é resolvido aqui: o n8n só entrega
+      const pessoas = await r.tx<{ id: string; email: string; limite_alcada: number | null; aprova: boolean; gestor: boolean }[]>`
+        select u.id, u.email, u.limite_alcada,
+               exists (select 1 from public.usuario_papel up where up.usuario_id = u.id and up.papel in ('aprovador', 'gestor_pricing')) as aprova,
+               exists (select 1 from public.usuario_papel up where up.usuario_id = u.id and up.papel in ('gestor_pricing', 'admin')) as gestor
+        from public.usuarios u where u.org_id = ${r.ator.orgId} and u.status = 'ativo'`;
+      const para = (e: { tipo: string; carga: Record<string, any> }): string[] => {
+        if (e.tipo === 'convite.criado') return [e.carga.email];
+        if (e.tipo === 'aprovacao.pendente') return pessoas.filter((p) => p.aprova && (p.limite_alcada ?? 0) >= Number(e.carga.nivelAlcada)).map((p) => p.email);
+        if (e.tipo === 'aprovacao.decidida') return pessoas.filter((p) => p.id === e.carga.solicitanteId).map((p) => p.email);
+        if (e.tipo === 'regra.publicada') return pessoas.filter((p) => p.gestor).map((p) => p.email);
+        return [];
+      };
+      return { corpo: { urlAplicacao: r.deps.config.urlAplicacao, eventos: eventos.map((e) => ({ ...e, para: para(e) })) } };
     },
   },
   {
@@ -122,6 +137,43 @@ export const rotasAutomacao: Rota[] = [
         await r.tx`update public.eventos_saida set processado_em = now() where org_id = ${r.ator.orgId} and id in ${r.tx(d.ids)}`;
       }
       return { corpo: { confirmados: d.ids.length } };
+    },
+  },
+  {
+    // Importação de tabela de preço por planilha: valida e carrega em rascunho.
+    // Quem publica é sempre uma pessoa, pela tela, depois de simular o impacto.
+    metodo: 'POST',
+    caminho: '/automacao/importar-tabela',
+    auth: 'automacao',
+    async handler(r) {
+      const { tx, ator } = r;
+      const d = validar(z.object({ csv: z.string().min(10).max(1_500_000), nome: z.string().trim().min(2).max(120).optional() }), r.corpo);
+      const { itens, erros } = lerCsvTabela(d.csv);
+      if (erros.length > 0) throw invalido('A planilha tem linhas inválidas; nada foi carregado.', erros.slice(0, 100), 'PLANILHA_INVALIDA');
+      const produtos = new Map((await tx<{ id: string; codigo: string }[]>`select id, codigo from public.produtos where org_id = ${ator.orgId}`).map((p) => [p.codigo, p.id]));
+      const componentes = new Map((await tx<{ id: string; produto_id: string; codigo: string }[]>`select id, produto_id, codigo from public.componentes where org_id = ${ator.orgId}`).map((c) => [`${c.produto_id}/${c.codigo}`, c.id]));
+      const problemas: string[] = [];
+      const linhas = itens.map((i, n) => {
+        const produtoId = produtos.get(i.produto);
+        const componenteId = i.componente ? componentes.get(`${produtoId}/${i.componente}`) : null;
+        if (!produtoId) problemas.push(`Linha ${n + 2}: produto "${i.produto}" não existe.`);
+        else if (i.componente && !componenteId) problemas.push(`Linha ${n + 2}: componente "${i.componente}" não existe.`);
+        return { org_id: ator.orgId, produto_id: produtoId ?? '', componente_id: componenteId ?? null, dimensoes: tx.json(i.dimensoes), preco_base: i.precoBase };
+      });
+      if (problemas.length > 0) throw invalido('A planilha tem linhas inválidas; nada foi carregado.', problemas.slice(0, 100), 'PLANILHA_INVALIDA');
+      const [vigente] = await tx<{ id: string | null }[]>`select app.tabela_vigente(${ator.orgId}, ${hoje(r.deps)}::date) as id`;
+      const [nova] = await tx<{ id: string; versao: number }[]>`
+        insert into public.tabelas_preco (org_id, nome, versao, origem)
+        select ${ator.orgId}, ${d.nome ?? 'Tabela importada'}, coalesce(max(versao), 0) + 1, 'planilha' from public.tabelas_preco where org_id = ${ator.orgId}
+        returning id, versao`;
+      for (let i = 0; i < linhas.length; i += 500) await tx`insert into public.itens_tabela ${tx(linhas.slice(i, i + 500).map((l) => ({ ...l, tabela_id: nova!.id })) as never)}`;
+      if (vigente?.id) {
+        await tx`insert into public.fatores (org_id, tabela_id, codigo, nome, dimensao, valor, tipo, ajuste, produto_id, grupo)
+                 select org_id, ${nova!.id}, codigo, nome, dimensao, valor, tipo, ajuste, produto_id, grupo from public.fatores where tabela_id = ${vigente.id}`;
+      }
+      await r.auditar('regra.planilha_importada', 'tabelas_preco', nova!.id, { novo: { itens: linhas.length, versao: nova!.versao } });
+      await r.emitir('regra.rascunho_importado', { id: nova!.id, versao: nova!.versao, itens: linhas.length });
+      return { status: 201, corpo: { id: nova!.id, versao: nova!.versao, status: 'rascunho', importados: linhas.length } };
     },
   },
   {

@@ -1,0 +1,60 @@
+# Sistema de Pricing
+
+Base do sistema de cotação com a política comercial embutida, construída a partir do documento
+**Arquitetura do Sistema de Pricing**. Uma instalação isolada por cliente, gerada deste mesmo código;
+o que muda de um cliente para outro é configuração.
+
+Esta pasta é independente do restante do repositório e não reaproveita nada dele: motor e esquema
+foram escritos do zero. Para levá-la a um repositório próprio com o histórico de autoria:
+`git subtree split --prefix=sistema-pricing -b sistema-pricing`.
+
+## O que tem aqui
+
+| Pasta | Conteúdo |
+| --- | --- |
+| `supabase/functions/_shared/motor` | Motor de cálculo: TypeScript puro, sem banco, relógio ou rede. Casos de referência como teste. |
+| `supabase/migrations` | Banco: quatro domínios, `org_id` em tudo, RLS negando por padrão, versões imutáveis, auditoria só de inserção. |
+| `supabase/functions/api` | API de negócio (Edge Function): a única que chama o motor e grava. |
+| `supabase/functions/_shared/extensoes` | Ponto de extensão para regra de cálculo que não cabe nas etapas padrão. |
+| `apps/web` | Aplicação web em Next.js. Não contém regra de preço. |
+| `n8n/workflows` | Oito fluxos: avisos, lembretes, rotina diária, importação, relatório, cópia externa, saúde, revisão de acessos. |
+| `config/clientes` | Uma configuração por cliente. Vêm duas empresas fictícias: assistência e distribuidor B2B. |
+| `ferramentas` | Instalação por configuração, dados sintéticos, ambiente local sem Docker, cópia externa, teste de restauração, exportação de saída, roteiro de demonstração automatizado. |
+| `docs` | Operação, segurança, adaptação por cliente e o que ainda falta decidir. |
+
+## Rodar na sua máquina
+
+Precisa de Node 22, pnpm e um Postgres 16 local (sem Docker).
+
+```bash
+pnpm install
+# uma vez: usuário e permissão no Postgres local
+psql -U postgres -c "create role pricing superuser login password 'pricing'"
+
+pnpm test                 # motor (33) + API e RLS (65)
+pnpm local                # banco, emulador do Supabase, empresa fictícia, 12 meses de dados, cópia e restauração
+# em outro terminal, com as três variáveis NEXT_PUBLIC_* que o comando acima imprime em apps/web/.env.local:
+pnpm dev:web              # http://localhost:3000
+node ferramentas/e2e/roteiro.mjs ./capturas   # o roteiro de 20 minutos no navegador, com 30 conferências
+```
+
+`pnpm local -- --config demo-distribuidor.json` sobe a segunda empresa fictícia, com outra ordem de
+etapas, outras dimensões e outros impostos, sem mudar uma linha de código.
+
+O emulador local (`ferramentas/src/local/emulador.ts`) cobre só o que a aplicação usa do Supabase.
+Ele aplica o RLS de verdade, mas não substitui a homologação em um projeto Supabase real.
+
+## Instalar para um cliente
+
+1. Crie o projeto Supabase **na conta do cliente**, região São Paulo, e o repositório do cliente.
+2. `supabase link` e `supabase db push` (migrações).
+3. Defina os segredos da função (`.env.exemplo`) e publique: `supabase functions deploy api --no-verify-jwt`.
+4. Escreva `config/clientes/<cliente>.json` a partir do diagnóstico, com os casos de referência calculados à mão.
+5. `SUPABASE_DB_URL=... URL_APLICACAO=... pnpm instalar -- --config <cliente>.json --admin fulano@cliente.com.br`
+   A instalação só grava se a configuração for coerente e 100% dos casos de referência baterem.
+   O comando imprime o convite do primeiro administrador; os demais usuários entram por convite, pela tela.
+6. Publique `apps/web` na hospedagem do cliente com `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+7. Importe os fluxos de `n8n/workflows`, configure as credenciais e ative.
+8. Rode a primeira cópia externa e o primeiro teste de restauração (`docs/operacao.md`).
+
+Detalhes em `docs/`.

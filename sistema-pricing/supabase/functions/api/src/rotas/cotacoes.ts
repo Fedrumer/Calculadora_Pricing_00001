@@ -28,6 +28,8 @@ const esquemaCriar = z.object({
   unidade: z.string().max(60).nullish(),
   observacao: z.string().max(1000).nullish(),
   origem: z.enum(['web', 'contingencia', 'email']).optional(),
+  /** Quando o formulário foi aberto, para medir o tempo até a emissão. */
+  iniciadaEm: z.string().datetime().optional(),
 });
 
 export interface Calculo {
@@ -161,12 +163,15 @@ export async function criarCotacao(r: Requisicao, dados: z.infer<typeof esquemaC
   exigirQuemCota(r);
   const c = await calcularPedido(r, dados.pedido);
   const unidadeId = await unidadeDoAtor(r, dados.unidade);
+  // só vale um início plausível: no passado e há menos de 12 horas
+  const abertura = dados.iniciadaEm ? new Date(dados.iniciadaEm) : null;
+  const iniciada = abertura && abertura <= deps.agora() && deps.agora().getTime() - abertura.getTime() < 12 * 3600_000 ? abertura : null;
   const [{ numero } = { numero: 0 }] = await tx<{ numero: number }[]>`select app.proximo_numero(${ator.orgId}, 'cotacao')::int as numero`;
   const [cot] = await tx<{ id: string }[]>`
-    insert into public.cotacoes (org_id, numero, cliente_nome, cliente_email, canal_id, unidade_id, dono_id, chave_api_id, produto_id, origem, observacao)
+    insert into public.cotacoes (org_id, numero, cliente_nome, cliente_email, canal_id, unidade_id, dono_id, chave_api_id, produto_id, origem, observacao, iniciada_em)
     values (${ator.orgId}, ${numero}, ${dados.cliente.nome}, ${dados.cliente.email ?? null}, ${c.canalId}, ${unidadeId},
       ${ator.tipo === 'usuario' ? ator.id : null}, ${ator.chave?.id ?? null}, ${c.carregadas.produtoIds[c.pedido.produto]!},
-      ${origem}, ${dados.observacao ?? null})
+      ${origem}, ${dados.observacao ?? null}, ${iniciada})
     returning id`;
   const id = cot!.id;
   const documento = soDigitos(dados.cliente.documento ?? '');
@@ -438,7 +443,7 @@ export const rotasCanal: Rota[] = [
     caminho: '/v1/cotacoes',
     auth: 'chave',
     async handler(r) {
-      const dados = validar(esquemaCriar.omit({ origem: true, unidade: true }).extend({ emitir: z.boolean().optional() }), r.corpo);
+      const dados = validar(esquemaCriar.omit({ origem: true, unidade: true, iniciadaEm: true }).extend({ emitir: z.boolean().optional() }), r.corpo);
       const nova = await criarCotacao(r, dados, 'api');
       let status = 'rascunho';
       let validade: string | null = null;

@@ -1,0 +1,104 @@
+{
+  "name": "Pricing 04: importação de tabela por planilha",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Importação de tabela\nRecebe o CSV (colunas: produto; componente; dimensões; preco_base), valida tudo e carrega em RASCUNHO. Nada é publicado aqui: o gestor simula o impacto e publica pela tela.\n\nTroque o gatilho por uma pasta do Drive ou SFTP se preferir.",
+        "height": 200,
+        "width": 420
+      },
+      "id": "9d26cea2-7af9-4ac9-8701-29612dc64000",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pricing-importar-tabela",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "6149065d-0b57-4ba2-9962-ed3d9d5dd37c",
+      "name": "Receber planilha (CSV)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -460,
+        0
+      ],
+      "webhookId": "850b3223-ade8-44e7-8c0e-ef9e4613118d",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: quem pode enviar planilha"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/importar-tabela",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"csv\": $json.body.csv, \"nome\": $json.body.nome } }}"
+      },
+      "id": "2bbfb08b-bd23-4d4f-a9f5-900c1bb0b030",
+      "name": "Validar e carregar em rascunho",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Receber planilha (CSV)": {
+      "main": [
+        [
+          {
+            "node": "Validar e carregar em rascunho",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "pricing"
+    }
+  ]
+}

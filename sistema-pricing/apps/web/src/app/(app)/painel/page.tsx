@@ -170,7 +170,7 @@ export default function Painel() {
                     <td>abaixo de 1 segundo</td>
                   </tr>
                   <tr>
-                    <td>Tempo para emitir uma cotação dentro da política (mediana)</td>
+                    <td>Tempo entre abrir o formulário e emitir, dentro da política (mediana)</td>
                     <td>{prova?.tempoEmissao?.medianaSegundos != null ? `${numero(prova.tempoEmissao.medianaSegundos)} s em ${numero(prova.tempoEmissao.cotacoes)} cotações` : 'sem emissões no período'}</td>
                     <td>abaixo de 2 minutos</td>
                   </tr>

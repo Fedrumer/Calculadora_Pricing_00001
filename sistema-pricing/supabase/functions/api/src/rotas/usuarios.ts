@@ -133,7 +133,7 @@ export const rotasUsuarios: Rota[] = [
         z.object({ token: z.string().min(20).max(200), nome: z.string().trim().min(2).max(120), senha: senhaForte, aceiteTermos: z.literal(true, { errorMap: () => ({ message: 'É preciso aceitar os termos de uso e de confidencialidade.' }) }) }),
         r.corpo,
       );
-      const [c] = await tx<{ id: string; org_id: string; email: string; papel: Papel; unidade_id: string | null; canal_id: string | null; limite_alcada: number | null; convidado_por: string }[]>`
+      const [c] = await tx<{ id: string; org_id: string; email: string; papel: Papel; unidade_id: string | null; canal_id: string | null; limite_alcada: number | null; convidado_por: string | null }[]>`
         select id, org_id, email, papel, unidade_id, canal_id, limite_alcada, convidado_por from public.convites
         where token_hash = ${await sha256(d.token)} and aceito_em is null and cancelado_em is null and expira_em > now()
         for update`;

@@ -32,6 +32,8 @@ create table public.cotacoes (
   versao_atual int not null default 0,
   versao_atual_id uuid,
   validade date,
+  -- quando o formulário foi aberto (cronômetro entre abertura e emissão)
+  iniciada_em timestamptz,
   emitida_em timestamptz,
   encerrada_em timestamptz,
   desfecho_motivo text,

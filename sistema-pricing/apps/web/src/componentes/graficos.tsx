@@ -9,7 +9,7 @@ export interface Ponto {
 
 const L = 640;
 const A = 220;
-const M = { topo: 16, direita: 12, base: 26, esquerda: 52 };
+const M = { topo: 16, direita: 12, base: 26, esquerda: 68 };
 
 function escala(pontos: Ponto[], incluirZero: boolean) {
   const valores = pontos.map((p) => p.valor).filter((v): v is number => v !== null);

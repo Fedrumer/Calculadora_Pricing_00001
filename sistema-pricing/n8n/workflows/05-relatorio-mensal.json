@@ -1,0 +1,153 @@
+{
+  "name": "Pricing 05: relatório mensal",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Relatório mensal\nMargem, desconto e conversão do mês, comparados à linha de base do diagnóstico (organizacoes.config.linhaDeBase). A análise de padrões por IA entra só se a chave estiver configurada.",
+        "height": 200,
+        "width": 420
+      },
+      "id": "f4ed3f78-5f8c-41f5-8a92-4ca476590db8",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "monthsInterval": 1,
+              "triggerAtDayOfMonth": 1,
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "cbab108e-a0ff-46c5-afe5-997d531c0898",
+      "name": "Dia 1 às 7h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/relatorio-mensal?mes={{ $now.minus({ months: 1 }).toFormat(\"yyyy-MM\") }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "41bd2758-cbc6-4560-a803-d469eb29530d",
+      "name": "Indicadores do mês anterior",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json; const r = d.indicadores.resumo; const b = d.linhaDeBase ?? {};\nconst f = (v, s = '') => v === null || v === undefined ? 'sem dados' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + s;\nconst comp = (atual, base, s) => base === undefined ? '' : ` (linha de base do diagnóstico: ${f(base, s)})`;\nconst linhas = [\n  `Relatório mensal de pricing: ${d.organizacao}, ${d.mes}`, '',\n  `Cotações emitidas: ${f(r.emitidas)}; fechadas: ${f(r.aceitas)}`,\n  `Conversão: ${f(r.conversaoPct, '%')}${comp(r.conversaoPct, b.conversaoPct, '%')}`,\n  `Margem das fechadas: ${f(r.margemPct, '%')}${comp(r.margemPct, b.margemPct, '%')}`,\n  `Desconto médio: ${f(r.descontoMedioPct, '%')}${comp(r.descontoMedioPct, b.descontoMedioPct, '%')}`,\n  `Cotações com exceção: ${f(r.excecaoPct, '%')}`,\n  `Tempo médio de aprovação: ${f(d.indicadores.aprovacoes.horasAteDecisao, ' h')}`, '',\n  'Margem por canal:', ...d.indicadores.porCanal.map((c) => `  ${c.canal}: ${f(c.margemPct, '%')} em ${c.aceitas} fechadas`), '',\n  'Motivos de perda:', ...d.indicadores.motivosPerda.map((m) => `  ${m.motivo}: ${m.quantidade}`),\n  ...(d.anomalias ? ['', 'Padrões a conferir (análise assistida por IA, sem valor de decisão):', d.anomalias] : []),\n];\nreturn [{ json: { para: d.para.join(','), assunto: `Pricing: relatório de ${d.mes}`, texto: linhas.join('\\n') } }];"
+      },
+      "id": "66fba634-a03d-4573-b92d-9d7eb606e5eb",
+      "name": "Montar relatório",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.PRICING_EMAIL_REMETENTE }}",
+        "toEmail": "={{ $json.para }}",
+        "subject": "={{ $json.assunto }}",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {}
+      },
+      "id": "6e000308-0cbb-4f8d-a1fb-264e78ac9f0d",
+      "name": "Enviar relatório",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        200,
+        0
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE",
+          "name": "SMTP do cliente"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dia 1 às 7h": {
+      "main": [
+        [
+          {
+            "node": "Indicadores do mês anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Indicadores do mês anterior": {
+      "main": [
+        [
+          {
+            "node": "Montar relatório",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar relatório": {
+      "main": [
+        [
+          {
+            "node": "Enviar relatório",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "pricing"
+    }
+  ]
+}

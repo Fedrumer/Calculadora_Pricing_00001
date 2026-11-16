@@ -1,0 +1,243 @@
+{
+  "name": "Pricing 01: avisos (convites, aprovações, publicações)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Avisos\nLê a caixa de saída da API e entrega por e-mail. Se o n8n parar, a cotação continua funcionando e os eventos esperam na fila.\n\nVariáveis: PRICING_API_URL, PRICING_EMAIL_REMETENTE. Credenciais: cabeçalho x-automacao-segredo e SMTP.",
+        "height": 200,
+        "width": 420
+      },
+      "id": "8eccf6a1-86ea-490d-a4cc-85ae1dd8e399",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "800e18d1-625c-4336-a77c-c5dd0eaf9a34",
+      "name": "A cada 2 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/eventos?limite=50",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "8a8da74c-933c-4185-bc6f-ac5a9c2e87ba",
+      "name": "Buscar eventos pendentes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Monta um e-mail por evento. Quem recebe já vem resolvido pela API (campo \"para\").\nconst base = $input.first().json.urlAplicacao;\nconst saida = [];\nfor (const e of $input.first().json.eventos ?? []) {\n  const c = e.carga;\n  let assunto = null, texto = null;\n  if (e.tipo === 'convite.criado') { assunto = 'Seu acesso ao sistema de cotação'; texto = `Olá${c.nome ? ', ' + c.nome : ''}.\\n\\n${c.convidadoPor} convidou você para o sistema de cotação.\\nCrie seu acesso por este link de uso único (vale 72 horas):\\n${c.link}\\n\\nSe você não esperava este convite, ignore esta mensagem.`; }\n  else if (e.tipo === 'aprovacao.pendente') { assunto = `Exceção aguardando sua decisão: cotação ${c.numero}`; texto = `A cotação ${c.numero} está fora da política e pede aprovação de alçada nível ${c.nivelAlcada}.\\nPrazo: ${new Date(c.prazo).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}\\n\\n${base}/cotacoes/${c.cotacaoId}`; }\n  else if (e.tipo === 'aprovacao.decidida') { assunto = `Cotação ${c.numero}: exceção ${c.decisao}`; texto = `O pedido de exceção da cotação ${c.numero} foi ${c.decisao === 'aprovada' ? 'aprovado. Você já pode emitir a proposta.' : 'recusado. Veja o motivo e, se quiser, crie uma nova versão.'}\\n\\n${base}/cotacoes/${c.cotacaoId}`; }\n  else if (e.tipo === 'regra.publicada') { assunto = `Nova versão de ${c.tipo === 'tabela' ? 'tabela de preço' : 'política comercial'} publicada`; texto = `A versão ${c.versao} passa a valer em ${c.vigenciaInicio}.\\nA planilha de contingência foi regerada: baixe a nova em ${base}/regras`; }\n  saida.push({ json: { id: e.id, enviar: !!assunto && e.para.length > 0, para: e.para.join(','), assunto, texto } });\n}\nreturn saida;"
+      },
+      "id": "fed7cbd8-020b-4d78-a55a-5eec3dabaaa5",
+      "name": "Montar mensagens",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "459eea7d-a722-4f68-9619-2243e9c4a5df",
+              "leftValue": "={{ $json.enviar }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e2d685de-3d3d-4caf-835f-89d5d04a6439",
+      "name": "Tem destinatário?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.PRICING_EMAIL_REMETENTE }}",
+        "toEmail": "={{ $json.para }}",
+        "subject": "={{ $json.assunto }}",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {}
+      },
+      "id": "cb2a808c-c41e-4a27-8022-5bce8abf37c6",
+      "name": "Enviar e-mail",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        420,
+        -100
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE",
+          "name": "SMTP do cliente"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/eventos/confirmar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"ids\": [ $('Montar mensagens').item.json.id ] } }}"
+      },
+      "id": "799e92f8-d76a-45ce-94ed-b1b098786775",
+      "name": "Confirmar entrega",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "A cada 2 minutos": {
+      "main": [
+        [
+          {
+            "node": "Buscar eventos pendentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar eventos pendentes": {
+      "main": [
+        [
+          {
+            "node": "Montar mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar mensagens": {
+      "main": [
+        [
+          {
+            "node": "Tem destinatário?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem destinatário?": {
+      "main": [
+        [
+          {
+            "node": "Enviar e-mail",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirmar entrega",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar e-mail": {
+      "main": [
+        [
+          {
+            "node": "Confirmar entrega",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "pricing"
+    }
+  ]
+}

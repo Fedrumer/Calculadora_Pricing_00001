@@ -57,6 +57,7 @@ function Casca({ children }: { children: ReactNode }) {
         <span>{identidade.nomeFantasia ?? s.organizacao.nome}</span>
       </div>
       <nav className={`lateral ${aberta ? 'aberta' : ''}`} aria-label="Navegação principal">
+        <div className="lateral-conteudo">
         <div className="marca">
           {identidade.nomeFantasia ?? s.organizacao.nome}
           <small>Sistema de Pricing</small>
@@ -75,6 +76,7 @@ function Casca({ children }: { children: ReactNode }) {
           <button type="button" onClick={() => void s.sair()}>
             Sair
           </button>
+        </div>
         </div>
       </nav>
       <main className="principal" onClick={() => aberta && setAberta(false)}>

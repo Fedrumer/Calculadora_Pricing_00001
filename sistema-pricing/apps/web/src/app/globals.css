@@ -31,7 +31,8 @@ code { background: #eef1f4; padding: 1px 5px; border-radius: 4px; font-size: 0.8
 .num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 
 .casca { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
-.lateral { background: var(--primaria); color: #fff; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.lateral { background: var(--primaria); color: #fff; }
+.lateral-conteudo { padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .lateral .marca { font-weight: 700; font-size: 1.05rem; padding: 4px 10px 14px; line-height: 1.2; }
 .lateral .marca small { display: block; color: rgba(255, 255, 255, 0.7); font-weight: 400; margin-top: 2px; }
 .lateral a { color: rgba(255, 255, 255, 0.86); text-decoration: none; padding: 9px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
@@ -48,6 +49,7 @@ code { background: #eef1f4; padding: 1px 5px; border-radius: 4px; font-size: 0.8
 
 .cartao { background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio); padding: 18px; box-shadow: var(--sombra); margin-bottom: 16px; }
 .grade { display: grid; gap: 16px; }
+.grade > *, .duas > * { min-width: 0; }
 .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -136,9 +138,10 @@ td input, td select { min-height: 32px; padding: 4px 8px; }
   .casca { grid-template-columns: 1fr; }
   .lateral { position: fixed; inset: 0 30% 0 0; z-index: 40; transform: translateX(-105%); transition: transform 0.2s; height: auto; }
   .lateral.aberta { transform: none; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.4); }
+  .lateral-conteudo { height: 100%; }
   .topo-movel { display: flex; align-items: center; gap: 12px; background: var(--primaria); color: #fff; padding: 10px 14px; position: sticky; top: 0; z-index: 30; font-weight: 600; }
   .topo-movel button { background: none; border: 1px solid rgba(255, 255, 255, 0.5); color: #fff; border-radius: 6px; padding: 6px 10px; font: inherit; }
-  .principal { padding: 16px 14px 60px; }
+  .principal { padding: 16px 14px 60px; overflow-x: hidden; }
   .g2, .g3, .g4, .duas { grid-template-columns: 1fr; }
   .g4.manter-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .preco-final { font-size: 1.7rem; }

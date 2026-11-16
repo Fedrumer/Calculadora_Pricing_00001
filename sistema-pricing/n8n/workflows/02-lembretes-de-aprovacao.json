@@ -1,0 +1,155 @@
+{
+  "name": "Pricing 02: lembrete e escalonamento de aprovações",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Lembretes\nPassou do prazo: lembra quem tem alçada. Passou do dobro: sobe um nível. O substituto designado recebe no lugar de quem está ausente.\n\nVariável extra: PRICING_APP_URL.",
+        "height": 200,
+        "width": 420
+      },
+      "id": "c38f2bcd-2537-4a13-afa5-f2e9935ccab8",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "2eeb3c16-9d2c-4fb6-8e26-482dc6b8b104",
+      "name": "A cada hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/lembretes-aprovacao",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {} }}"
+      },
+      "id": "7a40c1be-3acc-4caa-acf1-c7a8ac1be3b2",
+      "name": "Aprovações fora do prazo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "avisos",
+        "options": {}
+      },
+      "id": "eacf5d92-591d-4556-a180-aeca53f76971",
+      "name": "Um item por aviso",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.PRICING_EMAIL_REMETENTE }}",
+        "toEmail": "={{ $json.para.join(\",\") }}",
+        "subject": "={{ ($json.tipo === \"escalonamento\" ? \"ESCALONADA: \" : \"Lembrete: \") + \"cotação \" + $json.numero + \" aguarda decisão\" }}",
+        "emailFormat": "text",
+        "text": "={{ \"A exceção da cotação \" + $json.numero + \" (alçada nível \" + $json.nivelAlcada + \", pedida por \" + $json.solicitante + \") passou do prazo de resposta.\\n\\n\" + $env.PRICING_APP_URL + \"/cotacoes/\" + $json.cotacaoId }}",
+        "options": {}
+      },
+      "id": "457fb6f2-a898-452c-8137-218d665b4993",
+      "name": "Avisar aprovadores",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        200,
+        0
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE",
+          "name": "SMTP do cliente"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "A cada hora": {
+      "main": [
+        [
+          {
+            "node": "Aprovações fora do prazo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aprovações fora do prazo": {
+      "main": [
+        [
+          {
+            "node": "Um item por aviso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Um item por aviso": {
+      "main": [
+        [
+          {
+            "node": "Avisar aprovadores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "pricing"
+    }
+  ]
+}
