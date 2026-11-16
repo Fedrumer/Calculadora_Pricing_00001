@@ -8,16 +8,31 @@
   contra o emulador local.
 - Cópia externa e teste de restauração executados de verdade no ambiente local.
 
+## Homologação em um projeto Supabase real (16/11/2026)
+
+Feita no projeto `Calculadora_Pricing_00001` (São Paulo), pelo conector, sem a CLI:
+
+- As migrações aplicaram sem ajuste em Postgres 17 (checksum conferido contra o repositório).
+- A API rodou como Edge Function (Deno), publicada por um carregador que importa `publicacao/api.empacotada.js`
+  de um commit fixo. Para um cliente, publique pelo fluxo normal (ver `publicacao/LEIA-ME.md`).
+- A empresa fictícia, os 10 usuários (pelo Supabase Auth) e 749 cotações sintéticas foram instalados pela rota `/demo/repor`.
+- 15 conferências contra os serviços reais passaram: login, leitura pelo PostgREST com RLS (vendedor vê só as
+  próprias cotações e nenhum parâmetro de custo; visitante sem sessão é negado; escrita direta é negada),
+  simulação em cerca de 220 ms, emissão com PDF gravado no Storage e baixado por link assinado, canal sem custo
+  nem margem, e perfil com segundo fator obrigatório barrado em sessão de um fator, na API e no banco.
+- O verificador de segurança do Supabase apontou só itens intencionais (visões e funções com dono, tabelas sem
+  política por serem inalcançáveis pelo navegador) e a proteção contra senha vazada, que se liga no painel.
+
 ## Não verificado
 
-- **Nada foi publicado em um projeto Supabase real.** A API foi exercitada em Node; o empacotamento como
-  Edge Function (Deno) e o comportamento do Supabase Auth, do PostgREST e do Storage reais precisam de uma
-  rodada de homologação. O emulador local cobre só o subconjunto que a aplicação usa.
+- **A aplicação web contra o Supabase real**, incluindo o cadastro do segundo fator (TOTP) pelo Supabase Auth.
+  O roteiro no navegador rodou só contra o emulador local.
+- A publicação pela CLI (`supabase functions deploy`) e pelo fluxo de `.github-modelo/ci.yml`.
 - Os fluxos do n8n foram escritos no formato de exportação e não foram importados nem executados em um n8n.
 - A camada de IA foi testada com um serviço simulado; nenhuma chamada real à API da Anthropic foi feita.
 - Envio de e-mail (convites, avisos) depende do n8n; a tela mostra o link do convite para o administrador copiar.
-- SSO (SAML) não foi configurado contra provedor de teste.
-- A redefinição de senha por e-mail depende do Supabase Auth real.
+- SSO (SAML) e a redefinição de senha por e-mail.
+- Cópia externa e teste de restauração contra o projeto real (rodaram só no ambiente local).
 
 ## Decisões do documento que continuam em aberto
 
