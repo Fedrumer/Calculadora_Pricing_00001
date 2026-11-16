@@ -112,13 +112,13 @@ function ehDono(ator: Ator, c: LinhaCotacao): boolean {
   return c.dono_id !== null && c.dono_id === ator.id;
 }
 
-/** Busca a cotação (travando a linha) e confere o escopo do ator. */
-export async function obterCotacao(r: Requisicao, id: string, modo: 'ler' | 'dono' | 'dono_ou_gestor'): Promise<LinhaCotacao> {
+/** Busca a cotação (travando a linha quando vai alterá-la) e confere o escopo do ator. */
+export async function obterCotacao(r: Requisicao, id: string, modo: 'ler' | 'dono' | 'dono_ou_gestor', travar = modo !== 'ler'): Promise<LinhaCotacao> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw naoEncontrado('Cotação não encontrada.');
   const [c] = await r.tx<LinhaCotacao[]>`
     select id, org_id, numero, status, dono_id, chave_api_id, canal_id, produto_id, versao_atual, versao_atual_id,
            validade::text, cliente_nome, cliente_email, criado_em
-    from public.cotacoes where id = ${id} and org_id = ${r.ator.orgId} for update`;
+    from public.cotacoes where id = ${id} and org_id = ${r.ator.orgId} ${travar ? r.tx`for update` : r.tx``}`;
   if (!c) throw naoEncontrado('Cotação não encontrada.');
   const dono = ehDono(r.ator, c);
   const gestor = r.ator.tipo === 'usuario' && temPapel(r.ator, 'gestor_pricing');
@@ -350,7 +350,7 @@ export const rotasCotacoes: Rota[] = [
       }
 
       if (!temPapel(ator, 'aprovador', 'gestor_pricing')) throw proibido('Seu perfil não aprova exceções.');
-      const c = await obterCotacao(r, r.params.id!, 'ler');
+      const c = await obterCotacao(r, r.params.id!, 'ler', true);
       const [a] = await tx<{ id: string; solicitante_id: string | null; nivel_alcada: number; versao_id: string }[]>`
         select id, solicitante_id, nivel_alcada, versao_id from public.aprovacoes
         where cotacao_id = ${c.id} and status = 'pendente' for update`;

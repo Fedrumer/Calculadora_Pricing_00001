@@ -191,7 +191,7 @@ export function criarApp(deps: Deps, rotas: Rota[]) {
     } catch (e) {
       const erro = traduzirErro(e);
       status = erro.status;
-      if (status >= 500) console.error(`[api] ${rotulo}`, e);
+      if (erro.codigo === 'ERRO_INTERNO') console.error(`[api] ${rotulo}`, e);
       resposta = json(status, { erro: { codigo: erro.codigo, mensagem: erro.message, detalhes: erro.detalhes } }, cabCors);
     }
 
