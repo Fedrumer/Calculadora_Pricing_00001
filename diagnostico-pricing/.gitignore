@@ -1,0 +1,8 @@
+node_modules
+.next
+out
+.local
+*.tsbuildinfo
+apps/web/.env.local
+/capturas
+next-env.d.ts

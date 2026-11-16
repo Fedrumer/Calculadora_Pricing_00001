@@ -1,0 +1,111 @@
+# Diagnóstico de Pricing
+
+MVP (Fase 1) do sistema descrito no documento **Arquitetura — Sistema de Avaliação e Diagnóstico de Pricing**:
+recebe os dados brutos de um cliente e devolve onde a margem vaza, quais ajustes fazer e quanto cada ajuste
+vale em reais por ano.
+
+Esta pasta é independente de `sistema-pricing` (o sistema de cotação): nada é compartilhado em tempo de execução.
+
+## O que a Fase 1 entrega
+
+| Etapa do documento | O que está pronto |
+| --- | --- |
+| Abertura | Cliente e diagnóstico (setor, período, preços líquidos ou não de impostos) |
+| Entrada de variáveis | Carga de CSV pela tela, com de-para de colunas sugerido e confirmado pelo consultor. Seis blocos: transações e custos (obrigatórios), cadastro de produtos, cadastro de clientes, custos de servir e descontos fora da fatura |
+| Validação | 12 checagens, linhas inválidas fora do cálculo e nota de qualidade por bloco |
+| Cálculo das métricas | Três dimensões: realização de preço, margem e dispersão (10 métricas), por total e por canal, segmento, categoria, região, vendedor, produto e conta |
+| Pontuação e achados | Nota de 0 a 100 por faixa de limiar do catálogo; nota geral parcial (3 de 7 dimensões); 6 regras de achado com evidência e valor exposto |
+| Simulação de ajustes | Duas alavancas (contenção de descontos e reajuste seletivo), em cascata, nos cenários conservador, base e agressivo, com premissas editáveis |
+| Publicação | Versão publicada imutável; o cliente vê só o que foi publicado |
+| Dashboard | Resumo executivo, realização de preço (cascata), oportunidades e dados e premissas |
+
+Ficam para a Fase 2, como no roadmap: as outras quatro dimensões, as outras cinco alavancas, elasticidade
+estimada, narrativa por IA, simulador com controles deslizantes e exportação em PDF. Veja `docs/pendencias.md`.
+
+## Como está organizado
+
+| Pasta | Conteúdo |
+| --- | --- |
+| `supabase/migrations` | Tudo o que roda em produção fora da tela: esquema, catálogo versão 1, motor de cálculo em SQL, funções da aplicação e RLS |
+| `apps/web` | Aplicação web (Next.js). Chama funções do banco e exibe o resultado; não calcula métrica |
+| `ferramentas` | Ambiente local sem Docker (emulador do Supabase), empresa fictícia, testes do motor e do isolamento, roteiro no navegador |
+| `docs` | Pendências, o que foi verificado e capturas das telas |
+
+Decisões do documento (seção 12) adotadas: piloto em venda de produtos com preço de lista (distribuição,
+indústria, varejo B2B); o consultor insere os dados; aplicação web própria; cálculo em SQL no Postgres;
+Supabase gerenciado.
+
+## Como o cálculo funciona
+
+- **Pocket price** = preço de lista − descontos em fatura − descontos fora da fatura − custos de servir.
+  **Vazamento** = (lista − pocket) ÷ lista.
+- **Descontos fora da fatura** entram por conta e mês e são rateados pelas vendas daquela conta no mês.
+- **Custo de servir** é um percentual do faturado; a regra mais específica vence (conta, depois canal, depois geral).
+- **Custo do produto** segue a vigência: vale o custo mais recente com início até a data da venda.
+- **Nota** de cada métrica: 100 no limiar bom, 0 no limiar ruim, linear entre os dois. A nota da dimensão é a
+  média ponderada; a nota geral usa os pesos do setor, redistribuídos entre as dimensões calculadas.
+- **Ganho de uma alavanca**, por par conta e produto:
+  `[(P + ΔP − C) × Q × (1 + ε × ΔP ÷ P) − (P − C) × Q] × captura`, com `C` incluindo custo de servir e descontos
+  fora da fatura (o ganho sai em pocket margin) e elasticidade `ε` negativa. O ajuste só entra onde o ganho é positivo.
+- **Sem dupla contagem**: as alavancas rodam na ordem do catálogo, cada uma sobre a base já ajustada pela anterior.
+- **Ganho anual**: o resultado do período é levado a 12 meses (365 ÷ dias com venda).
+- **Métrica indisponível** não é estimada: margem exige custo para pelo menos 50% da receita; banda de preço
+  exige produto vendido a 5 contas ou mais; correlação exige 10 contas.
+
+Métricas, limiares, regras, alavancas, pesos e premissas padrão estão nas tabelas de catálogo
+(`20261117000200_catalogo.sql`). Adaptar a outro setor é inserir uma nova versão do catálogo.
+
+## Rodar na sua máquina
+
+Precisa de Node 22, pnpm e um Postgres 16 local.
+
+```bash
+pnpm install
+```
+
+```bash
+psql -U postgres -c "create role pricing superuser login password 'pricing'"
+```
+
+```bash
+pnpm test
+```
+
+```bash
+pnpm local
+```
+
+`pnpm local` recria o banco `diagnostico_local`, instala a empresa fictícia já diagnosticada e publicada e
+imprime as duas variáveis `NEXT_PUBLIC_*` para gravar em `apps/web/.env.local` (acrescente
+`NEXT_PUBLIC_AMBIENTE=demonstracao` para ver os acessos de demonstração na tela de entrada). Em outro terminal:
+
+```bash
+pnpm dev:web
+```
+
+A aplicação abre em `http://localhost:3100`. Os arquivos da empresa fictícia ficam em `.local/arquivos-demo`,
+no formato em que um cliente os enviaria, para testar a carga pela tela.
+
+Roteiro de ponta a ponta no navegador (26 conferências), com o ambiente local e a aplicação no ar:
+
+```bash
+node ferramentas/e2e/roteiro.mjs ./capturas
+```
+
+## Instalar em um projeto Supabase
+
+1. Crie o projeto (região São Paulo) e aplique as migrações: `supabase link` e `supabase db push`.
+2. Crie o primeiro usuário em Authentication e registre-o como consultor, uma única vez, pelo editor SQL:
+   `insert into public.usuarios (id, nome, email, perfil) select id, 'Seu nome', email, 'consultor' from auth.users where email = 'voce@empresa.com.br';`
+3. Publique `apps/web` com `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   (`DIAGNOSTICO_ESTATICO=1 pnpm build:web` gera a pasta `out/` para hospedagem estática).
+4. Para dar acesso a alguém do cliente: crie o usuário em Authentication e chame
+   `select public.definir_usuario('pessoa@cliente.com.br', 'Nome', 'cliente_leitor', '<id do cliente>');` logado como consultor.
+
+## Segurança
+
+- RLS em todas as tabelas, negando por padrão. O navegador só lê; toda escrita passa por função que confere o perfil.
+- Perfis do cliente não leem a base, o resultado bruto nem o catálogo: recebem só o painel publicado da própria empresa.
+- Visitante sem sessão não executa nenhuma função.
+- Carga, validação, cálculo, alteração de premissa e publicação ficam em `auditoria`, com usuário e horário.
+- Cada cálculo guarda a versão do catálogo usada.
