@@ -1,0 +1,22 @@
+{
+  "name": "sistema-pricing",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Base do sistema de cotação com política comercial embutida (uma instalação por cliente)",
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "pnpm -r --workspace-concurrency=1 test",
+    "test:motor": "pnpm --filter @pricing/motor test",
+    "test:api": "pnpm --filter @pricing/api test",
+    "typecheck": "pnpm -r typecheck",
+    "dev:web": "pnpm --filter @pricing/web dev",
+    "build:web": "pnpm --filter @pricing/web build",
+    "banco:local": "pnpm --filter @pricing/ferramentas banco:local",
+    "instalar": "pnpm --filter @pricing/ferramentas instalar",
+    "demo:dados": "pnpm --filter @pricing/ferramentas demo:dados",
+    "demo:repor": "pnpm --filter @pricing/ferramentas demo:repor",
+    "local": "pnpm --filter @pricing/ferramentas local"
+  }
+}

@@ -1,0 +1,253 @@
+{
+  "$comentario": "Empresa fictícia do ambiente de demonstração. Todos os nomes, produtos, preços e políticas são inventados.",
+  "organizacao": {
+    "nome": "Aurora Assistências (fictícia)",
+    "slug": "aurora",
+    "config": {
+      "identidade": {
+        "nomeFantasia": "Aurora Assistências",
+        "corPrimaria": "#0f4c5c",
+        "corDestaque": "#e36414",
+        "rodapeProposta": "Aurora Assistências é uma empresa fictícia criada para demonstração. Proposta sem valor comercial."
+      },
+      "prazos": { "conviteHoras": 72, "inatividadeDias": 90, "sessaoHoras": 12 },
+      "modulos": { "portalCanal": true, "api": true, "ia": true, "sso": false, "conviteCanal": true },
+      "retencao": { "cotacoesAceitasAnos": 5, "cotacoesPerdidasMeses": 24, "auditoriaAnos": 5 },
+      "formulario": { "rotuloClienteFinal": "Cliente final", "pedirDocumento": true }
+    }
+  },
+  "unidades": [
+    { "codigo": "matriz", "nome": "Matriz São Paulo" },
+    { "codigo": "sul", "nome": "Filial Sul" }
+  ],
+  "canais": [
+    { "codigo": "corretora-alfa", "nome": "Corretora Alfa", "tipo": "corretora", "permiteConvite": true },
+    { "codigo": "agencia-beta", "nome": "Agência Beta", "tipo": "agencia", "permiteConvite": false },
+    { "codigo": "revenda-gama", "nome": "Revenda Gama", "tipo": "revenda", "permiteConvite": false }
+  ],
+  "dimensoes": [
+    { "codigo": "plano", "nome": "Plano", "tipo": "categoria", "valores": [
+      { "codigo": "essencial", "nome": "Essencial" },
+      { "codigo": "completo", "nome": "Completo" },
+      { "codigo": "premium", "nome": "Premium" } ] },
+    { "codigo": "regiao", "nome": "Região", "tipo": "categoria", "valores": [
+      { "codigo": "sudeste", "nome": "Sudeste" },
+      { "codigo": "sul", "nome": "Sul" },
+      { "codigo": "centro_oeste", "nome": "Centro-Oeste" },
+      { "codigo": "nordeste", "nome": "Nordeste" },
+      { "codigo": "norte", "nome": "Norte" } ] },
+    { "codigo": "idade_veiculo", "nome": "Idade do veículo (anos)", "tipo": "faixa", "faixas": [
+      { "codigo": "0-5", "nome": "Até 5 anos", "min": 0, "max": 5 },
+      { "codigo": "6-10", "nome": "6 a 10 anos", "min": 6, "max": 10 },
+      { "codigo": "11-20", "nome": "11 a 20 anos", "min": 11, "max": 20 } ] },
+    { "codigo": "unidades", "nome": "Quantidade de itens cobertos", "tipo": "faixa", "faixas": [
+      { "codigo": "1-9", "nome": "1 a 9", "min": 1, "max": 9 },
+      { "codigo": "10-49", "nome": "10 a 49", "min": 10, "max": 49 },
+      { "codigo": "50+", "nome": "50 ou mais", "min": 50, "max": null } ] },
+    { "codigo": "meses", "nome": "Vigência (meses)", "tipo": "faixa", "faixas": [
+      { "codigo": "1-11", "nome": "Até 11 meses", "min": 1, "max": 11 },
+      { "codigo": "12-23", "nome": "12 a 23 meses", "min": 12, "max": 23 },
+      { "codigo": "24+", "nome": "24 meses ou mais", "min": 24, "max": 60 } ] }
+  ],
+  "produtos": [
+    { "codigo": "AUTO24", "nome": "Assistência Auto 24h", "descricao": "Guincho, socorro mecânico e chaveiro para veículos leves.", "ativo": true,
+      "dimensoes": ["plano", "regiao", "idade_veiculo"], "multiplicadores": ["unidades", "meses"],
+      "componentes": [
+        { "codigo": "base", "nome": "Cobertura base", "obrigatorio": true, "ativo": true },
+        { "codigo": "carro_reserva", "nome": "Carro reserva", "obrigatorio": false, "ativo": true },
+        { "codigo": "vidros", "nome": "Vidros e faróis", "obrigatorio": false, "ativo": true } ] },
+    { "codigo": "RESID", "nome": "Assistência Residencial", "descricao": "Encanador, eletricista e chaveiro para residências.", "ativo": true,
+      "dimensoes": ["plano", "regiao"], "multiplicadores": ["unidades", "meses"],
+      "componentes": [
+        { "codigo": "base", "nome": "Cobertura base", "obrigatorio": true, "ativo": true },
+        { "codigo": "eletro", "nome": "Reparo de eletrodomésticos", "obrigatorio": false, "ativo": true } ] },
+    { "codigo": "PET", "nome": "Assistência Pet", "descricao": "Consulta de emergência e transporte veterinário.", "ativo": true,
+      "dimensoes": ["plano", "regiao"], "multiplicadores": ["unidades", "meses"],
+      "componentes": [] }
+  ],
+  "tabela": {
+    "nome": "Tabela 2025/2026",
+    "moeda": "BRL",
+    "vigenciaInicio": "2025-11-01",
+    "itens": [
+      { "produto": "AUTO24", "componente": "base", "dimensoes": { "plano": "essencial" }, "precoBase": 19.90 },
+      { "produto": "AUTO24", "componente": "base", "dimensoes": { "plano": "completo" }, "precoBase": 34.90 },
+      { "produto": "AUTO24", "componente": "base", "dimensoes": { "plano": "premium" }, "precoBase": 54.90 },
+      { "produto": "AUTO24", "componente": "carro_reserva", "dimensoes": {}, "precoBase": 9.90 },
+      { "produto": "AUTO24", "componente": "carro_reserva", "dimensoes": { "plano": "premium" }, "precoBase": 7.90 },
+      { "produto": "AUTO24", "componente": "vidros", "dimensoes": {}, "precoBase": 6.50 },
+      { "produto": "RESID", "componente": "base", "dimensoes": { "plano": "essencial" }, "precoBase": 12.90 },
+      { "produto": "RESID", "componente": "base", "dimensoes": { "plano": "completo" }, "precoBase": 22.90 },
+      { "produto": "RESID", "componente": "base", "dimensoes": { "plano": "premium" }, "precoBase": 39.90 },
+      { "produto": "RESID", "componente": "eletro", "dimensoes": {}, "precoBase": 7.90 },
+      { "produto": "PET", "componente": null, "dimensoes": { "plano": "essencial" }, "precoBase": 24.90 },
+      { "produto": "PET", "componente": null, "dimensoes": { "plano": "completo" }, "precoBase": 44.90 },
+      { "produto": "PET", "componente": null, "dimensoes": { "plano": "premium" }, "precoBase": 69.90 }
+    ],
+    "fatores": [
+      { "codigo": "reg-sul", "nome": "Região Sul", "dimensao": "regiao", "valor": "sul", "tipo": "percentual", "ajuste": -3, "grupo": "regiao" },
+      { "codigo": "reg-co", "nome": "Região Centro-Oeste", "dimensao": "regiao", "valor": "centro_oeste", "tipo": "percentual", "ajuste": 4, "grupo": "regiao" },
+      { "codigo": "reg-ne", "nome": "Região Nordeste", "dimensao": "regiao", "valor": "nordeste", "tipo": "percentual", "ajuste": 6, "grupo": "regiao" },
+      { "codigo": "reg-no", "nome": "Região Norte", "dimensao": "regiao", "valor": "norte", "tipo": "percentual", "ajuste": 12, "grupo": "regiao" },
+      { "codigo": "idade-6-10", "nome": "Veículo de 6 a 10 anos", "dimensao": "idade_veiculo", "valor": "6-10", "tipo": "percentual", "ajuste": 8, "produto": "AUTO24", "grupo": "risco" },
+      { "codigo": "idade-11-20", "nome": "Veículo de 11 a 20 anos", "dimensao": "idade_veiculo", "valor": "11-20", "tipo": "percentual", "ajuste": 18, "produto": "AUTO24", "grupo": "risco" },
+      { "codigo": "vol-10-49", "nome": "Volume de 10 a 49 itens", "dimensao": "unidades", "valor": "10-49", "tipo": "percentual", "ajuste": -5, "grupo": "volume" },
+      { "codigo": "vol-50", "nome": "Volume de 50 ou mais itens", "dimensao": "unidades", "valor": "50+", "tipo": "percentual", "ajuste": -10, "grupo": "volume" },
+      { "codigo": "prazo-12", "nome": "Vigência de 12 a 23 meses", "dimensao": "meses", "valor": "12-23", "tipo": "percentual", "ajuste": -4, "grupo": "prazo" },
+      { "codigo": "prazo-24", "nome": "Vigência de 24 meses ou mais", "dimensao": "meses", "valor": "24+", "tipo": "percentual", "ajuste": -7, "grupo": "prazo" }
+    ]
+  },
+  "politica": {
+    "vigenciaInicio": "2025-11-01",
+    "etapas": [
+      { "id": "base", "tipo": "preco_base", "nome": "Preço de tabela" },
+      { "id": "fatores", "tipo": "fatores", "composicao": "multiplicativa", "nome": "Fatores de acréscimo e redução" },
+      { "id": "campanha", "tipo": "campanha", "nome": "Campanha" },
+      { "id": "desconto", "tipo": "desconto", "nome": "Desconto do vendedor" },
+      { "id": "arredondamento", "tipo": "arredondamento", "nome": "Arredondamento" },
+      { "id": "comissao", "tipo": "comissao", "base": { "de": "preco" }, "modo": "deduz_da_margem", "nome": "Comissão do canal" },
+      { "id": "impostos", "tipo": "impostos", "base": { "de": "preco" }, "nome": "Impostos" },
+      { "id": "custos", "tipo": "custos", "base": { "de": "preco" }, "nome": "Custos variáveis" }
+    ],
+    "arredondamento": { "casas": 2, "modo": "meio_para_cima" },
+    "limites": { "descontoLivrePct": 5, "descontoMaximoPct": 20, "margemMinimaPct": 15, "margemMetaPct": 25 },
+    "alcadas": [
+      { "nivel": 1, "nome": "Gestor comercial", "descontoAtePct": 10, "margemMinimaPct": 20 },
+      { "nivel": 2, "nome": "Diretoria", "descontoAtePct": 20, "permiteComissaoForaTabela": true }
+    ],
+    "comissoes": [
+      { "canal": "corretora-alfa", "pct": 20 },
+      { "canal": "agencia-beta", "pct": 15 },
+      { "canal": "revenda-gama", "pct": 12 },
+      { "canal": "revenda-gama", "produto": "PET", "pct": 10 }
+    ],
+    "validadeDias": 15,
+    "prazoAprovacaoHoras": 24,
+    "custos": [
+      { "codigo": "iss", "nome": "ISS", "categoria": "imposto", "tipo": "percentual", "valor": 5 },
+      { "codigo": "pis_cofins", "nome": "PIS/COFINS", "categoria": "imposto", "tipo": "percentual", "valor": 3.65 },
+      { "codigo": "cobranca", "nome": "Custo de cobrança", "categoria": "cobranca", "tipo": "percentual", "valor": 2.5 },
+      { "codigo": "prestacao-auto", "nome": "Custo de prestação (auto)", "categoria": "custo_variavel", "tipo": "valor_por_unidade", "valor": 8.20, "produto": "AUTO24" },
+      { "codigo": "prestacao-resid", "nome": "Custo de prestação (residencial)", "categoria": "custo_variavel", "tipo": "valor_por_unidade", "valor": 5.10, "produto": "RESID" },
+      { "codigo": "prestacao-pet", "nome": "Custo de prestação (pet)", "categoria": "custo_variavel", "tipo": "valor_por_unidade", "valor": 11.40, "produto": "PET" }
+    ]
+  },
+  "campanhas": [
+    { "codigo": "frota-nova", "nome": "Frota Nova", "inicio": "2026-09-01", "fim": "2026-12-31", "tipo": "percentual", "valor": 10,
+      "produtos": ["AUTO24"], "condicoes": { "idade_veiculo": ["0-5"] }, "acumulaComDesconto": false, "acumulaComOutras": false },
+    { "codigo": "lar-seguro", "nome": "Lar Seguro", "inicio": "2026-03-01", "fim": "2026-04-30", "tipo": "percentual", "valor": 5,
+      "produtos": ["RESID"], "acumulaComDesconto": true, "acumulaComOutras": true }
+  ],
+  "usuarios": [
+    { "email": "admin@aurora.demo", "nome": "Ana Admin", "papeis": [{ "papel": "admin" }] },
+    { "email": "pricing@aurora.demo", "nome": "Paulo Pricing", "limiteAlcada": 1, "papeis": [{ "papel": "gestor_pricing" }] },
+    { "email": "diretoria@aurora.demo", "nome": "Dora Diretora", "limiteAlcada": 2, "papeis": [{ "papel": "aprovador" }] },
+    { "email": "gestor@aurora.demo", "nome": "Gil Gestor", "limiteAlcada": 1, "papeis": [{ "papel": "aprovador" }] },
+    { "email": "vendedor@aurora.demo", "nome": "Vera Vendedora", "papeis": [{ "papel": "vendedor", "unidade": "matriz" }] },
+    { "email": "vendedor.sul@aurora.demo", "nome": "Saulo Vendedor", "papeis": [{ "papel": "vendedor", "unidade": "sul" }] },
+    { "email": "canal@corretora-alfa.demo", "nome": "Carla Canal", "papeis": [{ "papel": "canal", "canal": "corretora-alfa" }] },
+    { "email": "canal@agencia-beta.demo", "nome": "Bruno Beta", "papeis": [{ "papel": "canal", "canal": "agencia-beta" }] },
+    { "email": "financeiro@aurora.demo", "nome": "Fábio Financeiro", "papeis": [{ "papel": "leitura" }] },
+    { "email": "suporte@consultoria.demo", "nome": "Suporte da Consultoria", "papeis": [{ "papel": "suporte", "validoDias": 90 }] }
+  ],
+  "casosReferencia": [
+    {
+      "nome": "Auto Completo, Sudeste, 1 veículo, 12 meses, venda direta",
+      "pedido": {
+        "produto": "AUTO24",
+        "dimensoes": {
+          "plano": "completo",
+          "regiao": "sudeste",
+          "idade_veiculo": 3,
+          "unidades": 1,
+          "meses": 12
+        },
+        "data": "2026-02-10"
+      },
+      "esperado": {
+        "precoBase": 418.8,
+        "precoFinal": 402.05,
+        "comissaoValor": 0,
+        "margemValor": 258.83,
+        "margemPct": 64.38,
+        "veredito": "dentro"
+      }
+    },
+    {
+      "nome": "Auto Premium com carro reserva, Norte, frota de 12, 24 meses, corretora, 8% de desconto",
+      "pedido": {
+        "produto": "AUTO24",
+        "componentes": [
+          "carro_reserva"
+        ],
+        "dimensoes": {
+          "plano": "premium",
+          "regiao": "norte",
+          "idade_veiculo": 8,
+          "unidades": 12,
+          "meses": 24
+        },
+        "descontoPct": 8,
+        "canal": "corretora-alfa",
+        "data": "2026-02-10"
+      },
+      "esperado": {
+        "precoBase": 18086.4,
+        "precoFinal": 17782.31,
+        "comissaoValor": 3556.46,
+        "margemValor": 9881.52,
+        "margemPct": 55.57,
+        "veredito": "exige_aprovacao",
+        "nivelAlcada": 1
+      }
+    },
+    {
+      "nome": "Auto Essencial, Sul, frota de 60 com campanha Frota Nova: margem abaixo do mínimo",
+      "pedido": {
+        "produto": "AUTO24",
+        "dimensoes": {
+          "plano": "essencial",
+          "regiao": "sul",
+          "idade_veiculo": 2,
+          "unidades": 60,
+          "meses": 12
+        },
+        "descontoPct": 4,
+        "canal": "corretora-alfa",
+        "data": "2026-10-05"
+      },
+      "esperado": {
+        "precoBase": 14328.0,
+        "precoFinal": 10807.21,
+        "comissaoValor": 2161.44,
+        "margemValor": 1536.77,
+        "margemPct": 14.22,
+        "veredito": "bloqueado"
+      }
+    },
+    {
+      "nome": "Pet Essencial, 6 meses, revenda, 15% de desconto: alçada da diretoria",
+      "pedido": {
+        "produto": "PET",
+        "dimensoes": {
+          "plano": "essencial",
+          "regiao": "sudeste",
+          "unidades": 1,
+          "meses": 6
+        },
+        "descontoPct": 15,
+        "canal": "revenda-gama",
+        "data": "2026-02-10"
+      },
+      "esperado": {
+        "precoBase": 149.4,
+        "precoFinal": 126.99,
+        "comissaoValor": 12.7,
+        "margemValor": 31.73,
+        "margemPct": 24.99,
+        "veredito": "exige_aprovacao",
+        "nivelAlcada": 2
+      }
+    }
+  ]
+}

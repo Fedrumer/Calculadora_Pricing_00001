@@ -1,0 +1,11 @@
+export { calcular } from './calcular.ts';
+export { avaliarPolitica } from './veredito.ts';
+export { resultadoPublico } from './publico.ts';
+export { validarRegras } from './validar.ts';
+export { executarCasos } from './casos.ts';
+export { ErroMotor } from './erros.ts';
+export { VERSAO_MOTOR } from './versao.ts';
+export type { CodigoErroMotor } from './erros.ts';
+export type { Validacao } from './validar.ts';
+export type { CasoReferencia, RelatorioCasos, ResultadoCaso } from './casos.ts';
+export type * from './tipos.ts';
