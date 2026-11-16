@@ -1,5 +1,6 @@
 'use client';
 
+import { irPara, BASE } from '@/lib/caminho';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Aviso, Campo, useAcao } from '@/componentes/ui';
@@ -21,7 +22,7 @@ export default function RedefinirSenha() {
 
   const pedir = () =>
     acao.executar(async () => {
-      await supabase().auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: `${window.location.origin}/redefinir-senha` });
+      await supabase().auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: `${window.location.origin}${BASE}/redefinir-senha` });
     }, 'Se este e-mail tiver acesso, enviamos um link para redefinir a senha.');
 
   const definir = () =>
@@ -31,7 +32,7 @@ export default function RedefinirSenha() {
       }
       const { error } = await supabase().auth.updateUser({ password: senha });
       if (error) throw new Error(error.message);
-      window.location.href = '/';
+      irPara('/');
     });
 
   return (

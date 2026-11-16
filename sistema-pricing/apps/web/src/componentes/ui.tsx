@@ -80,7 +80,7 @@ export function useAcao() {
 
 /** Carrega dados ao montar e sempre que as dependências mudarem. */
 export function useDados<T>(carregar: () => Promise<T>, deps: unknown[] = []) {
-  const [dados, setDados] = useState<T | null>(null);
+  const [dados, setDados] = useState<T | null | undefined>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [versao, setVersao] = useState(0);
   useEffect(() => {

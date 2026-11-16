@@ -113,9 +113,9 @@ export default function Cotacoes() {
                 {filtradas.map((c) => {
                   const v = c.versao_atual_id ? dados.versoes.get(c.versao_atual_id) : undefined;
                   return (
-                    <tr key={c.id} className="clicavel" onClick={() => router.push(`/cotacoes/${c.id}`)}>
+                    <tr key={c.id} className="clicavel" onClick={() => router.push(`/cotacoes/detalhe?id=${c.id}`)}>
                       <td>
-                        <Link href={`/cotacoes/${c.id}`} onClick={(e) => e.stopPropagation()}>
+                        <Link href={`/cotacoes/detalhe?id=${c.id}`} onClick={(e) => e.stopPropagation()}>
                           {c.numero}
                         </Link>
                       </td>

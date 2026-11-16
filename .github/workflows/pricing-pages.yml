@@ -1,0 +1,57 @@
+# Publica as telas do Sistema de Pricing (ambiente de demonstração) no GitHub Pages.
+# As duas variáveis abaixo são públicas por natureza: o endereço do projeto Supabase
+# e a chave publicável, que só dá acesso ao que o RLS permite a quem fez login.
+name: Sistema de Pricing (telas)
+
+on:
+  push:
+    branches: [main]
+    paths: ['sistema-pricing/**', '.github/workflows/pricing-pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    defaults:
+      run:
+        working-directory: sistema-pricing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: sistema-pricing/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: sistema-pricing/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Testes do motor (casos de referência)
+        run: pnpm test:motor
+      - name: Gerar as telas
+        run: pnpm build:web
+        env:
+          PRICING_ESTATICO: '1'
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+          NEXT_PUBLIC_SUPABASE_URL: https://xmrrnhabrwtmsrwvhjjh.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_3CBk98zkrzbSDrv7dZoFQg_ejQiS6X8
+          NEXT_PUBLIC_AMBIENTE: demonstracao
+          NEXT_TELEMETRY_DISABLED: '1'
+      - run: touch apps/web/out/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: sistema-pricing/apps/web/out
+      - id: deploy
+        uses: actions/deploy-pages@v4

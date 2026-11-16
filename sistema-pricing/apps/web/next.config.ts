@@ -19,11 +19,19 @@ const csp = [
   "object-src 'none'",
 ].join('; ');
 
+// Hospedagem estática (GitHub Pages): PRICING_ESTATICO=1 gera a pasta out/, servida em uma subpasta.
+const estatico = process.env.PRICING_ESTATICO === '1';
+
 const config: NextConfig = {
+  ...(estatico ? { output: 'export' as const, basePath: process.env.NEXT_PUBLIC_BASE_PATH || undefined, images: { unoptimized: true } } : {}),
   reactStrictMode: true,
   poweredByHeader: false,
   outputFileTracingRoot: new URL('../../', import.meta.url).pathname,
-  async headers() {
+  // em hospedagem estática os cabeçalhos são os do provedor
+  ...(estatico ? {} : { headers: cabecalhos }),
+};
+
+async function cabecalhos() {
     return [
       {
         source: '/:path*',
@@ -37,7 +45,6 @@ const config: NextConfig = {
         ],
       },
     ];
-  },
-};
+}
 
 export default config;

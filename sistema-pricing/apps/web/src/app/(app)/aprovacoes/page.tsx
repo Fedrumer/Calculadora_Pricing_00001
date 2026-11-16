@@ -45,7 +45,7 @@ export default function FilaDeAprovacoes() {
     return (
       <tr key={a.id}>
         <td>
-          <Link href={`/cotacoes/${a.cotacao_id}`}>{c?.numero ?? '—'}</Link>
+          <Link href={`/cotacoes/detalhe?id=${a.cotacao_id}`}>{c?.numero ?? '—'}</Link>
           <div className="sutil">{c?.cliente_nome}</div>
         </td>
         <td>
@@ -72,7 +72,7 @@ export default function FilaDeAprovacoes() {
         </td>
         <td>
           {pendente && (
-            <Link className="btn pequeno primario" href={`/cotacoes/${a.cotacao_id}`}>
+            <Link className="btn pequeno primario" href={`/cotacoes/detalhe?id=${a.cotacao_id}`}>
               Analisar
             </Link>
           )}

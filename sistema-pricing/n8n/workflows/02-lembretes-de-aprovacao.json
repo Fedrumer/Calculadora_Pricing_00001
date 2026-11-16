@@ -87,7 +87,7 @@
         "toEmail": "={{ $json.para.join(\",\") }}",
         "subject": "={{ ($json.tipo === \"escalonamento\" ? \"ESCALONADA: \" : \"Lembrete: \") + \"cotação \" + $json.numero + \" aguarda decisão\" }}",
         "emailFormat": "text",
-        "text": "={{ \"A exceção da cotação \" + $json.numero + \" (alçada nível \" + $json.nivelAlcada + \", pedida por \" + $json.solicitante + \") passou do prazo de resposta.\\n\\n\" + $env.PRICING_APP_URL + \"/cotacoes/\" + $json.cotacaoId }}",
+        "text": "={{ \"A exceção da cotação \" + $json.numero + \" (alçada nível \" + $json.nivelAlcada + \", pedida por \" + $json.solicitante + \") passou do prazo de resposta.\\n\\n\" + $env.PRICING_APP_URL + \"/cotacoes/detalhe?id=\" + $json.cotacaoId }}",
         "options": {}
       },
       "id": "457fb6f2-a898-452c-8137-218d665b4993",

@@ -1,5 +1,6 @@
 'use client';
 
+import { irPara } from '@/lib/caminho';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
@@ -101,7 +102,7 @@ export default function LayoutApp({ children }: { children: ReactNode }) {
         <div className="cartao caixa-entrada">
           <h1>Sem acesso ativo</h1>
           <p>Seu usuário não tem perfil ativo nesta instalação, ou o prazo do acesso venceu. Fale com o administrador.</p>
-          <button className="btn" onClick={() => void supabase().auth.signOut().then(() => (window.location.href = '/entrar'))}>
+          <button className="btn" onClick={() => void supabase().auth.signOut().then(() => irPara('/entrar'))}>
             Sair
           </button>
         </div>
@@ -114,7 +115,7 @@ export default function LayoutApp({ children }: { children: ReactNode }) {
         <div className="cartao caixa-entrada">
           <SegundoFator obrigatorio aoConcluir={() => void carregar()} />
           <p style={{ marginTop: 14 }}>
-            <button className="btn link" onClick={() => void supabase().auth.signOut().then(() => (window.location.href = '/entrar'))}>
+            <button className="btn link" onClick={() => void supabase().auth.signOut().then(() => irPara('/entrar'))}>
               Sair
             </button>
           </p>

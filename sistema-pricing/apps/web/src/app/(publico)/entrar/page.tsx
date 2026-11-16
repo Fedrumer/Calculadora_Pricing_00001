@@ -1,5 +1,6 @@
 'use client';
 
+import { irPara } from '@/lib/caminho';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Aviso, Campo, useAcao } from '@/componentes/ui';
@@ -27,7 +28,7 @@ export default function Entrar() {
         // mensagem única: não revela se o e-mail existe
         throw new Error(/banned|bloque/i.test(error.message) ? 'Este acesso está suspenso ou desativado. Fale com o administrador.' : 'E-mail ou senha incorretos.');
       }
-      window.location.href = '/';
+      irPara('/');
     });
 
   return (

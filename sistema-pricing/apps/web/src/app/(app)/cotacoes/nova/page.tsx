@@ -58,7 +58,7 @@ export default function NovaCotacao() {
         : await api('POST', '/cotacoes', { pedido: corpoPedido(), cliente: { nome: cliente.nome.trim(), email: cliente.email.trim() || null, documento: cliente.documento.trim() || null }, iniciadaEm: abertaEm }, { idempotente: true });
       if (depois === 'emitir') await api('POST', `/cotacoes/${c.id}/emitir`, undefined, { idempotente: true });
       if (depois === 'pedir') await api('POST', `/cotacoes/${c.id}/aprovacao`, { acao: 'pedir', motivo: motivo.trim() }, { idempotente: true });
-      router.push(`/cotacoes/${c.id}`);
+      router.push(`/cotacoes/detalhe?id=${c.id}`);
     });
 
   const lerEmail = async () => {

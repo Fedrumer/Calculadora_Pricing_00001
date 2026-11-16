@@ -1,5 +1,6 @@
 'use client';
 
+import { irPara } from '@/lib/caminho';
 import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from './supabase';
 
@@ -71,7 +72,7 @@ export function ProvedorSessao({ acesso, recarregar, children }: { acesso: Acess
       recarregar,
       async sair() {
         await supabase().auth.signOut();
-        window.location.href = '/entrar';
+        irPara('/entrar');
       },
     };
   }, [acesso, recarregar]);

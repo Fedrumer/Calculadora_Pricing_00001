@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { type ResultadoTela, ResultadoCalculo } from '@/componentes/resultado';
 import { Aviso, Campo, Carregando, Modal, Selo, ou, useAcao, useDados } from '@/componentes/ui';
 import { api } from '@/lib/api';
@@ -24,7 +23,8 @@ interface Versao {
 const MOTIVOS_PERDA = ['Preço', 'Concorrente', 'Prazo', 'Cliente desistiu', 'Sem retorno', 'Outro'];
 
 export default function DetalheCotacao() {
-  const { id } = useParams<{ id: string }>();
+  const [id, setId] = useState('');
+  useEffect(() => setId(new URLSearchParams(window.location.search).get('id') ?? ''), []);
   const s = useSessao();
   const acao = useAcao();
   const [versaoVista, setVersaoVista] = useState<number | null>(null);
@@ -35,6 +35,7 @@ export default function DetalheCotacao() {
   const [iaOcupada, setIaOcupada] = useState(false);
 
   const { dados, erro, recarregar } = useDados(async () => {
+    if (!id) return undefined;
     const sb = supabase();
     const c = ou(await sb.from('cotacoes').select('*').eq('id', id).maybeSingle()) as Record<string, any> | null;
     if (!c) return null;
@@ -59,7 +60,7 @@ export default function DetalheCotacao() {
   }, [id]);
 
   if (erro) return <Aviso tipo="erro">{erro}</Aviso>;
-  if (dados === null && !erro) return <Carregando />;
+  if (dados === undefined || (dados === null && !id)) return <Carregando />;
   if (!dados) return <Aviso tipo="atencao">Cotação não encontrada.</Aviso>;
 
   const { c, versoes, aprovacoes, tempo, nomes } = dados;

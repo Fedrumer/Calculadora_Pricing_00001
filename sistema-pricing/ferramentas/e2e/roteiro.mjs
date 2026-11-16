@@ -80,7 +80,7 @@ async function preencherPedido(pagina, { produto = 'AUTO24', plano = 'completo',
   await pagina.waitForFunction(() => !document.querySelector('h2 small'), null, { timeout: 10000 });
 }
 const precoNaTela = async (pagina) => (await pagina.locator('[data-testid=preco-final]').textContent()).trim();
-const idDaUrl = (pagina) => pagina.url().split('/').pop();
+const idDaUrl = (pagina) => new URL(pagina.url()).searchParams.get('id');
 
 try {
   // 1. Vendedor cota dentro da política e emite a proposta em PDF ----------------
@@ -95,7 +95,7 @@ try {
   await vendedor.pagina.fill('input[name=cliente-documento]', '12.345.678/0001-90');
   await foto(vendedor.pagina, 'vendedor-nova-cotacao-verde');
   await vendedor.pagina.click('button:has-text("Salvar e emitir proposta")');
-  await vendedor.pagina.waitForURL(/\/cotacoes\/[0-9a-f-]{36}$/);
+  await vendedor.pagina.waitForURL(/\/cotacoes\/detalhe\?id=[0-9a-f-]{36}$/);
   await vendedor.pagina.waitForSelector('h1:has-text("Cotação")');
   conferir(await vendedor.pagina.locator('h1 .selo:has-text("Emitida")').count(), 'cotação emitida na hora');
   const cotacaoEmitida = idDaUrl(vendedor.pagina);
@@ -118,7 +118,7 @@ try {
   await vendedor.pagina.fill('textarea[name=motivo]', 'Cliente tem proposta concorrente 8% abaixo e fecha frota de 12 veículos.');
   await foto(vendedor.pagina, 'vendedor-pedido-de-excecao');
   await vendedor.pagina.click('.modal button:has-text("Enviar para aprovação")');
-  await vendedor.pagina.waitForURL(/\/cotacoes\/[0-9a-f-]{36}$/);
+  await vendedor.pagina.waitForURL(/\/cotacoes\/detalhe\?id=[0-9a-f-]{36}$/);
   await vendedor.pagina.waitForSelector('h1 .selo:has-text("Em aprovação")');
   const cotacaoExcecao = idDaUrl(vendedor.pagina);
   conferir(true, 'cotação fica em aprovação, com prazo e motivo');
@@ -136,7 +136,7 @@ try {
   await aprovador.pagina.waitForURL(/\/aprovacoes/);
   await aprovador.pagina.waitForSelector('h2:has-text("Pendentes")');
   await foto(aprovador.pagina, 'aprovador-celular-fila');
-  await aprovador.pagina.goto(`${BASE}/cotacoes/${cotacaoExcecao}`);
+  await aprovador.pagina.goto(`${BASE}/cotacoes/detalhe?id=${cotacaoExcecao}`);
   await aprovador.pagina.waitForSelector('[data-testid=margem]');
   conferir(true, 'aprovador vê a margem da cotação no celular');
   await foto(aprovador.pagina, 'aprovador-celular-cotacao');
@@ -146,7 +146,7 @@ try {
   conferir(true, 'exceção aprovada por quem tem alçada');
   await aprovador.contexto.close();
 
-  await vendedor.pagina.goto(`${BASE}/cotacoes/${cotacaoExcecao}`);
+  await vendedor.pagina.goto(`${BASE}/cotacoes/detalhe?id=${cotacaoExcecao}`);
   await vendedor.pagina.click('button:has-text("Emitir proposta")');
   await vendedor.pagina.waitForSelector('h1 .selo:has-text("Emitida")');
   conferir(await vendedor.pagina.locator('.linha-tempo li').count() >= 4, 'linha do tempo registra criação, pedido, aprovação e emissão');
@@ -205,7 +205,7 @@ try {
   await preencherPedido(vendedor.pagina, { desconto: '3' });
   const precoNovo = await precoNaTela(vendedor.pagina);
   conferir(precoNovo !== precoVerde, `cotação nova usa a tabela nova (${precoVerde} → ${precoNovo})`);
-  await vendedor.pagina.goto(`${BASE}/cotacoes/${cotacaoEmitida}`);
+  await vendedor.pagina.goto(`${BASE}/cotacoes/detalhe?id=${cotacaoEmitida}`);
   await vendedor.pagina.waitForSelector('[data-testid=preco-final]');
   conferir((await precoNaTela(vendedor.pagina)) === precoVerde, 'a cotação antiga mantém o preço');
 
