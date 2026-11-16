@@ -252,6 +252,28 @@ $$;
 revoke execute on function public.registrar_acesso() from public, anon;
 grant execute on function public.registrar_acesso() to authenticated;
 
+-- O que a aplicação precisa saber de quem entrou, antes mesmo do segundo fator:
+-- só dados do próprio usuário. É por aqui que a tela descobre que o perfil exige
+-- o segundo fator (as demais leituras ficam fechadas até a sessão ser aal2).
+create or replace function public.meu_acesso() returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'usuario', jsonb_build_object('id', u.id, 'nome', u.nome, 'email', u.email, 'status', u.status,
+                                  'limiteAlcada', u.limite_alcada, 'aceiteTermosEm', u.aceite_termos_em),
+    'organizacao', jsonb_build_object('id', o.id, 'nome', o.nome, 'config', o.config),
+    'papeis', coalesce((
+      select jsonb_agg(jsonb_build_object('papel', up.papel, 'nome', p.nome, 'unidadeId', up.unidade_id, 'canalId', up.canal_id,
+                                          'exigeMfa', p.exige_mfa, 'validoAte', up.valido_ate))
+      from public.usuario_papel up join public.papeis p on p.org_id = up.org_id and p.codigo = up.papel
+      where up.usuario_id = u.id and p.ativo and (up.valido_ate is null or up.valido_ate > now())), '[]'::jsonb),
+    'mfaOk', app.mfa_ok()
+  )
+  from public.usuarios u join public.organizacoes o on o.id = u.org_id
+  where u.id = auth.uid() and u.status = 'ativo'
+$$;
+revoke execute on function public.meu_acesso() from public, anon;
+grant execute on function public.meu_acesso() to authenticated;
+
 -- Arquivos (PDF de proposta, planilha de contingência, importações): buckets
 -- privados, sem política de leitura direta. O acesso é por link assinado de
 -- curta duração, emitido pela API depois de conferir perfil e escopo.
