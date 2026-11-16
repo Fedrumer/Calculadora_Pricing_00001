@@ -1,0 +1,24 @@
+{
+  "name": "@pricing/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "API de negócio: a única que chama o motor e grava no banco. Roda como Supabase Edge Function (Deno) e, em testes e no ambiente local, em Node.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@pricing/motor": "workspace:*",
+    "fflate": "0.8.2",
+    "pdf-lib": "1.17.1",
+    "postgres": "3.4.7",
+    "zod": "3.25.76",
+    "@anthropic-ai/sdk": "1.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

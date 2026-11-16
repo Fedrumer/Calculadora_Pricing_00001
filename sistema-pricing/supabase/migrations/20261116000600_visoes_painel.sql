@@ -79,18 +79,15 @@ grant execute on function app.tabela_vigente(uuid, date), app.politica_vigente(u
 -- Painel -----------------------------------------------------------------------
 -- Margem, volume, conversão, desconto médio e aprovações pendentes, por
 -- período, produto e canal. Só perfis internos.
-create or replace function public.painel_indicadores(
-  p_inicio date, p_fim date, p_produto uuid default null, p_canal uuid default null
+-- O cálculo fica em app.indicadores (usado também pelo relatório mensal das
+-- automações); a função pública só confere o perfil de quem chama.
+create or replace function app.indicadores(
+  v_org uuid, p_inicio date, p_fim date, p_produto uuid default null, p_canal uuid default null
 ) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare
-  v_org uuid := app.org_id();
   v jsonb;
 begin
-  if v_org is null or not app.interno() or not app.mfa_ok() then
-    raise exception 'Sem permissão para o painel.' using errcode = '42501';
-  end if;
-
   with base as (
     select c.id, c.status, c.canal_id, c.produto_id, c.criado_em, c.emitida_em, c.desfecho_motivo,
            v.preco_final, v.margem_valor, v.margem_pct, v.desconto_pct, v.veredito
@@ -183,6 +180,19 @@ begin
   ) into v;
   return v;
 end $$;
+
+create or replace function public.painel_indicadores(
+  p_inicio date, p_fim date, p_produto uuid default null, p_canal uuid default null
+) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if app.org_id() is null or not app.interno() or not app.mfa_ok() then
+    raise exception 'Sem permissão para o painel.' using errcode = '42501';
+  end if;
+  return app.indicadores(app.org_id(), p_inicio, p_fim, p_produto, p_canal);
+end $$;
+revoke execute on function app.indicadores(uuid, date, date, uuid, uuid) from public, anon, authenticated;
+grant execute on function app.indicadores(uuid, date, date, uuid, uuid) to service_role;
 
 -- Prova de eficiência: os números que a demonstração mede e exibe.
 create or replace function public.prova_eficiencia() returns jsonb

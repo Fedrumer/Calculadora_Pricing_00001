@@ -73,7 +73,8 @@ declare
 begin
   if tg_op in ('UPDATE', 'DELETE') then v_anterior := to_jsonb(old); end if;
   if tg_op in ('UPDATE', 'INSERT') then v_novo := to_jsonb(new); end if;
-  foreach v_coluna in array tg_argv loop
+  for i in 0 .. tg_nargs - 1 loop
+    v_coluna := tg_argv[i];
     v_anterior := v_anterior - v_coluna;
     v_novo := v_novo - v_coluna;
   end loop;

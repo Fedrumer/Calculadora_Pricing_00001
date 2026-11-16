@@ -1,0 +1,29 @@
+{
+  "name": "@pricing/ferramentas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Instalação por configuração, dados sintéticos da demonstração, ambiente local sem Docker, cópia externa e teste de restauração.",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "echo \"(sem testes próprios: exercitado pelos testes da API)\"",
+    "banco:local": "tsx src/cli/banco-local.ts",
+    "instalar": "tsx src/cli/instalar.ts",
+    "demo:dados": "tsx src/cli/demo-dados.ts",
+    "demo:repor": "tsx src/cli/demo-repor.ts",
+    "local": "tsx src/cli/local.ts",
+    "copia": "tsx src/cli/copia-externa.ts",
+    "restauracao": "tsx src/cli/teste-restauracao.ts",
+    "exportar": "tsx src/cli/exportar.ts"
+  },
+  "dependencies": {
+    "@pricing/api": "workspace:*",
+    "@pricing/motor": "workspace:*",
+    "postgres": "3.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
