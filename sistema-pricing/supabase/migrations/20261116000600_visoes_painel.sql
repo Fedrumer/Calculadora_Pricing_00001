@@ -285,3 +285,10 @@ begin
     on conflict (id) do nothing;
   end if;
 end $$;
+
+-- No Supabase, todo objeto novo em public nasce com permissão para anon e
+-- authenticated. Aqui a regra é negar por padrão: o visitante sem sessão não
+-- alcança nada e o usuário autenticado só lê (nunca grava) o que foi concedido.
+revoke all on all tables in schema public from anon;
+revoke insert, update, delete, truncate, references, trigger on all tables in schema public from authenticated;
+revoke all on all sequences in schema public from anon, authenticated;
