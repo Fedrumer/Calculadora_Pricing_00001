@@ -1,0 +1,176 @@
+{
+  "name": "Pricing 07: verificação de saúde e alertas",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Saúde\nConfere banco, regras vigentes, fila de aprovação, backup, erros e pico de bloqueios. Rode este fluxo em um n8n FORA da infraestrutura do cliente, para a verificação ser externa.\n\nPara não repetir o mesmo alerta a cada 5 minutos, acrescente um nó de deduplicação conforme a sua política de plantão.",
+        "height": 200,
+        "width": 420
+      },
+      "id": "198cfae5-1ac9-4218-ae83-c52eebbe5aa0",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "fb0877de-ead4-44ca-b65c-6ebbebe5a404",
+      "name": "A cada 5 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/saude",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "5f5eb35f-5130-442a-a568-e81bda0065b3",
+      "name": "Saúde e alertas de negócio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "e39df85f-e7a1-4816-a8f0-ad5aba57f000",
+              "leftValue": "={{ $json.statusCode !== 200 || $json.body.ok === false }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c2bb58ed-83f0-4367-a7fd-5563fb0d9374",
+      "name": "Há problema?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -20,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.PRICING_EMAIL_REMETENTE }}",
+        "toEmail": "={{ $env.PRICING_EMAIL_ALERTA }}",
+        "subject": "={{ \"Alerta do sistema de pricing: \" + ($json.statusCode !== 200 ? \"API fora do ar (\" + $json.statusCode + \")\" : $json.body.alertas.length + \" alerta(s)\") }}",
+        "emailFormat": "text",
+        "text": "={{ $json.statusCode !== 200 ? \"A API não respondeu como esperado.\" : $json.body.alertas.join(\"\\n\") }}",
+        "options": {}
+      },
+      "id": "a6ab3476-4e80-4a0b-a14d-c472a222b6c4",
+      "name": "Alertar a consultoria",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        200,
+        -100
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE",
+          "name": "SMTP do cliente"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "A cada 5 minutos": {
+      "main": [
+        [
+          {
+            "node": "Saúde e alertas de negócio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Saúde e alertas de negócio": {
+      "main": [
+        [
+          {
+            "node": "Há problema?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Há problema?": {
+      "main": [
+        [
+          {
+            "node": "Alertar a consultoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "pricing"
+    }
+  ]
+}

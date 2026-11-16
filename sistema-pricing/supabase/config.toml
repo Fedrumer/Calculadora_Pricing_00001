@@ -1,0 +1,36 @@
+# Configuração do projeto Supabase desta instalação (uma por cliente).
+project_id = "pricing"
+
+[api]
+schemas = ["public"]
+max_rows = 1000
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/redefinir-senha"]
+# ninguém se cadastra sozinho: o acesso nasce de convite, pela API de negócio
+enable_signup = false
+minimum_password_length = 12
+password_requirements = "lower_upper_letters_digits"
+jwt_expiry = 3600
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true
+secure_password_change = true
+
+[auth.mfa]
+max_enrolled_factors = 3
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.sessions]
+# sessão com expiração
+timebox = "12h"
+inactivity_timeout = "2h"
+
+[functions.api]
+# a própria função valida sessão, chave de canal ou segredo de automação, conforme a rota
+verify_jwt = false

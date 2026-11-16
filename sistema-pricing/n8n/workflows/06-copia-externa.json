@@ -1,0 +1,157 @@
+{
+  "name": "Pricing 06: cópia externa noturna",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Cópia externa (camada 3)\nExporta banco e arquivos, cifra e grava no destino do próprio cliente, fora do provedor. Exige no servidor do n8n: o repositório, pg_dump e as variáveis SUPABASE_DB_URL, COPIA_SENHA, COPIA_DESTINO.\n\nO teste de restauração é trimestral e manual: pnpm --filter @pricing/ferramentas restauracao.",
+        "height": 200,
+        "width": 420
+      },
+      "id": "1efe38e0-a872-4f5b-9d50-dcd9f29edc91",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
+      "id": "a37823dd-c5e7-496f-ae25-9f5fa2151c53",
+      "name": "Toda noite às 2h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=cd {{ $env.PRICING_REPO_DIR }} && pnpm --silent --filter @pricing/ferramentas copia -- --registrar"
+      },
+      "id": "b8c65d08-7050-4e70-beee-772c72fd2ba6",
+      "name": "Exportar, cifrar e gravar",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        0
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "dd8dc501-176c-4a29-b244-4a46edadb843",
+              "leftValue": "={{ $json.exitCode !== 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fa10c7f1-1863-42fe-afd7-36124bd0051c",
+      "name": "Falhou?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -20,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.PRICING_EMAIL_REMETENTE }}",
+        "toEmail": "={{ $env.PRICING_EMAIL_ALERTA }}",
+        "subject": "FALHA na cópia externa do sistema de pricing",
+        "emailFormat": "text",
+        "text": "={{ \"A cópia externa noturna falhou.\\n\\n\" + ($json.stderr || $json.stdout || \"sem saída\") }}",
+        "options": {}
+      },
+      "id": "4227da82-6cef-4d9f-8e8a-19df345ae7db",
+      "name": "Alertar falha de backup",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        200,
+        -100
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE",
+          "name": "SMTP do cliente"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Toda noite às 2h": {
+      "main": [
+        [
+          {
+            "node": "Exportar, cifrar e gravar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exportar, cifrar e gravar": {
+      "main": [
+        [
+          {
+            "node": "Falhou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Falhou?": {
+      "main": [
+        [
+          {
+            "node": "Alertar falha de backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "pricing"
+    }
+  ]
+}

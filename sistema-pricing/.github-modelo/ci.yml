@@ -1,0 +1,55 @@
+# Fluxo de publicação. Copie para .github/workflows/ci.yml no repositório do cliente.
+# Ordem: segredos, testes do motor, testes de API e RLS, build, migração, deploy.
+name: pricing
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: pricing, POSTGRES_PASSWORD: pricing, POSTGRES_DB: postgres }
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U pricing" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Varredura de segredos
+        uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --prod --audit-level high
+      - run: pnpm typecheck
+      - name: Casos de referência e testes do motor
+        run: pnpm test:motor
+      - name: Testes da API e de RLS por perfil
+        run: pnpm test:api
+        env: { TEST_DATABASE_URL: 'postgresql://pricing:pricing@127.0.0.1:5432/pricing_teste' }
+      - run: pnpm build:web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+
+  publicar:
+    needs: verificar
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: producao   # exige aprovação manual configurada no repositório
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+      - run: supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
+        env: { SUPABASE_ACCESS_TOKEN: '${{ secrets.SUPABASE_ACCESS_TOKEN }}', SUPABASE_DB_PASSWORD: '${{ secrets.SUPABASE_DB_PASSWORD }}' }
+      - name: Migrações de banco
+        run: supabase db push
+        env: { SUPABASE_ACCESS_TOKEN: '${{ secrets.SUPABASE_ACCESS_TOKEN }}', SUPABASE_DB_PASSWORD: '${{ secrets.SUPABASE_DB_PASSWORD }}' }
+      - name: API de negócio
+        run: supabase functions deploy api --no-verify-jwt
+        env: { SUPABASE_ACCESS_TOKEN: '${{ secrets.SUPABASE_ACCESS_TOKEN }}' }
+      # O frontend é publicado pela hospedagem conectada ao repositório (Vercel, Netlify ou servidor do cliente).

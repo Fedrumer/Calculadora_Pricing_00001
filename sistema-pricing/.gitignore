@@ -1,0 +1,16 @@
+node_modules
+.next
+dist
+.env
+.env.local
+.env.*.local
+*.log
+.local
+coverage
+test-results
+playwright-report
+tsconfig.tsbuildinfo
+next-env.d.ts
+capturas/
+!docs/capturas/
+out/

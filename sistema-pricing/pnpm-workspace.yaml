@@ -1,0 +1,8 @@
+packages:
+  - supabase/functions/_shared/motor
+  - supabase/functions/api
+  - apps/web
+  - ferramentas
+onlyBuiltDependencies:
+  - esbuild
+  - sharp

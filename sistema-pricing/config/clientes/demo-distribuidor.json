@@ -1,0 +1,129 @@
+{
+  "$comentario": "Segunda empresa fictícia (distribuidor B2B): prova que a adaptação é por configuração. Outra ordem de etapas, outras dimensões, outros impostos.",
+  "organizacao": {
+    "nome": "Horizonte Distribuidora (fictícia)",
+    "slug": "horizonte",
+    "config": {
+      "identidade": {
+        "nomeFantasia": "Horizonte Distribuidora",
+        "corPrimaria": "#283618",
+        "corDestaque": "#bc6c25",
+        "rodapeProposta": "Horizonte Distribuidora é uma empresa fictícia criada para demonstração. Proposta sem valor comercial."
+      },
+      "prazos": { "conviteHoras": 72, "inatividadeDias": 90, "sessaoHoras": 12 },
+      "modulos": { "portalCanal": false, "api": true, "ia": true, "sso": false, "conviteCanal": false },
+      "retencao": { "cotacoesAceitasAnos": 5, "cotacoesPerdidasMeses": 24, "auditoriaAnos": 5 },
+      "formulario": { "rotuloClienteFinal": "Cliente (razão social)", "pedirDocumento": false }
+    }
+  },
+  "unidades": [{ "codigo": "cd-campinas", "nome": "CD Campinas" }],
+  "canais": [
+    { "codigo": "rep-norte", "nome": "Representante Norte Paulista", "tipo": "representante", "permiteConvite": false },
+    { "codigo": "rep-sul", "nome": "Representante Sul", "tipo": "representante", "permiteConvite": false }
+  ],
+  "dimensoes": [
+    { "codigo": "regiao_entrega", "nome": "Região de entrega", "tipo": "categoria", "valores": [
+      { "codigo": "sp_capital", "nome": "São Paulo (capital)" },
+      { "codigo": "sp_interior", "nome": "São Paulo (interior)" },
+      { "codigo": "sul", "nome": "Região Sul" },
+      { "codigo": "demais", "nome": "Demais regiões" } ] },
+    { "codigo": "prazo_pagamento", "nome": "Prazo de pagamento", "tipo": "categoria", "valores": [
+      { "codigo": "a_vista", "nome": "À vista" },
+      { "codigo": "30d", "nome": "30 dias" },
+      { "codigo": "60d", "nome": "60 dias" } ] },
+    { "codigo": "quantidade", "nome": "Quantidade", "tipo": "faixa", "faixas": [
+      { "codigo": "1-49", "nome": "1 a 49", "min": 1, "max": 49 },
+      { "codigo": "50-199", "nome": "50 a 199", "min": 50, "max": 199 },
+      { "codigo": "200+", "nome": "200 ou mais", "min": 200, "max": null } ] }
+  ],
+  "produtos": [
+    { "codigo": "FUR-750", "nome": "Furadeira de impacto 750 W", "descricao": "Linha profissional.", "ativo": true,
+      "dimensoes": ["regiao_entrega", "prazo_pagamento"], "multiplicadores": ["quantidade"], "componentes": [] },
+    { "codigo": "PAR-12V", "nome": "Parafusadeira 12 V", "descricao": "Com duas baterias.", "ativo": true,
+      "dimensoes": ["regiao_entrega", "prazo_pagamento"], "multiplicadores": ["quantidade"], "componentes": [] },
+    { "codigo": "KIT-BRO", "nome": "Kit de brocas 25 peças", "descricao": "Aço rápido.", "ativo": true,
+      "dimensoes": ["regiao_entrega", "prazo_pagamento"], "multiplicadores": ["quantidade"], "componentes": [] }
+  ],
+  "tabela": {
+    "nome": "Tabela 2026",
+    "moeda": "BRL",
+    "vigenciaInicio": "2025-11-01",
+    "itens": [
+      { "produto": "FUR-750", "componente": null, "dimensoes": {}, "precoBase": 289.00 },
+      { "produto": "PAR-12V", "componente": null, "dimensoes": {}, "precoBase": 359.00 },
+      { "produto": "KIT-BRO", "componente": null, "dimensoes": {}, "precoBase": 74.90 }
+    ],
+    "fatores": [
+      { "codigo": "pg-avista", "nome": "Pagamento à vista", "dimensao": "prazo_pagamento", "valor": "a_vista", "tipo": "percentual", "ajuste": -3 },
+      { "codigo": "pg-60d", "nome": "Pagamento em 60 dias", "dimensao": "prazo_pagamento", "valor": "60d", "tipo": "percentual", "ajuste": 2.5 },
+      { "codigo": "vol-50", "nome": "Volume de 50 a 199", "dimensao": "quantidade", "valor": "50-199", "tipo": "percentual", "ajuste": -4 },
+      { "codigo": "vol-200", "nome": "Volume de 200 ou mais", "dimensao": "quantidade", "valor": "200+", "tipo": "percentual", "ajuste": -8 },
+      { "codigo": "frete-sul", "nome": "Frete Região Sul", "dimensao": "regiao_entrega", "valor": "sul", "tipo": "percentual", "ajuste": 3 },
+      { "codigo": "frete-demais", "nome": "Frete demais regiões", "dimensao": "regiao_entrega", "valor": "demais", "tipo": "percentual", "ajuste": 6 }
+    ]
+  },
+  "politica": {
+    "vigenciaInicio": "2025-11-01",
+    "etapas": [
+      { "id": "base", "tipo": "preco_base", "nome": "Preço de lista" },
+      { "id": "fatores", "tipo": "fatores", "composicao": "aditiva", "nome": "Condições comerciais" },
+      { "id": "desconto", "tipo": "desconto", "nome": "Desconto negociado" },
+      { "id": "arredondamento", "tipo": "arredondamento", "nome": "Arredondamento" },
+      { "id": "impostos", "tipo": "impostos", "base": { "de": "preco" }, "nome": "Impostos sobre a venda" },
+      { "id": "comissao", "tipo": "comissao", "base": { "de": "preco", "menos": ["impostos"] }, "modo": "deduz_da_margem", "nome": "Comissão do representante" },
+      { "id": "custos", "tipo": "custos", "base": { "de": "preco" }, "nome": "Custo da mercadoria e frete" }
+    ],
+    "arredondamento": { "casas": 2, "modo": "meio_para_cima" },
+    "limites": { "descontoLivrePct": 3, "descontoMaximoPct": 12, "margemMinimaPct": 8, "margemMetaPct": 14 },
+    "alcadas": [
+      { "nivel": 1, "nome": "Gerente de vendas", "descontoAtePct": 7, "margemMinimaPct": 10 },
+      { "nivel": 2, "nome": "Diretor comercial", "descontoAtePct": 12, "permiteComissaoForaTabela": true }
+    ],
+    "comissoes": [
+      { "canal": "rep-norte", "pct": 4 },
+      { "canal": "rep-sul", "pct": 5 }
+    ],
+    "validadeDias": 7,
+    "prazoAprovacaoHoras": 8,
+    "custos": [
+      { "codigo": "icms", "nome": "ICMS", "categoria": "imposto", "tipo": "percentual", "valor": 18 },
+      { "codigo": "pis_cofins", "nome": "PIS/COFINS", "categoria": "imposto", "tipo": "percentual", "valor": 9.25 },
+      { "codigo": "frete", "nome": "Frete médio", "categoria": "custo_variavel", "tipo": "percentual", "valor": 2 },
+      { "codigo": "cmv-fur", "nome": "Custo da mercadoria (furadeira)", "categoria": "custo_variavel", "tipo": "valor_por_unidade", "valor": 150.00, "produto": "FUR-750" },
+      { "codigo": "cmv-par", "nome": "Custo da mercadoria (parafusadeira)", "categoria": "custo_variavel", "tipo": "valor_por_unidade", "valor": 186.00, "produto": "PAR-12V" },
+      { "codigo": "cmv-kit", "nome": "Custo da mercadoria (kit de brocas)", "categoria": "custo_variavel", "tipo": "valor_por_unidade", "valor": 37.50, "produto": "KIT-BRO" }
+    ]
+  },
+  "campanhas": [],
+  "usuarios": [
+    { "email": "admin@horizonte.demo", "nome": "Alice Admin", "papeis": [{ "papel": "admin" }] },
+    { "email": "pricing@horizonte.demo", "nome": "Pedro Pricing", "limiteAlcada": 2, "papeis": [{ "papel": "gestor_pricing" }] },
+    { "email": "gerente@horizonte.demo", "nome": "Gabi Gerente", "limiteAlcada": 1, "papeis": [{ "papel": "aprovador" }] },
+    { "email": "vendedor@horizonte.demo", "nome": "Vitor Vendedor", "papeis": [{ "papel": "vendedor", "unidade": "cd-campinas" }] }
+  ],
+  "casosReferencia": [
+    {
+      "nome": "80 furadeiras, Sul, à vista, representante, 5% de desconto",
+      "pedido": {
+        "produto": "FUR-750",
+        "dimensoes": {
+          "regiao_entrega": "sul",
+          "prazo_pagamento": "a_vista",
+          "quantidade": 80
+        },
+        "descontoPct": 5,
+        "canal": "rep-sul",
+        "data": "2026-02-10"
+      },
+      "esperado": {
+        "precoBase": 23120.0,
+        "precoFinal": 21085.44,
+        "comissaoValor": 766.98,
+        "margemValor": 2150.97,
+        "margemPct": 10.2,
+        "veredito": "exige_aprovacao",
+        "nivelAlcada": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@pricing/motor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Motor de cálculo puro: mesma entrada, mesma saída. Sem banco, relógio ou rede.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "@types/node": "^22.10.0"
+  }
+}

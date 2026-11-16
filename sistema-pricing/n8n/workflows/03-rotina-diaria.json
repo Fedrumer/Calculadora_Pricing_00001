@@ -1,0 +1,180 @@
+{
+  "name": "Pricing 03: rotina diária (expiração, inatividade, retenção)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Rotina diária\nExpira cotações com validade vencida, suspende contas sem acesso pelo prazo configurado (padrão 90 dias) e anonimiza o dado pessoal de cotações perdidas ao fim da retenção.",
+        "height": 200,
+        "width": 420
+      },
+      "id": "94e3ba73-69ff-4e48-81bc-49178f5afda8",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "74df8f87-3b7d-42b7-b2d8-4b79b675c7b0",
+      "name": "Todo dia às 6h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/expirar-cotacoes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {} }}"
+      },
+      "id": "d148264a-2747-4732-bed5-4831fd5369e6",
+      "name": "Expirar cotações vencidas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/inatividade",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {} }}"
+      },
+      "id": "4884c54c-1d99-4aac-866f-8206b33105e7",
+      "name": "Suspender contas inativas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -20,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/retencao",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {} }}"
+      },
+      "id": "a54cf2b5-4953-424b-8f3a-2da49ceeec94",
+      "name": "Aplicar retenção",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Todo dia às 6h": {
+      "main": [
+        [
+          {
+            "node": "Expirar cotações vencidas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expirar cotações vencidas": {
+      "main": [
+        [
+          {
+            "node": "Suspender contas inativas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suspender contas inativas": {
+      "main": [
+        [
+          {
+            "node": "Aplicar retenção",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "pricing"
+    }
+  ]
+}
