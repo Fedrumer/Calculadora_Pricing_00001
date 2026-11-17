@@ -10,16 +10,39 @@
   arquivos pela tela, validação, cálculo, alteração de premissa, publicação e a visão do cliente.
   Capturas em `docs/capturas`.
 
+## Homologação no projeto Supabase `diagnostico_pricing` (17/11/2026)
+
+Feita no projeto `diagnostico_pricing` (São Paulo, Postgres 17), pelo conector, sem a CLI:
+
+- As cinco migrações aplicaram sem ajuste. O corpo das 33 funções publicadas foi comparado por hash com o
+  do banco local dos testes: são idênticos.
+- `pnpm homologar` passou nas 27 conferências contra os serviços reais: login pelo Supabase Auth, chamadas
+  pelo PostgREST com a chave publicável, carga da empresa fictícia (14.266 linhas, seis blocos), cálculo em
+  1,6 s, publicação, e o isolamento de visitante, consultor e cliente leitor.
+- Os números do projeto real são os mesmos do ambiente local (nota geral 66,4; ganho de R$ 18 mil a R$ 109 mil por ano).
+- As telas (build de produção e exportação estática servida em subpasta, como no GitHub Pages) foram abertas no
+  navegador contra o projeto real, como consultor e como cliente.
+- O verificador de segurança do Supabase aponta só itens intencionais: funções com dono chamáveis por quem tem
+  sessão (cada uma confere o perfil antes de agir) e `motor.fato` sem política (inalcançável pelo navegador).
+
+O projeto ficou com a empresa fictícia publicada e dois acessos de demonstração: `consultor@demo.local` e
+`cliente@demo.local`. Eles foram criados direto nas tabelas do Auth, sem e-mail de confirmação. Troque a senha
+ou remova-os antes de carregar dados de um cliente de verdade.
+
 ## Não verificado
 
-- **Nada rodou em um projeto Supabase real.** Migrações, login e telas foram exercitados contra Postgres 16
-  e o emulador local, que cobre login por senha e chamadas de função. Falta a homologação em um projeto de verdade.
 - **Dados reais de um cliente.** O critério de saída da Fase 1 no documento é um diagnóstico completo com dados
   de um cliente piloto, com as métricas conferidas contra cálculo manual. A empresa da demonstração é sintética.
-- **Volume.** A demonstração tem 14 mil linhas e calcula em cerca de 3 segundos. Não foi medido com centenas
-  de milhares de linhas; a carga pelo navegador envia 2.000 linhas por chamada.
-- A exportação estática (`DIAGNOSTICO_ESTATICO=1`) não foi publicada. O fluxo de GitHub Pages do repositório
-  já serve o sistema de cotação; publicar este exige um segundo endereço ou subpasta.
+- **Volume.** A demonstração tem 14 mil linhas. Não foi medido com centenas de milhares de linhas; a carga pelo
+  navegador envia 2.000 linhas por chamada.
+- **A publicação no GitHub Pages.** O fluxo `.github/workflows/pricing-pages.yml` passou a gerar também estas
+  telas, na subpasta `/diagnostico`, mas só roda quando a mudança chegar à branch `main`. A exportação estática
+  foi testada localmente em um servidor que imita o Pages, não no Pages.
+- A carga de arquivos pela tela e a alteração de premissas rodaram no navegador só contra o emulador local;
+  contra o projeto real foram exercitadas pela API.
+- A migração pela CLI (`supabase db push`): os arquivos em `supabase/migrations` têm data própria, diferente da
+  versão registrada no projeto pelo conector. Em um projeto novo isso não importa; neste, não rode `db push`
+  sem antes alinhar o histórico (`supabase migration repair`).
 
 ## Diferenças em relação ao documento
 

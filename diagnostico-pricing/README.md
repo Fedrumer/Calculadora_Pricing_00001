@@ -4,6 +4,8 @@ MVP (Fase 1) do sistema descrito no documento **Arquitetura — Sistema de Avali
 recebe os dados brutos de um cliente e devolve onde a margem vaza, quais ajustes fazer e quanto cada ajuste
 vale em reais por ano.
 
+Está instalado e homologado no projeto Supabase `diagnostico_pricing`; veja `docs/pendencias.md`.
+
 Esta pasta é independente de `sistema-pricing` (o sistema de cotação): nada é compartilhado em tempo de execução.
 
 ## O que a Fase 1 entrega
@@ -99,7 +101,10 @@ node ferramentas/e2e/roteiro.mjs ./capturas
    `insert into public.usuarios (id, nome, email, perfil) select id, 'Seu nome', email, 'consultor' from auth.users where email = 'voce@empresa.com.br';`
 3. Publique `apps/web` com `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    (`DIAGNOSTICO_ESTATICO=1 pnpm build:web` gera a pasta `out/` para hospedagem estática).
-4. Para dar acesso a alguém do cliente: crie o usuário em Authentication e chame
+4. Confira a instalação pela mesma porta que o navegador usa (27 conferências; instala a empresa fictícia se
+   ainda não existir e espera os usuários `consultor@demo.local` e `cliente@demo.local` no Auth):
+   `SUPABASE_URL=... SUPABASE_CHAVE=<chave publicável> SENHA=... pnpm homologar`
+5. Para dar acesso a alguém do cliente: crie o usuário em Authentication e chame
    `select public.definir_usuario('pessoa@cliente.com.br', 'Nome', 'cliente_leitor', '<id do cliente>');` logado como consultor.
 
 ## Segurança

@@ -5,13 +5,16 @@
   "description": "Sistema de avaliação e diagnóstico de pricing (MVP, Fase 1)",
   "type": "module",
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "pnpm --filter @diagnostico/ferramentas test",
     "typecheck": "pnpm -r typecheck",
     "local": "pnpm --filter @diagnostico/ferramentas local",
     "demo:arquivos": "pnpm --filter @diagnostico/ferramentas demo:arquivos",
     "dev:web": "pnpm --filter @diagnostico/web dev",
-    "build:web": "pnpm --filter @diagnostico/web build"
+    "build:web": "pnpm --filter @diagnostico/web build",
+    "homologar": "pnpm --filter @diagnostico/ferramentas homologar"
   }
 }
