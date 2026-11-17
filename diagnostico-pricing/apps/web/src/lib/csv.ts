@@ -1,0 +1,150 @@
+// Leitura dos arquivos do cliente no navegador: separa colunas, sugere o de-para para o esquema
+// padrão e converte número e data do formato brasileiro. Nada aqui calcula métrica.
+
+export type Tipo = 'texto' | 'numero' | 'data';
+export interface Campo { campo: string; rotulo: string; tipo: Tipo; obrigatorio?: boolean; sinonimos: string[] }
+
+export const CAMPOS: Record<string, Campo[]> = {
+  transacoes: [
+    { campo: 'data', rotulo: 'Data', tipo: 'data', obrigatorio: true, sinonimos: ['dataemissao', 'dtemissao', 'emissao', 'datavenda', 'datanf', 'data'] },
+    { campo: 'nota_fiscal', rotulo: 'Nota fiscal', tipo: 'texto', sinonimos: ['notafiscal', 'numeronf', 'nf', 'nota', 'documento', 'pedido'] },
+    { campo: 'produto', rotulo: 'Código do produto', tipo: 'texto', obrigatorio: true, sinonimos: ['codproduto', 'codigoproduto', 'produto', 'sku', 'coditem', 'item'] },
+    { campo: 'conta', rotulo: 'Código do cliente', tipo: 'texto', obrigatorio: true, sinonimos: ['codcliente', 'codigocliente', 'cliente', 'codconta', 'conta'] },
+    { campo: 'canal', rotulo: 'Canal', tipo: 'texto', sinonimos: ['canalvenda', 'canal'] },
+    { campo: 'quantidade', rotulo: 'Quantidade', tipo: 'numero', obrigatorio: true, sinonimos: ['quantidade', 'qtde', 'qtd', 'volume'] },
+    { campo: 'preco_lista', rotulo: 'Preço de lista (unitário)', tipo: 'numero', obrigatorio: true, sinonimos: ['precotabela', 'precolista', 'precodelista', 'precocheio', 'tabela'] },
+    { campo: 'preco_faturado', rotulo: 'Preço faturado (unitário)', tipo: 'numero', obrigatorio: true, sinonimos: ['precounitnf', 'precofaturado', 'precounitario', 'precoliquido', 'precovenda', 'precopraticado', 'precounit'] },
+    { campo: 'desc_comercial', rotulo: 'Desconto comercial (unitário)', tipo: 'numero', sinonimos: ['desccomercial', 'descontocomercial'] },
+    { campo: 'desc_volume', rotulo: 'Desconto por volume (unitário)', tipo: 'numero', sinonimos: ['descvolume', 'descontovolume', 'descontoporvolume'] },
+    { campo: 'desc_promocional', rotulo: 'Desconto promocional (unitário)', tipo: 'numero', sinonimos: ['descpromocional', 'descpromo', 'descontopromocional'] },
+    { campo: 'desc_financeiro', rotulo: 'Desconto financeiro (unitário)', tipo: 'numero', sinonimos: ['descfinanceiro', 'descontofinanceiro'] },
+  ],
+  custos: [
+    { campo: 'produto', rotulo: 'Código do produto', tipo: 'texto', obrigatorio: true, sinonimos: ['codproduto', 'codigoproduto', 'produto', 'sku', 'item'] },
+    { campo: 'custo_unitario', rotulo: 'Custo unitário', tipo: 'numero', obrigatorio: true, sinonimos: ['custounitario', 'custounit', 'custo', 'cmv'] },
+    { campo: 'vigencia_inicio', rotulo: 'Início da vigência', tipo: 'data', sinonimos: ['vigenciainicio', 'vigencia', 'apartirde', 'data'] },
+  ],
+  produtos: [
+    { campo: 'codigo', rotulo: 'Código do produto', tipo: 'texto', obrigatorio: true, sinonimos: ['codproduto', 'codigoproduto', 'codigo', 'sku', 'produto'] },
+    { campo: 'descricao', rotulo: 'Descrição', tipo: 'texto', sinonimos: ['descricao', 'nome'] },
+    { campo: 'categoria', rotulo: 'Categoria', tipo: 'texto', sinonimos: ['categoria', 'familia', 'grupo'] },
+    { campo: 'linha', rotulo: 'Linha', tipo: 'texto', sinonimos: ['linha'] },
+  ],
+  contas: [
+    { campo: 'codigo', rotulo: 'Código do cliente', tipo: 'texto', obrigatorio: true, sinonimos: ['codcliente', 'codigocliente', 'codigo', 'cliente', 'conta'] },
+    { campo: 'nome', rotulo: 'Nome', tipo: 'texto', sinonimos: ['razaosocial', 'nomefantasia', 'nome'] },
+    { campo: 'segmento', rotulo: 'Segmento', tipo: 'texto', sinonimos: ['segmento', 'ramo'] },
+    { campo: 'porte', rotulo: 'Porte', tipo: 'texto', sinonimos: ['porte', 'tamanho'] },
+    { campo: 'regiao', rotulo: 'Região', tipo: 'texto', sinonimos: ['regiao', 'uf', 'estado'] },
+    { campo: 'vendedor', rotulo: 'Vendedor', tipo: 'texto', sinonimos: ['vendedor', 'representante', 'responsavel'] },
+  ],
+  custos_servir: [
+    { campo: 'tipo', rotulo: 'Tipo (frete, comissão, prazo, outros)', tipo: 'texto', obrigatorio: true, sinonimos: ['tipo'] },
+    { campo: 'canal', rotulo: 'Canal (vazio = todos)', tipo: 'texto', sinonimos: ['canal'] },
+    { campo: 'conta', rotulo: 'Código do cliente (vazio = todos)', tipo: 'texto', sinonimos: ['codcliente', 'codigocliente', 'cliente', 'conta'] },
+    { campo: 'percentual', rotulo: 'Percentual sobre o faturado', tipo: 'numero', obrigatorio: true, sinonimos: ['percentual', 'perc', 'aliquota', 'taxa'] },
+  ],
+  descontos_fora_fatura: [
+    { campo: 'conta', rotulo: 'Código do cliente', tipo: 'texto', obrigatorio: true, sinonimos: ['codcliente', 'codigocliente', 'cliente', 'conta'] },
+    { campo: 'mes', rotulo: 'Mês', tipo: 'data', obrigatorio: true, sinonimos: ['mes', 'competencia', 'periodo', 'data'] },
+    { campo: 'tipo', rotulo: 'Tipo (rebate, bonificação, verba)', tipo: 'texto', sinonimos: ['tipo'] },
+    { campo: 'valor', rotulo: 'Valor total', tipo: 'numero', obrigatorio: true, sinonimos: ['valor', 'total'] },
+  ],
+};
+
+export interface Planilha { cabecalhos: string[]; linhas: string[][] }
+
+/** Lê o arquivo como UTF-8 e, se vier com caracteres quebrados, como Windows-1252 (padrão de ERP e Excel). */
+export async function lerArquivo(arquivo: File): Promise<string> {
+  const bytes = await arquivo.arrayBuffer();
+  const utf8 = new TextDecoder('utf-8').decode(bytes);
+  return (utf8.includes('�') ? new TextDecoder('windows-1252').decode(bytes) : utf8).replace(/^﻿/, '');
+}
+
+export function lerCsv(texto: string): Planilha {
+  const primeira = texto.slice(0, texto.search(/\r?\n/) === -1 ? undefined : texto.search(/\r?\n/));
+  const contar = (s: string) => primeira.split(s).length;
+  const sep = contar(';') >= contar(',') && contar(';') >= contar('\t') ? ';' : contar('\t') > contar(',') ? '\t' : ',';
+  const linhas: string[][] = [];
+  let linha: string[] = [];
+  let celula = '';
+  let aspas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i]!;
+    if (aspas) {
+      if (c === '"' && texto[i + 1] === '"') { celula += '"'; i++; }
+      else if (c === '"') aspas = false;
+      else celula += c;
+    } else if (c === '"') aspas = true;
+    else if (c === sep) { linha.push(celula); celula = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && texto[i + 1] === '\n') i++;
+      linha.push(celula); celula = '';
+      if (linha.some((x) => x.trim() !== '')) linhas.push(linha);
+      linha = [];
+    } else celula += c;
+  }
+  linha.push(celula);
+  if (linha.some((x) => x.trim() !== '')) linhas.push(linha);
+  const [cabecalhos = [], ...resto] = linhas;
+  return { cabecalhos: cabecalhos.map((c) => c.trim()), linhas: resto };
+}
+
+const chave = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** Sugere, para cada campo do esquema, a coluna do arquivo. O usuário confirma antes de gravar. */
+export function sugerirMapeamento(cabecalhos: string[], bloco: string): Record<string, string> {
+  const livres = new Map(cabecalhos.map((c) => [chave(c), c]));
+  const saida: Record<string, string> = {};
+  const campos = CAMPOS[bloco] ?? [];
+  for (const exato of [true, false]) {
+    for (const campo of campos) {
+      if (saida[campo.campo]) continue;
+      for (const s of campo.sinonimos) {
+        const achou = [...livres.keys()].find((k) => (exato ? k === s : k.includes(s)));
+        if (achou) { saida[campo.campo] = livres.get(achou)!; livres.delete(achou); break; }
+      }
+    }
+  }
+  return saida;
+}
+
+export function paraNumero(bruto: string): number | null {
+  let s = bruto.replace(/[R$\s%]/g, '');
+  if (s === '') return null;
+  const virgula = s.lastIndexOf(','), ponto = s.lastIndexOf('.');
+  if (virgula > ponto) s = s.replace(/\./g, '').replace(',', '.'); // 1.234,56
+  else if (virgula !== -1) s = s.replace(/,/g, ''); // 1,234.56
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function paraData(bruto: string): string | null {
+  const s = bruto.trim();
+  let m = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?/.exec(s);
+  if (m) return iso(+m[1]!, +m[2]!, +(m[3] ?? 1));
+  m = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(s);
+  if (m) return iso(+m[3]! < 100 ? 2000 + +m[3]! : +m[3]!, +m[2]!, +m[1]!);
+  m = /^(\d{1,2})[/.-](\d{4})$/.exec(s); // mm/aaaa
+  if (m) return iso(+m[2]!, +m[1]!, 1);
+  return null;
+}
+function iso(a: number, m: number, d: number): string | null {
+  const dt = new Date(Date.UTC(a, m - 1, d));
+  if (dt.getUTCFullYear() !== a || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+  return `${a}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+/** Converte as linhas do arquivo para o esquema padrão, segundo o de-para confirmado. */
+export function converter(planilha: Planilha, mapeamento: Record<string, string>, bloco: string): Record<string, string | number | null>[] {
+  const campos = (CAMPOS[bloco] ?? []).filter((c) => mapeamento[c.campo]);
+  const indice = new Map(planilha.cabecalhos.map((c, i) => [c, i]));
+  return planilha.linhas.map((l) => {
+    const o: Record<string, string | number | null> = {};
+    for (const c of campos) {
+      const bruto = (l[indice.get(mapeamento[c.campo]!)!] ?? '').trim();
+      o[c.campo] = bruto === '' ? null : c.tipo === 'numero' ? paraNumero(bruto) : c.tipo === 'data' ? paraData(bruto) : bruto;
+    }
+    return o;
+  });
+}

@@ -1,4 +1,5 @@
-# Publica as telas do Sistema de Pricing (ambiente de demonstração) no GitHub Pages.
+# Publica no GitHub Pages as telas do Sistema de Pricing (ambiente de demonstração), na raiz,
+# e as do Diagnóstico de Pricing, na subpasta /diagnostico.
 # As duas variáveis abaixo são públicas por natureza: o endereço do projeto Supabase
 # e a chave publicável, que só dá acesso ao que o RLS permite a quem fez login.
 name: Sistema de Pricing (telas)
@@ -6,7 +7,7 @@ name: Sistema de Pricing (telas)
 on:
   push:
     branches: [main]
-    paths: ['sistema-pricing/**', '.github/workflows/pricing-pages.yml']
+    paths: ['sistema-pricing/**', 'diagnostico-pricing/**', '.github/workflows/pricing-pages.yml']
   workflow_dispatch:
 
 permissions:
@@ -36,7 +37,9 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: sistema-pricing/pnpm-lock.yaml
+          cache-dependency-path: |
+            sistema-pricing/pnpm-lock.yaml
+            diagnostico-pricing/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - name: Testes do motor (casos de referência)
         run: pnpm test:motor
@@ -49,6 +52,23 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_3CBk98zkrzbSDrv7dZoFQg_ejQiS6X8
           NEXT_PUBLIC_AMBIENTE: demonstracao
           NEXT_TELEMETRY_DISABLED: '1'
+      - name: Gerar as telas do Diagnóstico de Pricing
+        working-directory: diagnostico-pricing
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build:web
+        env:
+          DIAGNOSTICO_ESTATICO: '1'
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}/diagnostico
+          NEXT_PUBLIC_SUPABASE_URL: https://vdsahxxaiobrvljdqspb.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_4jUTYOhjz9X_5ppO2NtBug_oLGqVfrG
+          NEXT_PUBLIC_AMBIENTE: demonstracao
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Juntar as duas aplicações
+        working-directory: ${{ github.workspace }}
+        run: |
+          test ! -e sistema-pricing/apps/web/out/diagnostico
+          cp -r diagnostico-pricing/apps/web/out sistema-pricing/apps/web/out/diagnostico
       - run: touch apps/web/out/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:

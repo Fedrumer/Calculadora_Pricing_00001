@@ -1,0 +1,22 @@
+{
+  "name": "@diagnostico/ferramentas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ambiente local sem Docker, dados sintéticos da demonstração e testes do motor e do RLS.",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "tsx --test --test-concurrency=1 testes/*.test.ts",
+    "local": "tsx src/cli/local.ts",
+    "demo:arquivos": "tsx src/cli/demo-arquivos.ts",
+    "homologar": "tsx src/cli/homologar.ts"
+  },
+  "dependencies": {
+    "postgres": "3.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
