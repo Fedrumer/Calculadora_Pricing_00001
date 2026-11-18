@@ -14,7 +14,13 @@ function semente(s: number) {
 
 const NOMES = ['Transportes Boa Viagem', 'Padaria Estrela do Sul', 'Clínica Vida Plena', 'Condomínio Jardim das Acácias', 'Mercado Bom Preço', 'Escola Pequeno Sábio', 'Construtora Pedra Firme', 'Oficina Roda Livre', 'Farmácia Saúde Já', 'Pet Shop Amigo Fiel', 'Locadora Via Rápida', 'Hotel Recanto das Águas', 'Papelaria Ponto Final', 'Academia Corpo Ativo', 'Imobiliária Novo Lar', 'Restaurante Sabor Caseiro', 'Auto Peças Motor Forte', 'Lavanderia Roupa Nova', 'Floricultura Bem-me-quer', 'Gráfica Cor Viva'];
 const SUFIXOS = ['Ltda', 'ME', 'S.A.', 'EPP', 'e Filhos', 'Comércio', 'Serviços'];
-const PERDAS: [string, number][] = [['Preço', 38], ['Concorrente', 22], ['Cliente desistiu', 16], ['Sem retorno', 14], ['Prazo', 6], ['Outro', 4]];
+/** Motivos de perda (A3): categoria e peso; "outro" leva texto. */
+const PERDAS: [string, number][] = [['preco_concorrente', 46], ['desistiu', 16], ['sem_resposta', 14], ['escopo', 10], ['prazo', 9], ['outro', 5]];
+const NOME_PERDA: Record<string, string> = {
+  preco_concorrente: 'Preço acima do concorrente', prazo: 'Prazo ou disponibilidade', escopo: 'Produto não atende',
+  desistiu: 'Cliente desistiu da compra', sem_resposta: 'Sem resposta do cliente', outro: 'Outro',
+};
+const TEXTOS_OUTRO = ['Cliente fechou com fornecedor do próprio grupo.', 'Mudança de diretoria no cliente adiou a decisão.', 'Cliente preferiu contratar em outro formato.'];
 const MOTIVOS = ['Cliente apresentou proposta concorrente mais baixa.', 'Renovação de contrato com volume garantido por dois anos.', 'Cliente estratégico da região; abre portas para o grupo.', 'Fechamento de meta do trimestre com pagamento antecipado.', 'Pacote com outros produtos já contratados.'];
 
 export interface OpcoesDemo {
@@ -160,6 +166,8 @@ export async function gerarHistorico(sql: Sql, orgId: string, config: ConfigClie
       let emitida: Date | null = null;
       let encerrada: Date | null = null;
       let motivoPerda: string | null = null;
+      let categoriaPerda: string | null = null;
+      let precoConcorrente: number | null = null;
       evento(criada, dono.id, 'cotacao.criada', id, `Cotação ${numero} criada (versão 1).`);
 
       const desfecho = (chanceAceite: number) => {
@@ -174,8 +182,11 @@ export async function gerarHistorico(sql: Sql, orgId: string, config: ConfigClie
         } else if (sorte < chanceAceite + 0.3) {
           status = 'perdida';
           encerrada = quando;
-          motivoPerda = pesado(PERDAS);
-          evento(quando, dono.id, 'cotacao.perdida', id, `Cotação perdida: ${motivoPerda}`);
+          categoriaPerda = pesado(PERDAS);
+          motivoPerda = categoriaPerda === 'outro' ? escolher(TEXTOS_OUTRO) : null;
+          // em parte das perdas por preço o vendedor sabe o preço do concorrente (entre 3% e 14% abaixo)
+          if (categoriaPerda === 'preco_concorrente' && rnd() < 0.6) precoConcorrente = Math.round(r.precoFinal * (0.86 + rnd() * 0.11) * 100) / 100;
+          evento(quando, dono.id, 'cotacao.perdida', id, `Cotação perdida: ${NOME_PERDA[categoriaPerda]}${motivoPerda ? ` (${motivoPerda})` : ''}.`);
         } else if (validade < hoje) {
           status = 'expirada';
           encerrada = validade;
@@ -227,7 +238,7 @@ export async function gerarHistorico(sql: Sql, orgId: string, config: ConfigClie
         canal_id: pedido.canal ? carregadas.canais.find((c) => c.codigo === pedido.canal)!.id : null, unidade_id: dono.unidade_id, dono_id: dono.id,
         produto_id: carregadas.produtoIds[pedido.produto]!, status, versao_atual: 1, versao_atual_id: versaoId,
         validade: emitida ? iso(new Date((emitida as Date).getTime() + validadeDias * 86400000)) : null,
-        emitida_em: emitida, encerrada_em: encerrada, desfecho_motivo: motivoPerda, origem: 'carga', criado_em: criada, atualizado_em: encerrada ?? emitida ?? criada,
+        emitida_em: emitida, encerrada_em: encerrada, desfecho_motivo: motivoPerda, desfecho_categoria: categoriaPerda, concorrente_preco: precoConcorrente, origem: 'carga', criado_em: criada, atualizado_em: encerrada ?? emitida ?? criada,
       });
       ver.push({
         id: versaoId, org_id: orgId, cotacao_id: id, versao: 1, entrada: sql.json(pedido as never), resultado: sql.json(r as never), resultado_publico: sql.json(resultadoPublico(r) as never),

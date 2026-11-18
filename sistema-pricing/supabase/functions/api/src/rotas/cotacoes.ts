@@ -4,6 +4,7 @@ import { type Requisicao, type Rota, validar } from '../app.ts';
 import { type Ator, canaisDoAtor, ehExterno, ehInterno, hoje, somarDias, temPapel } from '../contexto.ts';
 import { cifrar, hmac, soDigitos } from '../cripto.ts';
 import { ErroHttp, conflito, invalido, naoEncontrado, proibido } from '../erros.ts';
+import { type MotivoPerda, motivosDaOrganizacao } from '../motivos-perda.ts';
 import { gerarProposta } from '../pdf.ts';
 import { type RegrasCarregadas, carregarRegras } from '../regras.ts';
 
@@ -389,18 +390,41 @@ export const rotasCotacoes: Rota[] = [
     auth: 'usuario',
     async handler(r) {
       const dados = validar(
-        z.object({ resultado: z.enum(['aceita', 'perdida']), motivo: z.string().trim().max(500).optional() })
-          .refine((d) => d.resultado === 'aceita' || (d.motivo ?? '').length >= 3, { message: 'Informe o motivo da perda.', path: ['motivo'] }),
+        z.object({
+          resultado: z.enum(['aceita', 'perdida']),
+          categoria: z.string().trim().max(40).optional(),
+          motivo: z.string().trim().max(500).optional(),
+          concorrente: z.object({ nome: z.string().trim().max(120).optional(), preco: z.number().min(0).max(1e9).optional() }).optional(),
+        }),
         r.corpo,
       );
       const c = await obterCotacao(r, r.params.id!, 'dono_ou_gestor');
       if (c.status !== 'emitida') throw conflito(`Só uma cotação emitida recebe desfecho (status atual: ${c.status}).`, 'STATUS_INVALIDO');
-      await r.tx`update public.cotacoes set status = ${dados.resultado}, desfecho_motivo = ${dados.motivo ?? null} where id = ${c.id}`;
-      await r.auditar(`cotacao.${dados.resultado}`, 'cotacoes', c.id, {
-        resumo: dados.resultado === 'aceita' ? 'Cliente final fechou.' : `Cotação perdida: ${dados.motivo}`,
+      if (dados.resultado === 'aceita') {
+        await r.tx`update public.cotacoes set status = 'aceita' where id = ${c.id}`;
+        await r.auditar('cotacao.aceita', 'cotacoes', c.id, { resumo: 'Cliente final fechou.' });
+        await r.emitir('cotacao.aceita', { cotacaoId: c.id, numero: c.numero });
+        return { corpo: { id: c.id, status: 'aceita' } };
+      }
+      // perda: categoria da lista da organização; texto e concorrente conforme a categoria
+      const [org] = await r.tx<{ config: { motivosPerda?: MotivoPerda[] } }[]>`select config from public.organizacoes where id = ${r.ator.orgId}`;
+      const motivos = motivosDaOrganizacao(org?.config);
+      if (!dados.categoria) throw invalido('Escolha o motivo da perda.', [{ campo: 'categoria', mensagem: 'Obrigatório.' }], 'CATEGORIA_OBRIGATORIA');
+      const motivo = motivos.find((m) => m.codigo === dados.categoria && m.ativo);
+      if (!motivo) throw invalido(`O motivo "${dados.categoria}" não existe ou está inativo.`, motivos.filter((m) => m.ativo).map((m) => m.codigo), 'CATEGORIA_INVALIDA');
+      if (motivo.pedeTexto && (dados.motivo ?? '').length < 10) {
+        throw invalido(`O motivo "${motivo.nome}" exige descrição de pelo menos 10 caracteres.`, [{ campo: 'motivo', mensagem: 'Pelo menos 10 caracteres.' }], 'TEXTO_OBRIGATORIO');
+      }
+      const concorrente = motivo.pedeConcorrente ? dados.concorrente : undefined;
+      await r.tx`update public.cotacoes set status = 'perdida', desfecho_categoria = ${motivo.codigo}, desfecho_motivo = ${dados.motivo || null},
+                   concorrente_nome = ${concorrente?.nome || null}, concorrente_preco = ${concorrente?.preco ?? null}
+                 where id = ${c.id}`;
+      await r.auditar('cotacao.perdida', 'cotacoes', c.id, {
+        resumo: `Cotação perdida: ${motivo.nome}${dados.motivo ? ` (${dados.motivo})` : ''}.`,
+        novo: { categoria: motivo.codigo, concorrentePreco: concorrente?.preco ?? null },
       });
-      await r.emitir(`cotacao.${dados.resultado}`, { cotacaoId: c.id, numero: c.numero, motivo: dados.motivo ?? null });
-      return { corpo: { id: c.id, status: dados.resultado } };
+      await r.emitir('cotacao.perdida', { cotacaoId: c.id, numero: c.numero, categoria: motivo.codigo });
+      return { corpo: { id: c.id, status: 'perdida', categoria: motivo.codigo } };
     },
   },
   {
