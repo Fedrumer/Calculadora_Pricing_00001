@@ -136,10 +136,28 @@ export function validarRegras(regras: ConjuntoRegras): Validacao {
     if (!(c.pct >= 0 && c.pct < 100)) erros.push(`Comissão inválida para o canal "${c.canal}".`);
     if (c.produto && !prods.has(c.produto)) erros.push(`Comissão do canal "${c.canal}": produto "${c.produto}" não existe.`);
   }
+  const moedasComCambio = new Set((regras.cambios ?? []).filter((x) => Number(x.taxa) > 0).map((x) => x.moeda));
+  for (const x of regras.cambios ?? []) {
+    if (!(Number(x.taxa) > 0)) erros.push(`Câmbio de referência de ${x.moeda} com taxa inválida.`);
+  }
   for (const c of regras.custos) {
     if (!(Number(c.valor) >= 0)) erros.push(`Parâmetro de custo "${c.codigo}" com valor inválido.`);
     if (c.produto && !prods.has(c.produto)) erros.push(`Parâmetro de custo "${c.codigo}": produto "${c.produto}" não existe.`);
+    if (c.moeda && c.moeda !== tabela.moeda) {
+      if (c.tipo === 'percentual') erros.push(`Parâmetro de custo "${c.codigo}": custo percentual não pode ter moeda própria.`);
+      else if (!moedasComCambio.has(c.moeda)) erros.push(`Parâmetro de custo "${c.codigo}" está em ${c.moeda}, sem câmbio de referência vigente.`);
+    }
+    for (const [dimensao, valores] of Object.entries(c.condicoes ?? {})) {
+      for (const v of valores) if (!valorValido(dimensao, v)) erros.push(`Parâmetro de custo "${c.codigo}": condição "${dimensao}" = "${v}" não está cadastrada.`);
+    }
   }
+  const cv = politica.comissaoVendedor;
+  if (cv) {
+    if (!(cv.pct >= 0 && cv.pct <= 100)) erros.push('Comissão do vendedor com percentual fora de 0 a 100%.');
+    if (cv.base !== 'margem' && cv.base !== 'receita') erros.push('Comissão do vendedor: base deve ser "margem" ou "receita".');
+    if (cv.margemMinimaPct !== undefined && cv.base !== 'margem') avisos.push('Comissão do vendedor: o piso de margem só vale para a base "margem".');
+  }
+  if (l.folgaCambialMinimaPct !== undefined && !(l.folgaCambialMinimaPct >= 0)) erros.push('A folga cambial mínima não pode ser negativa.');
   for (const c of regras.campanhas) {
     if (c.inicio > c.fim) erros.push(`Campanha "${c.codigo}": início depois do fim.`);
   }

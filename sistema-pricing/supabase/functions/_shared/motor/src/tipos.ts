@@ -92,6 +92,28 @@ export interface ParametroCusto {
   valor: number | string;
   produto?: string | null;
   base?: BaseIncidencia | null;
+  /** Moeda em que o custo é pago (ausente = moeda da tabela). Só para valor fixo ou por unidade. */
+  moeda?: string | null;
+  /** Só se aplica quando as dimensões do pedido caem nestes valores (ex.: { acomodacao: ['duplo'] }). */
+  condicoes?: Record<string, string[]> | null;
+}
+
+/** Câmbio de referência: quantos reais (moeda da tabela) vale uma unidade da moeda. */
+export interface CambioReferencia {
+  moeda: string;
+  taxa: number | string;
+  /** AAAA-MM-DD a partir de quando vale. */
+  vigenteDe: string;
+  origem: 'politica' | 'ptax';
+}
+
+/** Comissão do vendedor: informativa, ou deduzida da margem se a política mandar. */
+export interface RegraComissaoVendedor {
+  base: 'receita' | 'margem';
+  pct: number;
+  /** Abaixo desta margem (%) a comissão sobre margem é zero. */
+  margemMinimaPct?: number;
+  deduzDaMargem: boolean;
 }
 
 interface EtapaBase {
@@ -131,11 +153,14 @@ export interface Politica {
     descontoMaximoPct: number;
     margemMinimaPct: number;
     margemMetaPct: number;
+    /** Folga mínima entre o câmbio que zera a margem e o câmbio de referência (%). Abaixo dela, exige aprovação. */
+    folgaCambialMinimaPct?: number;
   };
   alcadas: Alcada[];
   comissoes: { canal: string; produto?: string | null; pct: number }[];
   validadeDias: number;
   prazoAprovacaoHoras: number;
+  comissaoVendedor?: RegraComissaoVendedor | null;
 }
 
 export interface ConjuntoRegras {
@@ -145,6 +170,8 @@ export interface ConjuntoRegras {
   politica: Politica;
   custos: ParametroCusto[];
   campanhas: Campanha[];
+  /** Câmbios de referência vigentes na data do pedido (o motor não consulta nada fora daqui). */
+  cambios?: CambioReferencia[];
 }
 
 export interface PedidoCotacao {
@@ -170,6 +197,27 @@ export interface LinhaDetalhe {
   precoApos: number;
   /** true = só perfis internos enxergam (custos, impostos, margem). */
   interno: boolean;
+  /** Categoria do parâmetro de custo (imposto, cobranca, custo_variavel), quando a linha vem de um. */
+  categoria?: string;
+  /** Custo em moeda estrangeira: valor na moeda e taxa usada na conversão. */
+  moeda?: string;
+  valorMoeda?: number;
+  taxa?: number;
+}
+
+/** Quanto da margem depende de cada moeda estrangeira. */
+export interface ExposicaoCambial {
+  moeda: string;
+  /** Total dos custos nesta moeda. */
+  valorMoeda: number;
+  /** Câmbio de referência usado. */
+  taxa: number;
+  /** Os mesmos custos convertidos para a moeda da tabela. */
+  valorConvertido: number;
+  /** Câmbio que zera a margem, mantidas as outras moedas: c + M ÷ V. */
+  cambioEquilibrio: number | null;
+  /** Quanto o câmbio pode subir até a margem zerar (%). */
+  folgaPct: number | null;
 }
 
 export interface MotivoVeredito {
@@ -180,6 +228,7 @@ export interface MotivoVeredito {
     | 'MARGEM_ABAIXO_DO_MINIMO'
     | 'COMISSAO_FORA_DA_TABELA'
     | 'SEM_ALCADA_SUFICIENTE'
+    | 'FOLGA_CAMBIAL_ABAIXO_DO_MINIMO'
     | 'FORA_DA_POLITICA';
   mensagem: string;
   limite?: number;
@@ -221,12 +270,16 @@ export interface Resultado {
   detalhamento: LinhaDetalhe[];
   versoes: { motor: string; tabela: { id: string; versao: number }; politica: { id: string; versao: number } };
   avisos: string[];
+  /** Uma entrada por moeda estrangeira com custo na cotação (vazio quando todos os custos são na moeda da tabela). */
+  exposicaoCambial: ExposicaoCambial[];
+  /** Comissão do vendedor pela regra da política (nula quando a política não tem regra). */
+  comissaoVendedor: { base: 'receita' | 'margem'; pct: number; valor: number; deduzidaDaMargem: boolean } | null;
 }
 
 /** Projeção do resultado para perfis externos (canal): sem custo, imposto ou margem. */
 export type ResultadoPublico = Omit<
   Resultado,
-  'impostosValor' | 'custosValor' | 'receitaLiquida' | 'margemValor' | 'margemPct'
+  'impostosValor' | 'custosValor' | 'receitaLiquida' | 'margemValor' | 'margemPct' | 'exposicaoCambial' | 'comissaoVendedor'
 >;
 
 /** Contexto entregue a uma função de extensão. Só leitura e aritmética pura. */

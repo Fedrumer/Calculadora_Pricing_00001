@@ -16,6 +16,8 @@ import { ErroMotor } from './erros.ts';
 import type {
   BaseIncidencia,
   Campanha,
+  CambioReferencia,
+  ExposicaoCambial,
   ConjuntoRegras,
   Etapa,
   LinhaDetalhe,
@@ -47,6 +49,8 @@ interface Estado {
   comissaoValor: Dec;
   impostosValor: Dec;
   custosValor: Dec;
+  /** Custos em moeda estrangeira, por moeda: total na moeda, convertido e taxa. */
+  exposicao: Map<string, { valorMoeda: Dec; valorConvertido: Dec; taxa: Dec }>;
 }
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -104,6 +108,7 @@ export function calcular(pedido: PedidoCotacao, regras: ConjuntoRegras, opcoes: 
     comissaoValor: ZERO,
     impostosValor: ZERO,
     custosValor: ZERO,
+    exposicao: new Map(),
   };
 
   const linha = (etapa: Etapa, descricao: string, valor: Dec, extra: Partial<LinhaDetalhe> = {}) => {
@@ -247,23 +252,49 @@ export function calcular(pedido: PedidoCotacao, regras: ConjuntoRegras, opcoes: 
         for (const parametro of regras.custos) {
           if (!categorias.includes(parametro.categoria)) continue;
           if (parametro.produto && parametro.produto !== produto.codigo) continue;
+          if (!condicoesAtendidas(parametro.condicoes, dims.codigos)) continue;
           const bruto = dec(parametro.valor);
+          const estrangeira = !!parametro.moeda && parametro.moeda !== tabela.moeda;
           let valor: Dec;
           let base: Dec | undefined;
+          let conversao: { moeda: string; valorMoeda: Dec; taxa: Dec } | undefined;
           if (parametro.tipo === 'percentual') {
+            if (estrangeira) {
+              throw new ErroMotor('POLITICA_INVALIDA', `O custo percentual "${parametro.codigo}" não pode ter moeda própria.`, { parametro: parametro.codigo });
+            }
             base = baseDe(parametro.base ?? etapa.base, etapa);
             valor = percentualDe(base, bruto);
-          } else if (parametro.tipo === 'valor_por_unidade') {
-            valor = multiplicar(bruto, multiplicador);
           } else {
-            valor = bruto;
+            valor = parametro.tipo === 'valor_por_unidade' ? multiplicar(bruto, multiplicador) : bruto;
+            if (estrangeira) {
+              const taxa = cambioVigente(regras.cambios, parametro.moeda!, pedido.data);
+              if (taxa === null) {
+                throw new ErroMotor('CAMBIO_AUSENTE', `Não há câmbio de referência vigente para ${parametro.moeda} em ${pedido.data}.`, {
+                  moeda: parametro.moeda,
+                  parametro: parametro.codigo,
+                  data: pedido.data,
+                });
+              }
+              conversao = { moeda: parametro.moeda!, valorMoeda: valor, taxa };
+              valor = multiplicar(valor, taxa);
+            }
           }
           valor = arred(valor);
           total = somar(total, valor);
           estado.deducoes.set(parametro.codigo, valor);
+          if (conversao) {
+            const atual = estado.exposicao.get(conversao.moeda) ?? { valorMoeda: ZERO, valorConvertido: ZERO, taxa: conversao.taxa };
+            atual.valorMoeda = somar(atual.valorMoeda, conversao.valorMoeda);
+            atual.valorConvertido = somar(atual.valorConvertido, valor);
+            estado.exposicao.set(conversao.moeda, atual);
+          }
           linha(etapa, `${etapa.tipo === 'impostos' ? 'Imposto' : 'Custo'}: ${parametro.nome}`, -valor, {
             interno: true,
+            categoria: parametro.categoria,
             ...(base !== undefined ? { base: num(base), percentual: paraNumero(bruto) } : {}),
+            ...(conversao
+              ? { moeda: conversao.moeda, valorMoeda: paraNumero(arredondar(conversao.valorMoeda, 2)), taxa: paraNumero(conversao.taxa) }
+              : {}),
           });
         }
         estado.deducoes.set(etapa.id, total);
@@ -318,9 +349,37 @@ export function calcular(pedido: PedidoCotacao, regras: ConjuntoRegras, opcoes: 
 
   const deducoesTotais = somar(somar(estado.comissaoValor, estado.impostosValor), estado.custosValor);
   const receitaLiquida = subtrair(precoFinal, somar(estado.comissaoValor, estado.impostosValor));
-  const margemValor = subtrair(precoFinal, deducoesTotais);
-  const margemPct = paraNumero(arredondar(multiplicar(dividir(margemValor, precoFinal), dec(100)), 2));
+  const pctDe = (v: Dec) => paraNumero(arredondar(multiplicar(dividir(v, precoFinal), dec(100)), 2));
+  let margemValor = subtrair(precoFinal, deducoesTotais);
+  let margemPct = pctDe(margemValor);
 
+  // Comissão do vendedor: calculada depois da margem; só altera a margem se a política mandar deduzir.
+  const regraVendedor = politica.comissaoVendedor ?? null;
+  let comissaoVendedor: Resultado['comissaoVendedor'] = null;
+  let linhaVendedor: LinhaDetalhe | null = null;
+  if (regraVendedor) {
+    let valor = ZERO;
+    if (regraVendedor.base === 'receita') valor = arred(percentualDe(precoFinal, dec(regraVendedor.pct)));
+    else if (margemValor > ZERO && (regraVendedor.margemMinimaPct === undefined || margemPct >= regraVendedor.margemMinimaPct)) {
+      valor = arred(percentualDe(margemValor, dec(regraVendedor.pct)));
+    }
+    comissaoVendedor = { base: regraVendedor.base, pct: regraVendedor.pct, valor: num(valor), deduzidaDaMargem: regraVendedor.deduzDaMargem };
+    linhaVendedor = {
+      etapa: 'comissao_vendedor',
+      tipo: 'comissao_vendedor',
+      descricao: `Comissão do vendedor (${regraVendedor.base === 'margem' ? 'sobre a margem' : 'sobre a receita'}${regraVendedor.deduzDaMargem ? '' : ', informativa'})`,
+      valor: -num(valor),
+      percentual: regraVendedor.pct,
+      precoApos: num(precoFinal),
+      interno: true,
+    };
+    if (regraVendedor.deduzDaMargem) {
+      margemValor = subtrair(margemValor, valor);
+      margemPct = pctDe(margemValor);
+    }
+  }
+
+  if (linhaVendedor && regraVendedor?.deduzDaMargem) estado.linhas.push(linhaVendedor);
   estado.linhas.push({
     etapa: 'resultado',
     tipo: 'margem',
@@ -330,6 +389,24 @@ export function calcular(pedido: PedidoCotacao, regras: ConjuntoRegras, opcoes: 
     precoApos: num(precoFinal),
     interno: true,
   });
+  if (linhaVendedor && !regraVendedor?.deduzDaMargem) estado.linhas.push(linhaVendedor);
+
+  // Câmbio que zera a margem, moeda a moeda (as outras constantes): c_eq = c + M ÷ V.
+  const exposicaoCambial: ExposicaoCambial[] = [...estado.exposicao.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([moeda, e]) => {
+      const temVolume = e.valorMoeda > ZERO;
+      const equilibrio = temVolume ? somar(e.taxa, dividir(margemValor, e.valorMoeda)) : null;
+      return {
+        moeda,
+        valorMoeda: paraNumero(arredondar(e.valorMoeda, 2)),
+        taxa: paraNumero(e.taxa),
+        valorConvertido: num(e.valorConvertido),
+        cambioEquilibrio: equilibrio === null ? null : paraNumero(arredondar(equilibrio, 4)),
+        folgaPct: equilibrio === null ? null : paraNumero(arredondar(multiplicar(subtrair(dividir(equilibrio, e.taxa), UM), dec(100)), 2)),
+      };
+    });
+  const folgas = exposicaoCambial.map((x) => x.folgaPct).filter((x): x is number => x !== null);
 
   const comissaoForaTabela = comissaoPct > comissaoTabelaPct;
   const veredito = avaliarPolitica(politica, {
@@ -338,6 +415,7 @@ export function calcular(pedido: PedidoCotacao, regras: ConjuntoRegras, opcoes: 
     comissaoPct,
     comissaoTabelaPct,
     comissaoForaTabela,
+    folgaCambialPct: folgas.length > 0 ? Math.min(...folgas) : null,
   });
 
   return {
@@ -369,7 +447,26 @@ export function calcular(pedido: PedidoCotacao, regras: ConjuntoRegras, opcoes: 
       politica: { id: politica.id, versao: politica.versao },
     },
     avisos: estado.avisos,
+    exposicaoCambial,
+    comissaoVendedor,
   };
+}
+
+/** Taxa da moeda vigente na data: a de início mais recente que não seja posterior a ela. */
+function cambioVigente(cambios: CambioReferencia[] | undefined, moeda: string, data: string): Dec | null {
+  const candidatos = (cambios ?? []).filter((c) => c.moeda === moeda && c.vigenteDe <= data);
+  if (candidatos.length === 0) return null;
+  const escolhido = candidatos.reduce((a, b) => (b.vigenteDe > a.vigenteDe ? b : a));
+  const taxa = dec(escolhido.taxa);
+  return taxa > ZERO ? taxa : null;
+}
+
+function condicoesAtendidas(condicoes: Record<string, string[]> | null | undefined, codigos: Record<string, string>): boolean {
+  for (const [dimensao, aceitos] of Object.entries(condicoes ?? {})) {
+    const valor = codigos[dimensao];
+    if (valor === undefined || !aceitos.includes(valor)) return false;
+  }
+  return true;
 }
 
 function selecionarComponentes(produto: Produto, escolhidos: string[]): { codigo: string | null; nome: string }[] {
