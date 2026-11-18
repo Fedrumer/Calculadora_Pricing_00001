@@ -1,5 +1,6 @@
 import { type ConjuntoRegras, ErroMotor, type PedidoCotacao, calcular, resultadoPublico } from '../motor/src/index.ts';
 import { carregarRegras } from '../../api/src/regras.ts';
+import { cambiosUsados } from '../../api/src/cambios-usados.ts';
 import type { ConfigCliente, Sql } from './instalar.ts';
 
 /** Gerador pseudoaleatório com semente: a demonstração sai sempre igual. */
@@ -296,6 +297,8 @@ export async function gerarHistorico(sql: Sql, orgId: string, config: ConfigClie
         tabela_id: carregadas.tabelaId, politica_id: carregadas.politicaId, motor_versao: r.versoes.motor, moeda: r.moeda, preco_base: r.precoBase, preco_final: r.precoFinal,
         desconto_pct: r.descontoPct, comissao_pct: r.comissaoPct, comissao_valor: r.comissaoValor, margem_valor: r.margemValor, margem_pct: r.margemPct,
         veredito: r.veredito.status, nivel_alcada: r.veredito.nivelAlcada, criado_por: dono.id, criado_em: criada,
+        cambios: r.exposicaoCambial.length ? sql.json(cambiosUsados(carregadas.regras, pedido.data, r) as never) : null,
+        comissao_vendedor_valor: r.comissaoVendedor?.valor ?? 0,
       });
     }
   }

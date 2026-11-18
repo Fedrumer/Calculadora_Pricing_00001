@@ -1,7 +1,8 @@
-import { type CambioReferencia, type PedidoCotacao, type Resultado, type ResultadoPublico, calcular, resultadoPublico } from '@pricing/motor';
+import { type PedidoCotacao, type Resultado, type ResultadoPublico, calcular, resultadoPublico } from '@pricing/motor';
 import { z } from 'zod';
 import { type Requisicao, type Rota, validar } from '../app.ts';
 import { type Ator, canaisDoAtor, ehExterno, ehInterno, hoje, somarDias, temPapel } from '../contexto.ts';
+import { cambiosUsados } from '../cambios-usados.ts';
 import { cifrar, hmac, soDigitos } from '../cripto.ts';
 import { ErroHttp, conflito, invalido, naoEncontrado, proibido } from '../erros.ts';
 import { type MotivoPerda, motivosDaOrganizacao } from '../motivos-perda.ts';
@@ -134,12 +135,7 @@ export async function obterCotacao(r: Requisicao, id: string, modo: 'ler' | 'don
 async function gravarVersao(r: Requisicao, cotacaoId: string, versao: number, c: Calculo): Promise<string> {
   const { resultado: x } = c;
   // taxas efetivamente usadas (só as moedas com custo nesta cotação), com o câmbio de equilíbrio
-  const cambiosUsados = x.exposicaoCambial.map((e) => {
-    const ref = (c.carregadas.regras.cambios ?? [])
-      .filter((k) => k.moeda === e.moeda && k.vigenteDe <= c.pedido.data)
-      .reduce<CambioReferencia | undefined>((a, b) => (!a || b.vigenteDe > a.vigenteDe ? b : a), undefined);
-    return { moeda: e.moeda, taxa: e.taxa, vigenteDe: ref?.vigenteDe ?? null, origem: ref?.origem ?? null, cambioEquilibrio: e.cambioEquilibrio, folgaPct: e.folgaPct };
-  });
+  const cambios = cambiosUsados(c.carregadas.regras, c.pedido.data, x);
   const [v] = await r.tx<{ id: string }[]>`
     insert into public.cotacao_versoes (org_id, cotacao_id, versao, entrada, resultado, resultado_publico, tabela_id, politica_id,
       motor_versao, moeda, preco_base, preco_final, desconto_pct, comissao_pct, comissao_valor, margem_valor, margem_pct,
@@ -148,7 +144,7 @@ async function gravarVersao(r: Requisicao, cotacaoId: string, versao: number, c:
       ${c.carregadas.tabelaId}, ${c.carregadas.politicaId}, ${x.versoes.motor}, ${x.moeda}, ${x.precoBase}, ${x.precoFinal},
       ${x.descontoPct}, ${x.comissaoPct}, ${x.comissaoValor}, ${x.margemValor}, ${x.margemPct},
       ${x.veredito.status}, ${x.veredito.nivelAlcada}, ${r.ator.tipo === 'usuario' ? r.ator.id : null},
-      ${cambiosUsados.length ? r.tx.json(cambiosUsados as never) : null}, ${x.comissaoVendedor?.valor ?? 0})
+      ${cambios.length ? r.tx.json(cambios as never) : null}, ${x.comissaoVendedor?.valor ?? 0})
     returning id`;
   return v!.id;
 }
