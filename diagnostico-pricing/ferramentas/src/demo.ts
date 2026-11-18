@@ -5,7 +5,7 @@
 
 export const PERIODO = { inicio: '2025-11-01', fim: '2026-10-31' };
 
-function semente(s: number) {
+export function semente(s: number) {
   return () => {
     s |= 0;
     s = (s + 0x6d2b79f5) | 0;
@@ -153,7 +153,11 @@ const CABECALHOS: Record<keyof Demo, [campo: string, titulo: string][]> = {
 };
 
 export function paraCsv(bloco: keyof Demo, linhas: Linha[]): string {
-  const colunas = CABECALHOS[bloco];
+  return escreverCsv(CABECALHOS[bloco], linhas);
+}
+
+/** CSV no padrão brasileiro: ponto e vírgula, vírgula decimal, data em dd/mm/aaaa. */
+export function escreverCsv(colunas: [campo: string, titulo: string][], linhas: Linha[]): string {
   const celula = (v: string | number | null | undefined) => {
     if (v === null || v === undefined) return '';
     if (typeof v === 'number') return String(v).replace('.', ',');

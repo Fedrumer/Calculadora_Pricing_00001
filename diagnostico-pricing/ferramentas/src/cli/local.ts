@@ -1,13 +1,15 @@
-// Sobe o ambiente local, sem Docker: banco migrado, emulador do Supabase, a empresa fictícia
-// já diagnosticada e publicada, e os arquivos dela em .local/arquivos-demo para testar a carga pela tela.
+// Sobe o ambiente local, sem Docker: banco migrado, emulador do Supabase, as duas empresas fictícias
+// (distribuidora e operadora de turismo) já diagnosticadas e publicadas, e os arquivos delas em
+// .local/arquivos-demo e .local/arquivos-demo-turismo para testar a carga pela tela.
 //
 //   pnpm local               (recria o banco e sobe tudo)
 //   pnpm local -- --manter   (reaproveita o banco como está)
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { criarUsuario, instalarDemo } from '../apoio.ts';
+import { criarUsuario, instalarDemo, instalarDemoTurismo } from '../apoio.ts';
 import { RAIZ, conectar, recriarBanco } from '../banco.ts';
 import { type Demo, NOMES_ARQUIVO, gerarDemo, paraCsv } from '../demo.ts';
+import { type DemoTurismo, NOMES_ARQUIVO_TURISMO, gerarDemoTurismo, paraCsvTurismo } from '../demo-turismo.ts';
 import { iniciarEmulador } from '../emulador.ts';
 
 const urlBanco = process.env.DATABASE_URL ?? 'postgresql://pricing:pricing@127.0.0.1:5432/diagnostico_local';
@@ -23,12 +25,17 @@ const pasta = join(RAIZ, '.local/arquivos-demo');
 mkdirSync(pasta, { recursive: true });
 const demo = gerarDemo();
 for (const bloco of Object.keys(demo) as (keyof Demo)[]) writeFileSync(join(pasta, NOMES_ARQUIVO[bloco]), paraCsv(bloco, demo[bloco]));
+const pastaTurismo = join(RAIZ, '.local/arquivos-demo-turismo');
+mkdirSync(pastaTurismo, { recursive: true });
+const turismo = gerarDemoTurismo();
+for (const bloco of Object.keys(turismo) as (keyof DemoTurismo)[]) writeFileSync(join(pastaTurismo, NOMES_ARQUIVO_TURISMO[bloco]), paraCsvTurismo(bloco, turismo[bloco]));
 
 if (!manter) {
   const consultor = await criarUsuario(sql, { email: 'consultor@demo.local', senha, nome: 'Consultor da demonstração', perfil: 'consultor' });
+  await instalarDemoTurismo(sql, consultor, { publicar: true });
   const { cliente } = await instalarDemo(sql, consultor, { publicar: true });
   await criarUsuario(sql, { email: 'cliente@demo.local', senha, nome: 'Diretora comercial (cliente)', perfil: 'cliente_leitor', cliente });
-  console.log(`Instalada a empresa fictícia: ${demo.transacoes.length} linhas de venda, diagnóstico calculado e publicado.`);
+  console.log(`Instaladas as empresas fictícias: distribuidora (${demo.transacoes.length} linhas de venda) e operadora de turismo (${turismo.transacoes.length} reservas), calculadas e publicadas.`);
 }
 
 console.log(`
@@ -44,6 +51,7 @@ Ambiente local no ar.
     cliente@demo.local     cliente leitor (vê só o painel publicado)
 
   Arquivos para testar a carga pela tela: ${pasta}
+                                          ${pastaTurismo}
 
 Ctrl+C para encerrar.`);
-if (process.send) process.send({ pronto: true, url: emulador.url, anon: emulador.anon, pasta });
+if (process.send) process.send({ pronto: true, url: emulador.url, anon: emulador.anon, pasta, pastaTurismo });

@@ -47,6 +47,13 @@ test('a demonstração calcula as três dimensões, gera achados e três cenári
   for (const a of p.achados) if (a.alavanca) assert.ok(a.valor_exposto > 0, a.regra);
   const ganhos = p.cenarios.map((c: any) => c.ganho_total_anual);
   assert.ok(ganhos[0] > 0 && ganhos[0] < ganhos[1] && ganhos[1] < ganhos[2], ganhos.join(' < '));
+  // números de referência da empresa fictícia (plano v3, seção 2): não podem mudar entre pacotes
+  assert.equal(p.pontuacoes.find((x: any) => x.dimensao === 'geral').nota, 66.4);
+  assert.deepEqual(ganhos.map((g: number) => Math.round(g)), [18031, 52147, 108883]);
+  assert.equal(p.diagnostico.segmento, 'distribuicao');
+  assert.equal(p.diagnostico.versao_catalogo, 2);
+  assert.equal(p.pontuacoes.find((x: any) => x.dimensao === 'geral').detalhe.dimensoes_do_catalogo, 7);
+  assert.ok(!p.metricas.some((m: any) => ['cambio', 'capacidade'].includes(m.dimensao)), 'métrica de turismo apareceu na distribuição');
   for (const c of p.cenarios) assert.equal(c.alavancas.length, 2);
   // a cascata fecha
   const lista = p.cascata[0].valor, pocket = p.cascata.at(-1).valor;

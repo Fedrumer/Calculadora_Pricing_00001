@@ -14,7 +14,7 @@ export interface Qualidade { bloco: string; obrigatorio: boolean; presente: bool
 export interface Validacao { bloco: string; regra: string; severidade: 'erro' | 'alerta'; ocorrencias: number; total: number | null; mensagem: string }
 
 export interface Painel {
-  diagnostico: { id: string; nome: string; status: string; periodo_inicio: string; periodo_fim: string; calculado_em: string | null; versao_catalogo: number | null; versao_publicada: number | null; publicado_em: string | null; precos_liquidos_de_impostos: boolean; cliente: { id: string; nome: string; setor: string; moeda: string } };
+  diagnostico: { id: string; nome: string; status: string; periodo_inicio: string; periodo_fim: string; calculado_em: string | null; versao_catalogo: number | null; versao_publicada: number | null; publicado_em: string | null; precos_liquidos_de_impostos: boolean; segmento?: string | null; tipo?: string; cliente: { id: string; nome: string; setor: string; moeda: string } };
   base: { linhas: number; inicio: string; fim: string; dias: number; rec_lista: number; rec_faturada: number; rec_pocket: number } | null;
   pontuacoes: Pontuacao[];
   metricas: Metrica[];
@@ -28,7 +28,7 @@ export interface Painel {
 }
 
 export interface DadosDiagnostico {
-  diagnostico: { id: string; nome: string; status: string; periodo_inicio: string; periodo_fim: string; cliente: string; versao_publicada: number | null };
+  diagnostico: { id: string; nome: string; status: string; periodo_inicio: string; periodo_fim: string; cliente: string; versao_publicada: number | null; segmento?: string | null };
   uploads: { id: string; bloco: string; arquivo: string; linhas: number; status: string; criado_em: string; mapeamento: Record<string, string> }[];
   qualidade: Qualidade[];
   validacoes: Validacao[];

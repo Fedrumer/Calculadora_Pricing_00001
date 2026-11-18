@@ -14,6 +14,7 @@ const APP = process.env.URL_APLICACAO ?? 'http://localhost:3100';
 const SENHA = process.env.DEMO_SENHA ?? 'Demonstracao2026';
 const RAIZ = fileURLToPath(new URL('../../', import.meta.url));
 const ARQUIVOS = process.env.ARQUIVOS_DEMO ?? join(RAIZ, '.local/arquivos-demo');
+const ARQUIVOS_TURISMO = process.env.ARQUIVOS_DEMO_TURISMO ?? join(RAIZ, '.local/arquivos-demo-turismo');
 const capturas = resolve(process.argv[2] ?? join(RAIZ, 'capturas'));
 mkdirSync(capturas, { recursive: true });
 
@@ -43,11 +44,12 @@ async function sair() {
   await pagina.click('button:has-text("Sair")');
   await pagina.waitForSelector('h1:has-text("Entrar")');
 }
-async function enviar(bloco, arquivo) {
+async function enviar(bloco, arquivo, pasta = ARQUIVOS, antesDeEnviar = async () => {}) {
   await pagina.click(`[data-bloco=${bloco}] button`);
-  await pagina.setInputFiles('input[name=arquivo]', join(ARQUIVOS, arquivo));
+  await pagina.setInputFiles('input[name=arquivo]', join(pasta, arquivo));
   await pagina.waitForSelector('text=Confira de qual coluna vem cada campo');
   conferir((await pagina.locator('text=Falta indicar a coluna').count()) === 0, `${arquivo}: todas as colunas obrigatórias foram reconhecidas`);
+  await antesDeEnviar();
   await pagina.click('button:has-text("Confirmar e enviar")');
   await pagina.waitForSelector('[role=dialog]', { state: 'detached', timeout: 60000 });
   await pagina.waitForSelector(`[data-bloco=${bloco}] >> text=${arquivo}`);
@@ -57,7 +59,7 @@ try {
   console.log('Consultor: a empresa fictícia já diagnosticada');
   await entrar('consultor@demo.local');
   conferir(await texto('Distribuidora Horizonte').isVisible(), 'a lista mostra o diagnóstico da empresa fictícia');
-  await pagina.click('tr.clicavel');
+  await pagina.click('tr.clicavel:has-text("Distribuidora Horizonte")');
   await pagina.waitForSelector('text=Nota geral');
   conferir(await texto('Parcial: 3 de 7 dimensões').isVisible(), 'a nota geral aparece marcada como parcial');
   conferir(await texto('Ganho potencial por ano').isVisible(), 'o resumo mostra a faixa de ganho');
@@ -123,6 +125,48 @@ try {
   await pagina.click('button:has-text("Publicar para o cliente")');
   await pagina.waitForSelector('text=Publicado. O cliente passa a ver');
   conferir(true, 'o diagnóstico é publicado');
+
+  console.log('Consultor: a operadora de turismo fictícia');
+  await pagina.click('a:has-text("Diagnósticos")');
+  await pagina.click('tr.clicavel:has-text("Atlântica Viagens")');
+  await pagina.waitForSelector('text=Nota geral');
+  conferir(await texto('Operadora de turismo').isVisible(), 'o diagnóstico mostra o segmento operadora');
+  await aba('Câmbio e capacidade');
+  await pagina.waitForSelector('text=Margem e câmbio por produto');
+  const linhaLisboa = await pagina.locator('table tr:has-text("LIS-JUL")').first().innerText();
+  conferir(/R\$\s587\b/.test(linhaLisboa), 'o bloqueio de Lisboa sai com R$ 587 por passageiro (Nota nº 02)');
+  const bloqueioLisboa = await pagina.locator('table tr:has-text("LIS-JUL"):has-text("Prazo vencido")').innerText();
+  conferir(/\b40\b/.test(bloqueioLisboa) && /\b34\b/.test(bloqueioLisboa), 'o bloqueio de Lisboa mostra 40 lugares contratados e 34 vendidos');
+  conferir(await texto('24 meses de histórico').isVisible(), 'a curva contra o ano anterior diz por que está indisponível');
+  await foto('07-turismo');
+
+  console.log('Consultor: uma operadora nova, com os arquivos de reservas enviados pela tela');
+  await pagina.click('a:has-text("Diagnósticos")');
+  await pagina.click('button:has-text("Novo diagnóstico")');
+  await pagina.selectOption('select[name=cliente]', 'novo');
+  await pagina.fill('input[name=novo_cliente]', 'Operadora piloto');
+  await pagina.selectOption('select[name=setor]', 'operadora');
+  conferir((await pagina.locator('select[name=segmento]').inputValue()) === 'operadora', 'o segmento do diagnóstico parte do setor do cliente');
+  await pagina.fill('input[name=nome]', 'Reservas pela tela');
+  await pagina.fill('input[name=inicio]', '2025-11-01');
+  await pagina.fill('input[name=fim]', '2026-10-31');
+  await pagina.click('button:has-text("Criar diagnóstico")');
+  await pagina.waitForSelector('h1:has-text("Reservas pela tela")');
+  await pagina.waitForSelector('[data-bloco=bloqueios]');
+  conferir(await texto('Opcional: custo na reserva').isVisible(), 'em operadora, a tabela de custos é opcional');
+  await enviar('transacoes', 'reservas-12-meses.csv', ARQUIVOS_TURISMO, async () => {
+    const campo = (c) => pagina.locator(`select[name=mapa_${c}]`).inputValue();
+    conferir((await campo('custo_unitario_moeda')) === 'Custo Unitário (moeda)' && (await campo('cambio_pagamento')) === 'Câmbio Pagamento'
+      && (await campo('data_servico')) === 'Data Embarque' && (await campo('quantidade')) === 'Passageiros', 'os campos de reserva são reconhecidos pelos títulos do sistema da operadora');
+  });
+  await enviar('custos_servir', 'comissoes-e-taxas.csv', ARQUIVOS_TURISMO);
+  await enviar('bloqueios', 'bloqueios.csv', ARQUIVOS_TURISMO);
+  await pagina.click('button:has-text("Calcular diagnóstico")');
+  await pagina.waitForSelector('text=Diagnóstico calculado.', { timeout: 60000 });
+  await aba('Câmbio e capacidade');
+  await pagina.waitForSelector('text=Margem e câmbio por produto');
+  const lisboaPelaTela = await pagina.locator('table tr:has-text("LIS-JUL")').first().innerText();
+  conferir(/R\$\s587\b/.test(lisboaPelaTela), 'carregada pela tela, a operadora calcula sem arquivo de custos e chega aos mesmos R$ 587');
   await sair();
 
   console.log('Cliente: só o painel publicado da própria empresa');

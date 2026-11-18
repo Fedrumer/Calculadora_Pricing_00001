@@ -1,5 +1,6 @@
 import { type Sql } from './banco.ts';
 import { type Demo, type Linha, NOMES_ARQUIVO, PERIODO, gerarDemo } from './demo.ts';
+import { type DemoTurismo, NOMES_ARQUIVO_TURISMO, PERIODO_TURISMO, gerarDemoTurismo } from './demo-turismo.ts';
 import { chamar, criarUsuarioAuth } from './emulador.ts';
 
 export const claims = (id: string) => ({ sub: id, role: 'authenticated' });
@@ -30,6 +31,20 @@ export async function instalarDemo(sql: Sql, consultor: string, o: { publicar?: 
   for (const bloco of Object.keys(demo) as (keyof Demo)[]) await carregar(sql, consultor, diagnostico, bloco, demo[bloco], NOMES_ARQUIVO[bloco]);
   const calculo = await chamar<{ calculado: boolean; bloqueio?: string }>(sql, claims(consultor), 'calcular_diagnostico', { p_diagnostico: diagnostico });
   if (!calculo.calculado) throw new Error(`A demonstração não calculou: ${calculo.bloqueio}`);
+  if (o.publicar) await chamar(sql, claims(consultor), 'publicar_diagnostico', { p_diagnostico: diagnostico });
+  return { cliente, diagnostico, demo };
+}
+
+/** Instala a operadora de turismo fictícia: cliente do segmento operadora, reservas, bloqueios e cálculo. */
+export async function instalarDemoTurismo(sql: Sql, consultor: string, o: { publicar?: boolean } = {}) {
+  const demo = gerarDemoTurismo();
+  const cliente = await chamar<string>(sql, claims(consultor), 'criar_cliente', { p_nome: 'Atlântica Viagens (fictícia)', p_setor: 'operadora' });
+  const diagnostico = await chamar<string>(sql, claims(consultor), 'criar_diagnostico', {
+    p_cliente: cliente, p_nome: 'Diagnóstico de pricing 2026', p_inicio: PERIODO_TURISMO.inicio, p_fim: PERIODO_TURISMO.fim, p_precos_liquidos: true, p_segmento: 'operadora',
+  });
+  for (const bloco of Object.keys(demo) as (keyof DemoTurismo)[]) await carregar(sql, consultor, diagnostico, bloco, demo[bloco], NOMES_ARQUIVO_TURISMO[bloco]);
+  const calculo = await chamar<{ calculado: boolean; bloqueio?: string }>(sql, claims(consultor), 'calcular_diagnostico', { p_diagnostico: diagnostico });
+  if (!calculo.calculado) throw new Error(`A operadora fictícia não calculou: ${calculo.bloqueio}`);
   if (o.publicar) await chamar(sql, claims(consultor), 'publicar_diagnostico', { p_diagnostico: diagnostico });
   return { cliente, diagnostico, demo };
 }

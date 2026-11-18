@@ -2,22 +2,32 @@
 // padrão e converte número e data do formato brasileiro. Nada aqui calcula métrica.
 
 export type Tipo = 'texto' | 'numero' | 'data';
-export interface Campo { campo: string; rotulo: string; tipo: Tipo; obrigatorio?: boolean; sinonimos: string[] }
+export interface Campo { campo: string; rotulo: string; tipo: Tipo; obrigatorio?: boolean; reserva?: boolean; sinonimos: string[] }
 
 export const CAMPOS: Record<string, Campo[]> = {
   transacoes: [
     { campo: 'data', rotulo: 'Data', tipo: 'data', obrigatorio: true, sinonimos: ['dataemissao', 'dtemissao', 'emissao', 'datavenda', 'datanf', 'data'] },
-    { campo: 'nota_fiscal', rotulo: 'Nota fiscal', tipo: 'texto', sinonimos: ['notafiscal', 'numeronf', 'nf', 'nota', 'documento', 'pedido'] },
-    { campo: 'produto', rotulo: 'Código do produto', tipo: 'texto', obrigatorio: true, sinonimos: ['codproduto', 'codigoproduto', 'produto', 'sku', 'coditem', 'item'] },
-    { campo: 'conta', rotulo: 'Código do cliente', tipo: 'texto', obrigatorio: true, sinonimos: ['codcliente', 'codigocliente', 'cliente', 'codconta', 'conta'] },
+    { campo: 'nota_fiscal', rotulo: 'Nota fiscal ou localizador', tipo: 'texto', sinonimos: ['notafiscal', 'numeronf', 'nf', 'localizador', 'nota', 'documento', 'pedido'] },
+    { campo: 'produto', rotulo: 'Código do produto', tipo: 'texto', obrigatorio: true, sinonimos: ['codproduto', 'codigoproduto', 'codpacote', 'produto', 'pacote', 'sku', 'coditem', 'item'] },
+    { campo: 'conta', rotulo: 'Código do cliente', tipo: 'texto', obrigatorio: true, sinonimos: ['codcliente', 'codigocliente', 'codagencia', 'cliente', 'codconta', 'conta', 'agencia'] },
     { campo: 'canal', rotulo: 'Canal', tipo: 'texto', sinonimos: ['canalvenda', 'canal'] },
-    { campo: 'quantidade', rotulo: 'Quantidade', tipo: 'numero', obrigatorio: true, sinonimos: ['quantidade', 'qtde', 'qtd', 'volume'] },
-    { campo: 'preco_lista', rotulo: 'Preço de lista (unitário)', tipo: 'numero', obrigatorio: true, sinonimos: ['precotabela', 'precolista', 'precodelista', 'precocheio', 'tabela'] },
-    { campo: 'preco_faturado', rotulo: 'Preço faturado (unitário)', tipo: 'numero', obrigatorio: true, sinonimos: ['precounitnf', 'precofaturado', 'precounitario', 'precoliquido', 'precovenda', 'precopraticado', 'precounit'] },
-    { campo: 'desc_comercial', rotulo: 'Desconto comercial (unitário)', tipo: 'numero', sinonimos: ['desccomercial', 'descontocomercial'] },
+    { campo: 'quantidade', rotulo: 'Quantidade (ou passageiros)', tipo: 'numero', obrigatorio: true, sinonimos: ['quantidade', 'qtde', 'qtd', 'passageiros', 'pax', 'volume'] },
+    { campo: 'preco_lista', rotulo: 'Preço de lista (unitário)', tipo: 'numero', obrigatorio: true, sinonimos: ['precotabela', 'precolista', 'precodelista', 'precocheio', 'tarifa', 'tabela'] },
+    { campo: 'preco_faturado', rotulo: 'Preço faturado (unitário)', tipo: 'numero', obrigatorio: true, sinonimos: ['precounitnf', 'precofaturado', 'precounitario', 'precoliquido', 'precovenda', 'precopraticado', 'valorvendido', 'precounit'] },
+    { campo: 'desc_comercial', rotulo: 'Desconto comercial (unitário)', tipo: 'numero', sinonimos: ['desccomercial', 'descontocomercial', 'desconto'] },
     { campo: 'desc_volume', rotulo: 'Desconto por volume (unitário)', tipo: 'numero', sinonimos: ['descvolume', 'descontovolume', 'descontoporvolume'] },
     { campo: 'desc_promocional', rotulo: 'Desconto promocional (unitário)', tipo: 'numero', sinonimos: ['descpromocional', 'descpromo', 'descontopromocional'] },
     { campo: 'desc_financeiro', rotulo: 'Desconto financeiro (unitário)', tipo: 'numero', sinonimos: ['descfinanceiro', 'descontofinanceiro'] },
+    // reserva (turismo): todos opcionais; com custo em moeda, o custo vem da própria reserva
+    { campo: 'data_servico', rotulo: 'Data do serviço (embarque)', tipo: 'data', reserva: true, sinonimos: ['dataservico', 'dataembarque', 'embarque', 'checkin', 'datasaida'] },
+    { campo: 'fornecedor', rotulo: 'Fornecedor', tipo: 'texto', reserva: true, sinonimos: ['fornecedor', 'receptivo'] },
+    { campo: 'custo_unitario_moeda', rotulo: 'Custo unitário na moeda do fornecedor', tipo: 'numero', reserva: true, sinonimos: ['custounitariomoeda', 'customoeda', 'custofornecedor'] },
+    { campo: 'moeda_custo', rotulo: 'Moeda do custo (EUR, USD, BRL)', tipo: 'texto', reserva: true, sinonimos: ['moedacusto', 'moeda'] },
+    { campo: 'cambio_venda', rotulo: 'Câmbio da venda', tipo: 'numero', reserva: true, sinonimos: ['cambiovenda', 'cambiodavenda'] },
+    { campo: 'cambio_pagamento', rotulo: 'Câmbio do pagamento ao fornecedor', tipo: 'numero', reserva: true, sinonimos: ['cambiopagamento', 'cambiodopagamento'] },
+    { campo: 'data_pagamento_fornecedor', rotulo: 'Data do pagamento ao fornecedor', tipo: 'data', reserva: true, sinonimos: ['datapagamentofornecedor', 'datapagamento'] },
+    { campo: 'over_unitario', rotulo: 'Over por unidade (R$)', tipo: 'numero', reserva: true, sinonimos: ['overunitario', 'over', 'incentivofornecedor'] },
+    { campo: 'status_reserva', rotulo: 'Status da reserva', tipo: 'texto', reserva: true, sinonimos: ['statusreserva', 'status', 'situacao'] },
   ],
   custos: [
     { campo: 'produto', rotulo: 'Código do produto', tipo: 'texto', obrigatorio: true, sinonimos: ['codproduto', 'codigoproduto', 'produto', 'sku', 'item'] },
@@ -25,30 +35,41 @@ export const CAMPOS: Record<string, Campo[]> = {
     { campo: 'vigencia_inicio', rotulo: 'Início da vigência', tipo: 'data', sinonimos: ['vigenciainicio', 'vigencia', 'apartirde', 'data'] },
   ],
   produtos: [
-    { campo: 'codigo', rotulo: 'Código do produto', tipo: 'texto', obrigatorio: true, sinonimos: ['codproduto', 'codigoproduto', 'codigo', 'sku', 'produto'] },
+    { campo: 'codigo', rotulo: 'Código do produto', tipo: 'texto', obrigatorio: true, sinonimos: ['codproduto', 'codigoproduto', 'codpacote', 'codigo', 'sku', 'produto', 'pacote'] },
     { campo: 'descricao', rotulo: 'Descrição', tipo: 'texto', sinonimos: ['descricao', 'nome'] },
-    { campo: 'categoria', rotulo: 'Categoria', tipo: 'texto', sinonimos: ['categoria', 'familia', 'grupo'] },
+    { campo: 'categoria', rotulo: 'Categoria (ou destino)', tipo: 'texto', sinonimos: ['categoria', 'destino', 'familia', 'grupo'] },
     { campo: 'linha', rotulo: 'Linha', tipo: 'texto', sinonimos: ['linha'] },
   ],
   contas: [
-    { campo: 'codigo', rotulo: 'Código do cliente', tipo: 'texto', obrigatorio: true, sinonimos: ['codcliente', 'codigocliente', 'codigo', 'cliente', 'conta'] },
+    { campo: 'codigo', rotulo: 'Código do cliente', tipo: 'texto', obrigatorio: true, sinonimos: ['codcliente', 'codigocliente', 'codagencia', 'codigo', 'cliente', 'conta', 'agencia'] },
     { campo: 'nome', rotulo: 'Nome', tipo: 'texto', sinonimos: ['razaosocial', 'nomefantasia', 'nome'] },
     { campo: 'segmento', rotulo: 'Segmento', tipo: 'texto', sinonimos: ['segmento', 'ramo'] },
     { campo: 'porte', rotulo: 'Porte', tipo: 'texto', sinonimos: ['porte', 'tamanho'] },
     { campo: 'regiao', rotulo: 'Região', tipo: 'texto', sinonimos: ['regiao', 'uf', 'estado'] },
-    { campo: 'vendedor', rotulo: 'Vendedor', tipo: 'texto', sinonimos: ['vendedor', 'representante', 'responsavel'] },
+    { campo: 'vendedor', rotulo: 'Vendedor', tipo: 'texto', sinonimos: ['vendedor', 'executivodecontas', 'executivo', 'representante', 'responsavel'] },
   ],
   custos_servir: [
     { campo: 'tipo', rotulo: 'Tipo (frete, comissão, prazo, outros)', tipo: 'texto', obrigatorio: true, sinonimos: ['tipo'] },
     { campo: 'canal', rotulo: 'Canal (vazio = todos)', tipo: 'texto', sinonimos: ['canal'] },
-    { campo: 'conta', rotulo: 'Código do cliente (vazio = todos)', tipo: 'texto', sinonimos: ['codcliente', 'codigocliente', 'cliente', 'conta'] },
+    { campo: 'conta', rotulo: 'Código do cliente (vazio = todos)', tipo: 'texto', sinonimos: ['codcliente', 'codigocliente', 'codagencia', 'cliente', 'conta', 'agencia'] },
     { campo: 'percentual', rotulo: 'Percentual sobre o faturado', tipo: 'numero', obrigatorio: true, sinonimos: ['percentual', 'perc', 'aliquota', 'taxa'] },
   ],
   descontos_fora_fatura: [
-    { campo: 'conta', rotulo: 'Código do cliente', tipo: 'texto', obrigatorio: true, sinonimos: ['codcliente', 'codigocliente', 'cliente', 'conta'] },
+    { campo: 'conta', rotulo: 'Código do cliente', tipo: 'texto', obrigatorio: true, sinonimos: ['codcliente', 'codigocliente', 'codagencia', 'cliente', 'conta', 'agencia'] },
     { campo: 'mes', rotulo: 'Mês', tipo: 'data', obrigatorio: true, sinonimos: ['mes', 'competencia', 'periodo', 'data'] },
     { campo: 'tipo', rotulo: 'Tipo (rebate, bonificação, verba)', tipo: 'texto', sinonimos: ['tipo'] },
     { campo: 'valor', rotulo: 'Valor total', tipo: 'numero', obrigatorio: true, sinonimos: ['valor', 'total'] },
+  ],
+  bloqueios: [
+    { campo: 'produto', rotulo: 'Código do produto', tipo: 'texto', obrigatorio: true, sinonimos: ['codproduto', 'codpacote', 'produto', 'pacote'] },
+    { campo: 'fornecedor', rotulo: 'Fornecedor', tipo: 'texto', sinonimos: ['fornecedor', 'receptivo'] },
+    { campo: 'data_servico', rotulo: 'Data do serviço (saída)', tipo: 'data', sinonimos: ['dataservico', 'dataembarque', 'datasaida', 'embarque', 'saida'] },
+    { campo: 'lugares_contratados', rotulo: 'Lugares contratados', tipo: 'numero', obrigatorio: true, sinonimos: ['lugarescontratados', 'contratados', 'lugares'] },
+    { campo: 'lugares_vendidos', rotulo: 'Lugares vendidos', tipo: 'numero', obrigatorio: true, sinonimos: ['lugaresvendidos', 'vendidos'] },
+    { campo: 'data_devolucao', rotulo: 'Prazo de devolução', tipo: 'data', sinonimos: ['datadevolucao', 'prazodevolucao', 'devolucao'] },
+    { campo: 'multa_por_lugar', rotulo: 'Multa por lugar (R$)', tipo: 'numero', sinonimos: ['multaporlugar', 'multa'] },
+    { campo: 'custo_unitario_moeda', rotulo: 'Custo do lugar na moeda do fornecedor', tipo: 'numero', sinonimos: ['custounitariomoeda', 'customoeda', 'custolugar', 'custo'] },
+    { campo: 'moeda', rotulo: 'Moeda (EUR, USD, BRL)', tipo: 'texto', sinonimos: ['moeda'] },
   ],
 };
 
