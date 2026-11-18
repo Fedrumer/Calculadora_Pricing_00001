@@ -4,7 +4,8 @@ MVP (Fase 1) do sistema descrito no documento **Arquitetura — Sistema de Avali
 recebe os dados brutos de um cliente e devolve onde a margem vaza, quais ajustes fazer e quanto cada ajuste
 vale em reais por ano.
 
-Está instalado e homologado no projeto Supabase `diagnostico_pricing`; veja `docs/pendencias.md`.
+Está instalado e homologado no projeto Supabase `diagnostico_pricing`. O ajuste ao plano v3 segue
+`docs/ajustamento-v3.md`, em pacotes; o andamento de cada um está em `docs/pendencias.md`.
 
 Esta pasta é independente de `sistema-pricing` (o sistema de cotação): nada é compartilhado em tempo de execução.
 
@@ -21,6 +22,16 @@ Esta pasta é independente de `sistema-pricing` (o sistema de cotação): nada �
 | Publicação | Versão publicada imutável; o cliente vê só o que foi publicado |
 | Dashboard | Resumo executivo, realização de preço (cascata), oportunidades e dados e premissas |
 
+### Turismo (pacote P1 do plano v3)
+
+Operadoras e consolidadoras usam o mesmo fluxo: uma reserva é uma transação, com colunas opcionais de reserva
+(data do serviço, fornecedor, custo unitário na moeda, câmbio da venda e do pagamento, over e status). Quando a
+reserva traz custo em moeda, o custo sai dela e a tabela de custos deixa de ser obrigatória. Há um bloco novo,
+bloqueios, e sete métricas no catálogo versão 2 (margem por passageiro, markup por fornecedor, resultado cambial,
+folga até o câmbio de equilíbrio, ocupação dos bloqueios, custo de lugar não vendido e reservas contra o ano
+anterior), informativas até a definição dos limiares. Cada diagnóstico tem um segmento, que escolhe as métricas e
+os pesos da nota geral.
+
 Ficam para a Fase 2, como no roadmap: as outras quatro dimensões, as outras cinco alavancas, elasticidade
 estimada, narrativa por IA, simulador com controles deslizantes e exportação em PDF. Veja `docs/pendencias.md`.
 
@@ -28,10 +39,10 @@ estimada, narrativa por IA, simulador com controles deslizantes e exportação e
 
 | Pasta | Conteúdo |
 | --- | --- |
-| `supabase/migrations` | Tudo o que roda em produção fora da tela: esquema, catálogo versão 1, motor de cálculo em SQL, funções da aplicação e RLS |
+| `supabase/migrations` | Tudo o que roda em produção fora da tela: esquema, catálogos versão 1 e 2, motor de cálculo em SQL, funções da aplicação e RLS. O de-para com as versões registradas no projeto está em `docs/migracoes.md` |
 | `apps/web` | Aplicação web (Next.js). Chama funções do banco e exibe o resultado; não calcula métrica |
-| `ferramentas` | Ambiente local sem Docker (emulador do Supabase), empresa fictícia, testes do motor e do isolamento, roteiro no navegador |
-| `docs` | Pendências, o que foi verificado e capturas das telas |
+| `ferramentas` | Ambiente local sem Docker (emulador do Supabase), as duas empresas fictícias (distribuidora e operadora de turismo), testes do motor, do turismo e do isolamento, roteiro no navegador |
+| `docs` | Plano v3 (`ajustamento-v3.md`), pendências e o que foi verificado, de-para das migrações e capturas das telas |
 
 Decisões do documento (seção 12) adotadas: piloto em venda de produtos com preço de lista (distribuição,
 indústria, varejo B2B); o consultor insere os dados; aplicação web própria; cálculo em SQL no Postgres;
@@ -77,7 +88,7 @@ pnpm test
 pnpm local
 ```
 
-`pnpm local` recria o banco `diagnostico_local`, instala a empresa fictícia já diagnosticada e publicada e
+`pnpm local` recria o banco `diagnostico_local`, instala as duas empresas fictícias já diagnosticadas e publicadas e
 imprime as duas variáveis `NEXT_PUBLIC_*` para gravar em `apps/web/.env.local` (acrescente
 `NEXT_PUBLIC_AMBIENTE=demonstracao` para ver os acessos de demonstração na tela de entrada). Em outro terminal:
 
@@ -85,10 +96,13 @@ imprime as duas variáveis `NEXT_PUBLIC_*` para gravar em `apps/web/.env.local` 
 pnpm dev:web
 ```
 
-A aplicação abre em `http://localhost:3100`. Os arquivos da empresa fictícia ficam em `.local/arquivos-demo`,
-no formato em que um cliente os enviaria, para testar a carga pela tela.
+A aplicação abre em `http://localhost:3100`. Os arquivos das empresas fictícias ficam em `.local/arquivos-demo` e
+`.local/arquivos-demo-turismo`, no formato em que cada uma os enviaria, para testar a carga pela tela
+(`pnpm demo:arquivos -- ./pasta --turismo` grava os da operadora em outra pasta).
 
-Roteiro de ponta a ponta no navegador (26 conferências), com o ambiente local e a aplicação no ar:
+`pnpm test` roda 30 testes: o caso de referência do motor, o de turismo, a operadora fictícia e o isolamento por perfil.
+
+Roteiro de ponta a ponta no navegador (37 conferências), com o ambiente local e a aplicação no ar:
 
 ```bash
 node ferramentas/e2e/roteiro.mjs ./capturas

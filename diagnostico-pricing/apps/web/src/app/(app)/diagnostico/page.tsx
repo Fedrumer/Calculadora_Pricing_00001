@@ -4,16 +4,18 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { AbaDados } from '@/componentes/aba-dados';
+import { AbaTurismo, temTurismo } from '@/componentes/aba-turismo';
 import { AbaOportunidades, AbaRealizacao, AbaResumo } from '@/componentes/abas-painel';
 import { Aviso, Carregando, Selo, useAcao, useDados } from '@/componentes/ui';
 import { rpc } from '@/lib/api';
-import { data, dataHora } from '@/lib/formato';
+import { ROTULO_SEGMENTO, data, dataHora } from '@/lib/formato';
 import { useSessao } from '@/lib/sessao';
 import type { DadosDiagnostico, Painel } from '@/lib/tipos';
 
 const ABAS = [
   ['resumo', 'Resumo executivo'],
   ['realizacao', 'Realização de preço'],
+  ['turismo', 'Câmbio e capacidade'],
   ['oportunidades', 'Oportunidades'],
   ['dados', 'Dados e premissas'],
 ] as const;
@@ -76,7 +78,7 @@ function Tela() {
           <p><Link href="/">Diagnósticos</Link> / {d.cliente.nome}</p>
           <h1>{d.nome}</h1>
           <p>
-            {data(d.periodo_inicio)} a {data(d.periodo_fim)} · <Selo status={status} />
+            {data(d.periodo_inicio)} a {data(d.periodo_fim)}{d.segmento ? ` · ${ROTULO_SEGMENTO[d.segmento] ?? d.segmento}` : ''} · <Selo status={status} />
             {p.publicacao ? <> · versão {p.publicacao.versao}, publicada em {dataHora(p.publicacao.publicado_em)}</> : d.calculado_em ? <> · calculado em {dataHora(d.calculado_em)}</> : null}
           </p>
         </div>
@@ -96,7 +98,7 @@ function Tela() {
       {s.consultor && calculado && status === 'rascunho' && <Aviso tipo="atencao">Há carga nova depois do último cálculo. Recalcule para atualizar os números.</Aviso>}
 
       <div className="abas" role="tablist">
-        {ABAS.map(([codigo, rotulo]) => (
+        {ABAS.filter(([codigo]) => codigo !== 'turismo' || temTurismo(p)).map(([codigo, rotulo]) => (
           <button key={codigo} role="tab" aria-selected={aba === codigo} className={aba === codigo ? 'ativa' : ''} onClick={() => setAba(codigo)}>
             {rotulo}
           </button>
@@ -109,6 +111,8 @@ function Tela() {
         <AbaResumo p={p} />
       ) : aba === 'realizacao' ? (
         <AbaRealizacao p={p} />
+      ) : aba === 'turismo' ? (
+        <AbaTurismo p={p} />
       ) : aba === 'oportunidades' ? (
         <AbaOportunidades p={p} podeEditar={s.consultor} aoMudar={recarregar} />
       ) : aba === 'dados' ? (

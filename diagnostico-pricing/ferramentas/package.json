@@ -9,7 +9,8 @@
     "test": "tsx --test --test-concurrency=1 testes/*.test.ts",
     "local": "tsx src/cli/local.ts",
     "demo:arquivos": "tsx src/cli/demo-arquivos.ts",
-    "homologar": "tsx src/cli/homologar.ts"
+    "homologar": "tsx src/cli/homologar.ts",
+    "migrar": "tsx src/cli/migrar.ts"
   },
   "dependencies": {
     "postgres": "3.4.7"

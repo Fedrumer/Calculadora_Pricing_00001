@@ -27,13 +27,19 @@ export const dataHora = (v: string | Date | null | undefined) =>
 
 export const ROTULO_STATUS: Record<string, string> = { rascunho: 'Rascunho', validado: 'Dados validados', calculado: 'Calculado', publicado: 'Publicado' };
 export const ROTULO_PERFIL: Record<string, string> = { consultor: 'Consultor', cliente_editor: 'Cliente (envia dados)', cliente_leitor: 'Cliente (leitura)' };
-export const ROTULO_DIMENSAO: Record<string, string> = { realizacao: 'Realização de preço', margem: 'Margem', dispersao: 'Dispersão', geral: 'Nota geral' };
+export const ROTULO_DIMENSAO: Record<string, string> = {
+  realizacao: 'Realização de preço', margem: 'Margem', dispersao: 'Dispersão', cambio: 'Câmbio', capacidade: 'Capacidade', canal: 'Canal', governanca: 'Governança', geral: 'Nota geral',
+};
+export const ROTULO_SEGMENTO: Record<string, string> = {
+  distribuicao: 'Distribuição', industria: 'Indústria', varejo_b2b: 'Varejo B2B', operadora: 'Operadora de turismo', consolidadora: 'Consolidadora', mga: 'MGA',
+};
+export const SEGMENTOS_TURISMO = ['operadora', 'consolidadora'];
 export const ROTULO_CENARIO: Record<string, string> = { conservador: 'Conservador', base: 'Base', agressivo: 'Agressivo' };
 export const ROTULO_BLOCO: Record<string, string> = {
   transacoes: 'Transações', custos: 'Custos', produtos: 'Cadastro de produtos', contas: 'Cadastro de clientes',
-  custos_servir: 'Custos de servir', descontos_fora_fatura: 'Descontos fora da fatura',
+  custos_servir: 'Custos de servir', descontos_fora_fatura: 'Descontos fora da fatura', bloqueios: 'Bloqueios',
 };
-export const ROTULO_RECORTE: Record<string, string> = { canal: 'Canal', segmento: 'Segmento', categoria: 'Categoria', regiao: 'Região', vendedor: 'Vendedor', produto: 'Produto', conta: 'Conta' };
+export const ROTULO_RECORTE: Record<string, string> = { canal: 'Canal', segmento: 'Segmento', categoria: 'Categoria', regiao: 'Região', vendedor: 'Vendedor', produto: 'Produto', conta: 'Conta', fornecedor: 'Fornecedor' };
 export const ROTULO_PREMISSA: Record<string, { rotulo: string; dica: string }> = {
   percentil_piso: { rotulo: 'Piso da banda (percentil)', dica: 'Percentil do preço por conta que define o piso' },
   fechamento: { rotulo: 'Fechamento da distância', dica: 'Parcela da distância até o piso que o ajuste fecha (0 a 1)' },

@@ -4,26 +4,33 @@ import { useState } from 'react';
 import { Aviso, Modal, Selo, useAcao } from '@/componentes/ui';
 import { rpc } from '@/lib/api';
 import { CAMPOS, type Planilha, converter, lerArquivo, lerCsv, sugerirMapeamento } from '@/lib/csv';
-import { ROTULO_BLOCO, ROTULO_CENARIO, ROTULO_PREMISSA, dataHora, numero } from '@/lib/formato';
+import { ROTULO_BLOCO, ROTULO_CENARIO, ROTULO_PREMISSA, SEGMENTOS_TURISMO, dataHora, numero } from '@/lib/formato';
 import type { DadosDiagnostico, Painel, Qualidade, Validacao } from '@/lib/tipos';
 
-const BLOCOS: { bloco: string; obrigatorio: boolean; descricao: string }[] = [
+const BLOCOS: { bloco: string; obrigatorio: boolean; descricao: string; turismo?: boolean }[] = [
   { bloco: 'transacoes', obrigatorio: true, descricao: 'Uma linha por item de nota: data, produto, cliente, canal, quantidade, preço de lista, preço faturado e descontos por tipo (valores unitários).' },
   { bloco: 'custos', obrigatorio: true, descricao: 'Custo unitário por produto. Com início de vigência, quando o custo mudou no período.' },
   { bloco: 'produtos', obrigatorio: false, descricao: 'Categoria e linha de cada produto. Sem ele, não há recorte por categoria.' },
   { bloco: 'contas', obrigatorio: false, descricao: 'Segmento, porte, região e vendedor de cada cliente. Sem ele, não há recorte por segmento, região e vendedor.' },
   { bloco: 'custos_servir', obrigatorio: false, descricao: 'Frete, comissão, prazo e outros, em % do faturado, por canal ou por cliente. Sem ele, o pocket price ignora o custo de servir.' },
   { bloco: 'descontos_fora_fatura', obrigatorio: false, descricao: 'Rebates, bonificações e verbas por cliente e mês. Sem ele, a cascata para no preço faturado.' },
+  { bloco: 'bloqueios', obrigatorio: false, turismo: true, descricao: 'Lugares contratados com o fornecedor por saída, vendidos, prazo de devolução e multa ou custo do lugar. Sem ele, não há ocupação nem custo de lugar não vendido.' },
 ];
+
+const DESCRICAO_TURISMO: Record<string, string> = {
+  transacoes: 'Uma linha por reserva: data da venda, pacote, agência ou cliente, canal, passageiros, tarifa e valor vendido; e, da reserva, data do serviço, fornecedor, custo unitário na moeda, câmbio da venda e do pagamento, over e status.',
+  custos: 'Só para reservas sem custo na própria linha: custo unitário por produto, em reais.',
+};
 const LOTE = 2000;
 
-function Carga({ diagnostico, bloco, aoFechar, aoConcluir }: { diagnostico: string; bloco: string; aoFechar: () => void; aoConcluir: () => void }) {
+function Carga({ diagnostico, bloco, turismo, aoFechar, aoConcluir }: { diagnostico: string; bloco: string; turismo: boolean; aoFechar: () => void; aoConcluir: () => void }) {
   const acao = useAcao();
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [planilha, setPlanilha] = useState<Planilha | null>(null);
   const [mapa, setMapa] = useState<Record<string, string>>({});
   const [progresso, setProgresso] = useState<string | null>(null);
-  const campos = CAMPOS[bloco]!;
+  // campos de reserva só aparecem em diagnóstico de turismo
+  const campos = CAMPOS[bloco]!.filter((c) => turismo || !c.reserva);
 
   const escolher = (f: File | null) =>
     acao.executar(async () => {
@@ -34,7 +41,8 @@ function Carga({ diagnostico, bloco, aoFechar, aoConcluir }: { diagnostico: stri
       const p = lerCsv(await lerArquivo(f));
       if (p.cabecalhos.length < 2 || p.linhas.length === 0) throw new Error('Não encontrei cabeçalho e linhas neste arquivo. Confira se é um CSV com a primeira linha de títulos.');
       setPlanilha(p);
-      setMapa(sugerirMapeamento(p.cabecalhos, bloco));
+      const sugerido = sugerirMapeamento(p.cabecalhos, bloco);
+      setMapa(Object.fromEntries(Object.entries(sugerido).filter(([campo]) => campos.some((c) => c.campo === campo))));
     });
 
   const faltando = campos.filter((c) => c.obrigatorio && !mapa[c.campo]);
@@ -126,19 +134,22 @@ export function AbaDados({ painel, dados, podeEditar, aoMudar }: { painel: Paine
   const indisponiveis = (painel?.metricas ?? []).filter((m) => m.valor === null);
   const informadas = (painel?.cenarios ?? []).flatMap((c) => c.premissas.filter((x) => x.origem === 'informada').map((x) => ({ ...x, cenario: c.codigo })));
   const diagnostico = dados?.diagnostico.id ?? painel?.diagnostico.id ?? '';
+  const segmento = dados?.diagnostico.segmento ?? painel?.diagnostico.segmento ?? null;
+  const turismo = !!segmento && SEGMENTOS_TURISMO.includes(segmento);
 
   return (
     <>
       <div className="cartao">
         <h2>Arquivos do cliente</h2>
-        {BLOCOS.map((b) => {
+        {BLOCOS.filter((b) => turismo || !b.turismo).map((b) => {
           const u = dados?.uploads.find((x) => x.bloco === b.bloco);
           const q = qualidade.find((x) => x.bloco === b.bloco);
+          const obrigatorio = q ? q.obrigatorio : b.bloco === 'custos' && turismo ? false : b.obrigatorio;
           return (
             <div key={b.bloco} className="bloco-dados" data-bloco={b.bloco}>
               <div>
-                <strong>{ROTULO_BLOCO[b.bloco]}</strong> <span className="selo">{b.obrigatorio ? 'Obrigatório' : 'Recomendado'}</span> {notaBloco(q)}
-                <div className="sutil">{b.descricao}</div>
+                <strong>{ROTULO_BLOCO[b.bloco]}</strong> <span className="selo">{obrigatorio ? 'Obrigatório' : b.bloco === 'custos' && turismo ? 'Opcional: custo na reserva' : 'Recomendado'}</span> {notaBloco(q)}
+                <div className="sutil">{(turismo && DESCRICAO_TURISMO[b.bloco]) || b.descricao}</div>
                 {u ? <div><small>{u.arquivo} · {numero(u.linhas)} linhas · {dataHora(u.criado_em)}</small></div> : q?.presente ? <div><small>{numero(q.linhas)} linhas</small></div> : null}
               </div>
               {podeEditar && (
@@ -170,7 +181,7 @@ export function AbaDados({ painel, dados, podeEditar, aoMudar }: { painel: Paine
         </div>
       )}
 
-      {carga && <Carga diagnostico={diagnostico} bloco={carga} aoFechar={() => setCarga(null)} aoConcluir={() => { setCarga(null); aoMudar(); }} />}
+      {carga && <Carga diagnostico={diagnostico} bloco={carga} turismo={turismo} aoFechar={() => setCarga(null)} aoConcluir={() => { setCarga(null); aoMudar(); }} />}
     </>
   );
 }
