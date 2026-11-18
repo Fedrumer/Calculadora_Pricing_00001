@@ -159,7 +159,9 @@ export default function EnvioDiagnostico() {
                     {a.linhas.map((l: any[], i: number) => (
                       <tr key={i}>
                         {l.map((v, j) => (
-                          <td key={j}>{v ?? ''}</td>
+                          <td key={j} style={{ whiteSpace: 'nowrap' }}>
+                            {v ?? ''}
+                          </td>
                         ))}
                       </tr>
                     ))}

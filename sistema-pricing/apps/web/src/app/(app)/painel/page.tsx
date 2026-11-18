@@ -147,16 +147,16 @@ export default function Painel() {
                     <th className="num">Emitidas</th>
                     <th className="num">Conversão</th>
                     <th className="num">Desconto médio</th>
-                    <th className="num">Desvio do desconto</th>
-                    <th className="num">Maior desconto</th>
-                    <th className="num">Margem das fechadas</th>
-                    <th className="num">Comissão do vendedor</th>
+                    <th className="num" title="Desvio-padrão do desconto">Desvio</th>
+                    <th className="num">Maior</th>
+                    <th className="num">Margem</th>
+                    <th className="num">Comissão</th>
                   </tr>
                 </thead>
                 <tbody>
                   {dados.painel.porVendedor.map((v: any) => (
                     <tr key={v.vendedor}>
-                      <td>{v.vendedor}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{v.vendedor}</td>
                       <td className="num">{numero(v.emitidas)}</td>
                       <td className="num">{v.conversaoPct != null ? pct(v.conversaoPct) : '—'}</td>
                       <td className="num">{pct(v.descontoMedioPct)}</td>
