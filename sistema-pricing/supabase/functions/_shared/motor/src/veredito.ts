@@ -6,6 +6,8 @@ export interface EntradaPolitica {
   comissaoPct: number;
   comissaoTabelaPct: number;
   comissaoForaTabela: boolean;
+  /** Menor folga cambial entre as moedas da cotação (%); nula sem custo em moeda estrangeira. */
+  folgaCambialPct?: number | null;
 }
 
 // Formatação fixa (sem depender da localidade do ambiente de execução).
@@ -54,6 +56,16 @@ export function avaliarPolitica(politica: Politica, e: EntradaPolitica): Veredit
       mensagem: `Margem de ${pct(e.margemPct)} abaixo da meta de ${pct(limites.margemMetaPct)}.`,
       limite: limites.margemMetaPct,
       valor: e.margemPct,
+      interno: true,
+    });
+  }
+  const folgaMinima = limites.folgaCambialMinimaPct;
+  if (folgaMinima !== undefined && folgaMinima !== null && e.folgaCambialPct !== undefined && e.folgaCambialPct !== null && e.folgaCambialPct < folgaMinima) {
+    motivos.push({
+      codigo: 'FOLGA_CAMBIAL_ABAIXO_DO_MINIMO',
+      mensagem: `Folga cambial de ${pct(e.folgaCambialPct)} abaixo do mínimo de ${pct(folgaMinima)}.`,
+      limite: folgaMinima,
+      valor: e.folgaCambialPct,
       interno: true,
     });
   }

@@ -1,0 +1,160 @@
+{
+  "name": "Pricing 10: envio ao diagnóstico",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Envio ao diagnóstico (A10)\nTodo dia às 6h pergunta à API se há pacote a enviar. A partir do dia do mês configurado em organizacao.config.envioDiagnostico, a API gera o pacote do mês anterior (pseudonimizado) e o envia ao diagnóstico com a chave que só deposita. Se já foi enviado, não faz nada; se falhou, avisa o administrador e a consultoria e tenta de novo no dia seguinte.\n\n**Desligado por padrão:** com o envio desligado a API não gera nem envia nada, só registra a tentativa na auditoria. Este fluxo não tem como ligar o envio.",
+        "height": 260,
+        "width": 460
+      },
+      "id": "8ea55981-f87d-4702-a702-e73c438978bf",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "d9c75d61-8be0-4c80-8147-1496962888ed",
+      "name": "Todo dia às 6h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/envio-diagnostico",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 180000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "7058043b-2039-48fe-a5b2-fb25f4c0557c",
+      "name": "Gerar e enviar o mês anterior",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        60
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n// desligado, aguardando o dia ou já enviado: nada a fazer\nif (!d || d.acao !== 'gerado' || d.envio?.status === 'enviado') return [];\nconst erro = d.envio?.erro ?? d.envio?.erro?.mensagem ?? d.erro?.mensagem ?? 'motivo não informado';\nreturn [{ json: {\n  para: (d.avisar ?? []).join(','),\n  assunto: `Pricing: envio ao diagnóstico de ${d.competencia} não foi feito`,\n  texto: [\n    `O pacote de ${d.competencia} foi gerado, mas não chegou ao diagnóstico.`,\n    `Motivo: ${typeof erro === 'string' ? erro : JSON.stringify(erro)}`,\n    '',\n    'A automação tenta de novo amanhã. O pacote também pode ser baixado na tela \"Envio ao diagnóstico\" e carregado na tela de carga do diagnóstico.',\n  ].join('\\n'),\n} }];"
+      },
+      "id": "55219f6c-d87e-43b4-a62d-8a161624684c",
+      "name": "Precisa avisar?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.PRICING_EMAIL_REMETENTE }}",
+        "toEmail": "={{ $json.para }}",
+        "subject": "={{ $json.assunto }}",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {}
+      },
+      "id": "cf3c473c-9803-4876-ad9b-b029663e7a50",
+      "name": "Avisar administrador e consultoria",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        200,
+        60
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE",
+          "name": "SMTP do cliente"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Todo dia às 6h": {
+      "main": [
+        [
+          {
+            "node": "Gerar e enviar o mês anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar e enviar o mês anterior": {
+      "main": [
+        [
+          {
+            "node": "Precisa avisar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precisa avisar?": {
+      "main": [
+        [
+          {
+            "node": "Avisar administrador e consultoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "pricing"
+    }
+  ]
+}

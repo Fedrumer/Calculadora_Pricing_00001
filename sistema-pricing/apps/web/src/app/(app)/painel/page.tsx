@@ -117,9 +117,129 @@ export default function Painel() {
               <h2>Margem por canal</h2>
               <BarrasHorizontais formato={(v) => pct(v)} itens={dados.painel.porCanal.map((c: any) => ({ rotulo: c.canal, valor: c.margemPct, detalhe: `${c.aceitas} fechadas, desconto médio ${pct(c.descontoMedioPct)}` }))} />
             </div>
-            <div className="cartao">
+            <div className="cartao" data-testid="motivos-perda">
               <h2>Motivos de perda</h2>
-              <BarrasHorizontais formato={(v) => numero(v)} itens={dados.painel.motivosPerda.slice(0, 6).map((m: any) => ({ rotulo: (m.motivo ?? 'Não informado').split(':')[0], valor: m.quantidade }))} />
+              <BarrasHorizontais
+                formato={(v) => numero(v)}
+                itens={dados.painel.motivosPerda.slice(0, 6).map((m: any) => ({
+                  rotulo: m.motivo ?? 'Não informado',
+                  valor: m.quantidade,
+                }))}
+              />
+              {dados.painel.motivosPerda
+                .filter((m: any) => m.diferencaMediaPct != null)
+                .map((m: any) => (
+                  <p key={m.categoria} className="sutil" data-testid="diferenca-concorrente">
+                    {m.motivo}: em {numero(m.comPrecoConcorrente)} perdas o vendedor anotou o preço do concorrente. O nosso estava {pct(m.diferencaMediaPct)} acima, em média.
+                  </p>
+                ))}
+            </div>
+          </div>
+
+          <div className="cartao" data-testid="por-vendedor">
+            <h2>Desconto por vendedor</h2>
+            <p className="sutil">Quem dá mais desconto aparece primeiro. Desvio alto quer dizer preço diferente para pedidos parecidos.</p>
+            <div className="rolagem">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Vendedor</th>
+                    <th className="num">Emitidas</th>
+                    <th className="num">Conversão</th>
+                    <th className="num">Desconto médio</th>
+                    <th className="num" title="Desvio-padrão do desconto">Desvio</th>
+                    <th className="num">Maior</th>
+                    <th className="num">Margem</th>
+                    <th className="num">Comissão</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dados.painel.porVendedor.map((v: any) => (
+                    <tr key={v.vendedor}>
+                      <td style={{ whiteSpace: 'nowrap' }}>{v.vendedor}</td>
+                      <td className="num">{numero(v.emitidas)}</td>
+                      <td className="num">{v.conversaoPct != null ? pct(v.conversaoPct) : '—'}</td>
+                      <td className="num">{pct(v.descontoMedioPct)}</td>
+                      <td className="num">{pct(v.descontoDesvioPct)}</td>
+                      <td className="num">{pct(v.descontoMaximoPct)}</td>
+                      <td className="num">{v.margemPct != null ? pct(v.margemPct) : '—'}</td>
+                      <td className="num">{moeda(v.comissaoVendedor)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="grade g2">
+            <div className="cartao" data-testid="conversao-por-desconto">
+              <h2>Conversão por faixa de desconto</h2>
+              <p className="sutil">Primeira leitura de quanto o desconto ajuda a fechar, pelas propostas ganhas e perdidas.</p>
+              <div className="rolagem">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Desconto</th>
+                      <th className="num">Emitidas</th>
+                      <th className="num">Fechadas</th>
+                      <th className="num">Conversão</th>
+                      <th className="num">Margem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dados.painel.conversaoPorDesconto.map((f: any) => (
+                      <tr key={f.faixa}>
+                        <td>
+                          {f.rotulo}{' '}
+                          {f.amostraPequena && (
+                            <span className="selo amarelo" title="Menos de 30 cotações emitidas nesta faixa: não leia tendência aqui.">
+                              amostra pequena
+                            </span>
+                          )}
+                        </td>
+                        <td className="num">{numero(f.emitidas)}</td>
+                        <td className="num">{numero(f.aceitas)}</td>
+                        <td className="num">{f.conversaoPct != null ? pct(f.conversaoPct) : '—'}</td>
+                        <td className="num">{f.margemPct != null ? pct(f.margemPct) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="cartao" data-testid="exposicao-cambial">
+              <h2>Exposição cambial</h2>
+              <p className="sutil">Cotações fechadas nos últimos 90 dias com custo em moeda estrangeira, comparadas ao câmbio de referência de hoje.</p>
+              {dados.painel.exposicaoCambial.length === 0 ? (
+                <p className="sutil">Nenhuma cotação fechada com custo em moeda estrangeira no período.</p>
+              ) : (
+                dados.painel.exposicaoCambial.map((e: any) => (
+                  <div key={e.moeda} className="grade g2 manter-2">
+                    <div className="indicador">
+                      <span className="rotulo">Custo em {e.moeda}</span>
+                      <span className="valor">{numero(e.valorMoeda)}</span>
+                      <small>
+                        {moeda(e.valorConvertido)} em {numero(e.cotacoes)} cotações
+                      </small>
+                    </div>
+                    <div className="indicador">
+                      <span className="rotulo">Câmbio que zera a margem (média)</span>
+                      <span className="valor">{e.cambioEquilibrioMedio != null ? numero(e.cambioEquilibrioMedio, 4) : '—'}</span>
+                      <small>
+                        Referência hoje: {e.cambioReferencia != null ? numero(e.cambioReferencia, 4) : 'não publicada'}
+                        {e.folgaMediaPct != null ? `, folga de ${pct(e.folgaMediaPct)}` : ''}
+                      </small>
+                    </div>
+                    <p style={{ gridColumn: '1 / -1' }}>
+                      {e.semMargemNaReferencia > 0 ? (
+                        <span className="selo vermelho">{numero(e.semMargemNaReferencia)} ficariam sem margem ao câmbio de hoje</span>
+                      ) : (
+                        <span className="selo verde">Todas ainda têm margem ao câmbio de hoje</span>
+                      )}
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

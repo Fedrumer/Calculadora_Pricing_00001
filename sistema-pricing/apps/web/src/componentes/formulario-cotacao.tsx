@@ -191,7 +191,7 @@ export function FormularioCotacao({
         <h2>Simulação {calculando && <small>calculando…</small>}</h2>
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
         {!resultado && !erro && <div className="vazio">{completo ? 'Calculando…' : 'Preencha o pedido para ver o preço.'}</div>}
-        {resultado && <ResultadoCalculo r={resultado} />}
+        {resultado && <ResultadoCalculo r={resultado} minhaComissao={s.tem('vendedor', 'gestor_pricing')} />}
       </div>
     </div>
   );

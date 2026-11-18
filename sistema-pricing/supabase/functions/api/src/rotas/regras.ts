@@ -48,11 +48,17 @@ const pct = z.number().min(0).max(100);
 const esquemaRegrasPolitica = z.object({
   etapas: z.array(esquemaEtapa).min(1).max(30),
   arredondamento: z.object({ casas: z.number().int().min(0).max(4), modo: z.enum(['meio_para_cima', 'meio_par', 'para_cima', 'para_baixo']) }),
-  limites: z.object({ descontoLivrePct: pct, descontoMaximoPct: pct, margemMinimaPct: z.number().min(-100).max(100), margemMetaPct: z.number().min(-100).max(100) }),
+  limites: z.object({
+    descontoLivrePct: pct, descontoMaximoPct: pct, margemMinimaPct: z.number().min(-100).max(100), margemMetaPct: z.number().min(-100).max(100),
+    folgaCambialMinimaPct: z.number().min(0).max(100).optional(),
+  }),
   alcadas: z.array(z.object({ nivel: z.number().int().min(1).max(9), nome: z.string().trim().min(1).max(80), descontoAtePct: pct, margemMinimaPct: z.number().min(-100).max(100).optional(), permiteComissaoForaTabela: z.boolean().optional() })).max(9),
   comissoes: z.array(z.object({ canal: codigo, produto: codigo.nullish(), pct })).max(500),
   validadeDias: z.number().int().min(1).max(365),
   prazoAprovacaoHoras: z.number().int().min(1).max(720),
+  comissaoVendedor: z
+    .object({ base: z.enum(['receita', 'margem']), pct, margemMinimaPct: z.number().min(-100).max(100).optional(), deduzDaMargem: z.boolean() })
+    .nullish(),
 });
 const esquemaCusto = z.object({
   codigo,
@@ -62,6 +68,8 @@ const esquemaCusto = z.object({
   valor: z.number().min(0).finite(),
   produto: codigo.nullish(),
   base: esquemaBase.nullish(),
+  moeda: z.string().regex(/^[A-Z]{3}$/, 'Moeda com 3 letras maiúsculas (ex.: EUR).').nullish(),
+  condicoes: z.record(z.array(z.string().max(60)).max(50)).nullish(),
 });
 
 type Tipo = 'tabela' | 'politica';
@@ -189,6 +197,12 @@ async function simularImpacto(r: Requisicao, regra: Regra) {
   } catch {
     atuais = null;
   }
+  return compararRegras(r, atuais, novas, data);
+}
+
+/** Recalcula as cotações recentes com as regras atuais e com as novas, na data de hoje. */
+async function compararRegras(r: Requisicao, atuais: ConjuntoRegras | null, novas: ConjuntoRegras, data: string) {
+  const { tx, ator, deps } = r;
   const amostra = await tx<{ entrada: PedidoCotacao }[]>`
     select v.entrada from public.cotacoes c join public.cotacao_versoes v on v.id = c.versao_atual_id
     where c.org_id = ${ator.orgId} and c.criado_em > now() - interval '90 days'
@@ -320,8 +334,8 @@ export const rotasRegras: Rota[] = [
         from public.politicas b where b.id = ${baseId} and b.org_id = ${ator.orgId}
         returning id, versao`;
       if (!nova) throw naoEncontrado('Política de origem não encontrada.');
-      await tx`insert into public.parametros_custo (org_id, politica_id, codigo, nome, categoria, tipo, valor, produto_id, base)
-               select org_id, ${nova.id}, codigo, nome, categoria, tipo, valor, produto_id, base from public.parametros_custo where politica_id = ${baseId}`;
+      await tx`insert into public.parametros_custo (org_id, politica_id, codigo, nome, categoria, tipo, valor, produto_id, base, moeda, condicoes)
+               select org_id, ${nova.id}, codigo, nome, categoria, tipo, valor, produto_id, base, moeda, condicoes from public.parametros_custo where politica_id = ${baseId}`;
       await r.auditar('regra.rascunho_criado', 'politicas', nova.id, { novo: { versao: nova.versao, copiaDe: baseId } });
       return { status: 201, corpo: { id: nova.id, versao: nova.versao, status: 'rascunho' } };
     },
@@ -343,7 +357,8 @@ export const rotasRegras: Rota[] = [
         const linhas = d.custos.map((c) => {
           const produtoId = c.produto ? m.produto.get(c.produto) : null;
           if (c.produto && !produtoId) throw invalido(`Parâmetro "${c.codigo}": produto "${c.produto}" não existe.`);
-          return { org_id: ator.orgId, politica_id: regra.id, codigo: c.codigo, nome: c.nome, categoria: c.categoria, tipo: c.tipo, valor: c.valor, produto_id: produtoId ?? null, base: c.base ? tx.json(c.base) : null };
+          return { org_id: ator.orgId, politica_id: regra.id, codigo: c.codigo, nome: c.nome, categoria: c.categoria, tipo: c.tipo, valor: c.valor, produto_id: produtoId ?? null, base: c.base ? tx.json(c.base) : null,
+            moeda: c.moeda ?? null, condicoes: c.condicoes ? tx.json(c.condicoes) : null };
         });
         await tx`delete from public.parametros_custo where politica_id = ${regra.id}`;
         if (linhas.length > 0) await tx`insert into public.parametros_custo ${tx(linhas as never)}`;
@@ -465,6 +480,68 @@ export const rotasRegras: Rota[] = [
       });
       await r.emitir('regra.publicada', { tipo: regra.tipo, id: regra.id, versao: regra.versao, vigenciaInicio: d.vigenciaInicio, contingencia });
       return { corpo: { id: regra.id, tipo: regra.tipo, versao: regra.versao, status: 'publicada', vigenciaInicio: d.vigenciaInicio, casosReferencia: relatorio, contingencia } };
+    },
+  },
+  {
+    metodo: 'GET',
+    caminho: '/regras/cambios',
+    auth: 'usuario',
+    papeis: ['gestor_pricing', 'admin', 'leitura', 'aprovador', 'suporte'],
+    async handler(r) {
+      const { tx, ator, deps } = r;
+      const vigentes = await tx`select moeda, taxa, vigente_de::text, origem from app.cambios_vigentes(${ator.orgId}, ${hoje(deps)}::date)`;
+      const historico = await tx`
+        select c.id, c.moeda, c.taxa, c.vigente_de::text, c.origem, c.observacao, c.criado_em, u.nome as publicado_por
+        from public.cambios_referencia c left join public.usuarios u on u.id = c.publicado_por
+        where c.org_id = ${ator.orgId} order by c.moeda, c.vigente_de desc limit 200`;
+      const moedasEmUso = await tx<{ moeda: string }[]>`
+        select distinct p.moeda from public.parametros_custo p
+        where p.org_id = ${ator.orgId} and p.moeda is not null and p.politica_id = app.politica_vigente(${ator.orgId}, ${hoje(deps)}::date)`;
+      return { corpo: { vigentes, historico, moedasEmUso: moedasEmUso.map((m) => m.moeda) } };
+    },
+  },
+  {
+    // Publica um câmbio de referência (ou só simula o impacto, com simular: true).
+    // O preço das cotações não muda; muda a margem e, com ela, o veredito.
+    metodo: 'POST',
+    caminho: '/regras/cambios',
+    auth: 'usuario',
+    papeis: [...GESTOR],
+    async handler(r) {
+      const { tx, ator, deps } = r;
+      const d = validar(
+        z.object({
+          moeda: z.string().regex(/^[A-Z]{3}$/, 'Moeda com 3 letras maiúsculas (ex.: EUR).'),
+          taxa: z.number().positive().max(1000),
+          vigenteDe: dataIso,
+          observacao: z.string().trim().max(300).optional(),
+          simular: z.boolean().optional(),
+        }),
+        r.corpo,
+      );
+      const data = hoje(deps);
+      if (d.vigenteDe < data) throw invalido('A vigência não pode começar no passado: cotações já emitidas não mudam.', undefined, 'VIGENCIA_NO_PASSADO');
+      const taxa = Math.round(d.taxa * 1e6) / 1e6;
+      let impacto = null;
+      try {
+        const atuais = (await carregarRegras(tx, ator.orgId, data)).regras;
+        const novas = (await carregarRegras(tx, ator.orgId, data, { cambio: { moeda: d.moeda, taxa } })).regras;
+        impacto = await compararRegras(r, atuais, novas, data);
+      } catch (e) {
+        const cod = (e as { codigo?: string }).codigo;
+        if (cod !== 'SEM_TABELA_VIGENTE' && cod !== 'SEM_POLITICA_VIGENTE') throw e;
+      }
+      if (d.simular) return { corpo: { moeda: d.moeda, taxa, vigenteDe: d.vigenteDe, simulado: true, impacto } };
+      const [c] = await tx<{ id: string }[]>`
+        insert into public.cambios_referencia (org_id, moeda, taxa, vigente_de, origem, observacao, publicado_por)
+        values (${ator.orgId}, ${d.moeda}, ${taxa}, ${d.vigenteDe}::date, 'politica', ${d.observacao ?? null}, ${ator.id})
+        returning id`;
+      await r.auditar('regra.cambio_publicado', 'cambios_referencia', c!.id, {
+        resumo: `Câmbio de referência de ${d.moeda} publicado: ${String(taxa).replace('.', ',')} a partir de ${d.vigenteDe.split('-').reverse().join('/')}.`,
+        novo: { moeda: d.moeda, taxa, vigenteDe: d.vigenteDe },
+      });
+      await r.emitir('regra.cambio_publicado', { moeda: d.moeda, taxa, vigenteDe: d.vigenteDe });
+      return { status: 201, corpo: { id: c!.id, moeda: d.moeda, taxa, vigenteDe: d.vigenteDe, impacto } };
     },
   },
   {

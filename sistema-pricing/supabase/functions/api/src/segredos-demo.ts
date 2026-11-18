@@ -3,7 +3,9 @@ import { tokenAleatorio } from './cripto.ts';
 
 type Ambiente = (nome: string) => string | undefined;
 
-const GERADOS = ['SEGREDO_HASH', 'CHAVE_CIFRA_DOCUMENTOS', 'SEGREDO_AUTOMACAO', 'DEMO_SENHA'] as const;
+// SEGREDO_PSEUDONIMO (A10) entra na lista só na demonstração: fica neste banco, fechado por RLS
+// e sem permissão para anon e authenticated, e nunca é enviado no pacote.
+const GERADOS = ['SEGREDO_HASH', 'CHAVE_CIFRA_DOCUMENTOS', 'SEGREDO_AUTOMACAO', 'DEMO_SENHA', 'SEGREDO_PSEUDONIMO'] as const;
 
 /**
  * Só no ambiente de demonstração: os segredos que não foram definidos na função

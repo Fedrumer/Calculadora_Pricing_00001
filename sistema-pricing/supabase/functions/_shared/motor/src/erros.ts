@@ -11,7 +11,8 @@ export type CodigoErroMotor =
   | 'POLITICA_INVALIDA'
   | 'EXTENSAO_DESCONHECIDA'
   | 'PRECO_NAO_POSITIVO'
-  | 'DATA_INVALIDA';
+  | 'DATA_INVALIDA'
+  | 'CAMBIO_AUSENTE';
 
 /** Erro de negócio do motor: a entrada ou a regra não permite calcular. */
 export class ErroMotor extends Error {

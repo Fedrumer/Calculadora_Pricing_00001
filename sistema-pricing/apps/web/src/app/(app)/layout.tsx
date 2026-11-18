@@ -26,6 +26,7 @@ const MENU: Item[] = [
   { href: '/usuarios', rotulo: 'Usuários e canais', ver: perfis('admin', 'suporte') },
   { href: '/auditoria', rotulo: 'Auditoria', ver: perfis('admin', 'leitura', 'suporte') },
   { href: '/configuracoes', rotulo: 'Configurações', ver: perfis('admin', 'suporte') },
+  { href: '/envio-diagnostico', rotulo: 'Envio ao diagnóstico', ver: perfis('admin') },
   { href: '/seguranca', rotulo: 'Minha conta', ver: () => true },
 ];
 

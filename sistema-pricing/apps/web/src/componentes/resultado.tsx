@@ -33,8 +33,20 @@ export function Semaforo({ r }: { r: ResultadoTela }) {
 }
 
 /** Mostra o que o servidor devolveu. Perfis externos já recebem o resultado sem custo nem margem. */
-export function ResultadoCalculo({ r, semSemaforo }: { r: ResultadoTela; semSemaforo?: boolean }) {
+const NOME_MOEDA: Record<string, string> = { EUR: 'euro', USD: 'dólar', GBP: 'libra', ARS: 'peso argentino', CLP: 'peso chileno' };
+const SIMBOLO: Record<string, string> = { EUR: '€', USD: 'US$', GBP: '£' };
+const valorEm = (v: number, m: string) => `${SIMBOLO[m] ?? m} ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)}`;
+const taxaFmt = (v: number) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(v);
+
+/**
+ * Mostra o que o servidor devolveu. Perfis externos já recebem o resultado sem custo,
+ * margem, câmbio nem comissão do vendedor; versões gravadas antes do motor 1.1.0 não
+ * têm exposição cambial nem comissão do vendedor, e a tela só omite esses blocos.
+ */
+export function ResultadoCalculo({ r, semSemaforo, minhaComissao }: { r: ResultadoTela; semSemaforo?: boolean; minhaComissao?: boolean }) {
   const comMargem = 'margemPct' in r;
+  const comissaoVendedor = 'comissaoVendedor' in r ? r.comissaoVendedor : null;
+  const exposicao = 'exposicaoCambial' in r ? (r.exposicaoCambial ?? []) : [];
   return (
     <div>
       <div className="sutil">Preço final</div>
@@ -62,7 +74,32 @@ export function ResultadoCalculo({ r, semSemaforo }: { r: ResultadoTela; semSema
             </strong>
           </div>
         )}
+        {comissaoVendedor && (
+          <div className="indicador">
+            <span className="rotulo">{minhaComissao ? 'Sua comissão nesta cotação' : 'Comissão do vendedor'}</span>
+            <strong data-testid="comissao-vendedor">{moeda(comissaoVendedor.valor, r.moeda)}</strong>
+            <small>
+              {pct(comissaoVendedor.pct, 0)} {comissaoVendedor.base === 'margem' ? 'da margem' : 'da receita'}
+              {comissaoVendedor.deduzidaDaMargem ? '' : ' · simulação, não deduzida'}
+            </small>
+          </div>
+        )}
       </div>
+      {exposicao.map((e) => (
+        <p key={e.moeda} className="aviso info" data-testid="cambio-equilibrio" style={{ marginBottom: 12 }}>
+          {e.cambioEquilibrio !== null ? (
+            <>
+              Câmbio que zera a margem: <strong>R$ {taxaFmt(e.cambioEquilibrio)} por {NOME_MOEDA[e.moeda] ?? e.moeda}</strong>
+              {e.folgaPct !== null && <> (folga de {pct(e.folgaPct)} sobre a referência de R$ {taxaFmt(e.taxa)})</>}.
+            </>
+          ) : (
+            <>Custos em {NOME_MOEDA[e.moeda] ?? e.moeda} convertidos a R$ {taxaFmt(e.taxa)}.</>
+          )}{' '}
+          <span className="sutil">
+            {valorEm(e.valorMoeda, e.moeda)} em custos nesta moeda = {moeda(e.valorConvertido, r.moeda)}.
+          </span>
+        </p>
+      ))}
       {!semSemaforo && <Semaforo r={r} />}
       {r.avisos.map((a, i) => (
         <p key={i} className="sutil" style={{ marginTop: 8 }}>
@@ -76,6 +113,7 @@ export function ResultadoCalculo({ r, semSemaforo }: { r: ResultadoTela; semSema
             <span>
               {l.descricao}
               {l.percentual !== undefined && l.tipo !== 'preco_base' && l.tipo !== 'margem' ? ` (${pct(Math.abs(l.percentual), 2)})` : ''}
+              {l.moeda && l.valorMoeda !== undefined && l.taxa !== undefined ? ` (${valorEm(l.valorMoeda, l.moeda)} × ${taxaFmt(l.taxa)})` : ''}
             </span>
             <span className="num">{l.tipo === 'margem' ? `${moeda(l.valor, r.moeda)} (${pct(l.percentual)})` : moeda(l.valor, r.moeda)}</span>
           </div>

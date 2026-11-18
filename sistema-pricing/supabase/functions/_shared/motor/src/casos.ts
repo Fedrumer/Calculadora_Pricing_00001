@@ -17,6 +17,11 @@ export interface CasoReferencia {
     margemPct?: number;
     veredito?: Veredito['status'];
     nivelAlcada?: number | null;
+    /** Comissão do vendedor (valor). */
+    comissaoVendedor?: number;
+    /** Câmbio que zera a margem e folga, da primeira moeda estrangeira da cotação. */
+    cambioEquilibrio?: number;
+    folgaCambialPct?: number;
     erro?: string;
   };
 }
@@ -50,6 +55,9 @@ export function executarCasos(casos: CasoReferencia[], regras: ConjuntoRegras, o
       comparar('margemPct', caso.esperado.margemPct, r.margemPct);
       comparar('veredito', caso.esperado.veredito, r.veredito.status);
       comparar('nivelAlcada', caso.esperado.nivelAlcada, r.veredito.nivelAlcada);
+      comparar('comissaoVendedor', caso.esperado.comissaoVendedor, r.comissaoVendedor?.valor);
+      comparar('cambioEquilibrio', caso.esperado.cambioEquilibrio, r.exposicaoCambial[0]?.cambioEquilibrio);
+      comparar('folgaCambialPct', caso.esperado.folgaCambialPct, r.exposicaoCambial[0]?.folgaPct);
     } catch (e) {
       if (!(e instanceof ErroMotor)) throw e;
       comparar('erro', caso.esperado.erro ?? null, e.codigo);

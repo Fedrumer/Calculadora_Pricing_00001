@@ -27,6 +27,19 @@ Tudo em `config/clientes/<cliente>.json`, carregado por `pnpm instalar`, e depoi
 | Perfis ativos e segundo fator | tabela `papeis` |
 | Formulário, proposta, prazos, retenção, módulos | `organizacao.config` |
 | Casos de referência | `casosReferencia`: cotações reais do cliente calculadas à mão |
+| Custo pago em moeda estrangeira | `politica.custos[].moeda` (ex.: `"EUR"`); ausente = moeda da tabela. Só para custo em valor, não em percentual |
+| Custo que vale só para alguns valores de dimensão | `politica.custos[].condicoes` (ex.: `{ "temporada": ["alta"], "acomodacao": ["duplo"] }`) |
+| Câmbio de referência inicial | `cambios`: `[{ "moeda": "EUR", "taxa": 6.10, "vigenteDe": "2025-11-01" }]`. Depois, o gestor publica pela tela Política (imutável, com vigência) |
+| Folga mínima entre o câmbio que zera a margem e o de referência | `politica.limites.folgaCambialMinimaPct`; abaixo dela a cotação pede aprovação |
+| Comissão do vendedor | `politica.comissaoVendedor`: `{ "base": "margem" ou "receita", "pct": 10, "margemMinimaPct": 0, "deduzDaMargem": false }`. Informativa quando não deduz da margem |
+| Motivos de perda | `organizacao.config.motivosPerda`: lista de `{ codigo, nome, pedeTexto, pedeConcorrente, ativo }`; sem ela vale a lista padrão (preço do concorrente, prazo, escopo, desistiu, sem resposta, outro) |
+| Faixas de desconto do painel | `organizacao.config.painel.faixasDesconto` (padrão `[2, 5, 10]`: sem desconto, até 2%, 2 a 5%, 5 a 10%, acima de 10%) |
+| Envio ao diagnóstico | `organizacao.config.envioDiagnostico`: `{ "ativo": false, "destino": null, "modoConta": "pseudonimo" ou "agregado", "diaDoMes": 2 }`. Desligado por padrão; ligar fica na auditoria. Segredos `SEGREDO_PSEUDONIMO` e `CHAVE_ENVIO_DIAGNOSTICO` no cofre da função |
+| Dados sintéticos da demonstração | `demo` (reajuste, trajetória do câmbio, sazonalidade, probabilidade de canal) e `usuarios[].demo.perfilDesconto` (`baixo`, `medio`, `alto`). Só a carga sintética lê esses campos |
+
+A demonstração usa a operadora de turismo fictícia (`demo-turismo.json`): custos de aéreo e hotel em euro,
+custos que dependem da temporada e da acomodação, câmbio de referência, comissão do vendedor e motivos de perda.
+Os quatro casos de referência reproduzem a tabela de calibração da Nota nº 02 centavo a centavo.
 
 A segunda empresa fictícia (`demo-distribuidor.json`) existe para provar isto: fatores aditivos em vez de
 multiplicativos, impostos antes da comissão, comissão sobre o preço líquido de impostos.

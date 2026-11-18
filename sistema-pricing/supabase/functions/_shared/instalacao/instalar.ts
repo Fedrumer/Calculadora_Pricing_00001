@@ -13,7 +13,24 @@ export interface ConfigCliente {
   tabela: { nome: string; moeda: string; vigenciaInicio: string; itens: ConjuntoRegras['tabela']['itens']; fatores: ConjuntoRegras['tabela']['fatores'] };
   politica: Omit<ConjuntoRegras['politica'], 'id' | 'versao'> & { vigenciaInicio: string; custos: ConjuntoRegras['custos'] };
   campanhas: ConjuntoRegras['campanhas'];
-  usuarios?: { email: string; nome: string; limiteAlcada?: number; papeis: { papel: string; unidade?: string; canal?: string; validoDias?: number }[] }[];
+  /** Câmbio de referência inicial, por moeda (só quando há custo em moeda estrangeira). */
+  cambios?: { moeda: string; taxa: number; vigenteDe: string }[];
+  usuarios?: {
+    email: string;
+    nome: string;
+    limiteAlcada?: number;
+    papeis: { papel: string; unidade?: string; canal?: string; validoDias?: number }[];
+    /** Só para os dados sintéticos da demonstração. */
+    demo?: { perfilDesconto?: 'baixo' | 'medio' | 'alto' };
+  }[];
+  /** Parâmetros dos dados sintéticos da demonstração (ignorados na instalação de cliente). */
+  demo?: {
+    reajustePct?: number;
+    trajetoriaCambio?: Record<string, { centro: number; amplitude: number }>;
+    multiplicadores?: Record<string, number[]>;
+    probabilidadeCanal?: number;
+    sazonalidade?: Record<string, number>;
+  };
   casosReferencia: CasoReferencia[];
 }
 
@@ -36,6 +53,7 @@ export function regrasDaConfig(c: ConfigCliente): ConjuntoRegras {
     politica: { id: 'config', versao: 1, ...politica },
     custos,
     campanhas: c.campanhas,
+    cambios: (c.cambios ?? []).map((x) => ({ ...x, origem: 'politica' as const })),
   };
 }
 
@@ -117,10 +135,15 @@ export async function instalar(sql: Sql, c: ConfigCliente, opcoes: OpcoesInstala
     const [politica] = await tx<{ id: string }[]>`
       insert into public.politicas (org_id, versao, regras) values (${orgId}, 1, ${tx.json(regrasPolitica as never)}) returning id`;
     for (const k of custos) {
-      await tx`insert into public.parametros_custo (org_id, politica_id, codigo, nome, categoria, tipo, valor, produto_id, base)
-               values (${orgId}, ${politica!.id}, ${k.codigo}, ${k.nome}, ${k.categoria}, ${k.tipo}, ${k.valor}, ${k.produto ? produtos.get(k.produto)! : null}, ${k.base ? tx.json(k.base as never) : null})`;
+      await tx`insert into public.parametros_custo (org_id, politica_id, codigo, nome, categoria, tipo, valor, produto_id, base, moeda, condicoes)
+               values (${orgId}, ${politica!.id}, ${k.codigo}, ${k.nome}, ${k.categoria}, ${k.tipo}, ${k.valor}, ${k.produto ? produtos.get(k.produto)! : null},
+                       ${k.base ? tx.json(k.base as never) : null}, ${k.moeda ?? null}, ${k.condicoes ? tx.json(k.condicoes as never) : null})`;
     }
     await tx`update public.politicas set status = 'publicada', vigencia_inicio = ${vigenciaInicio}::date, publicado_em = now() where id = ${politica!.id}`;
+    for (const x of c.cambios ?? []) {
+      await tx`insert into public.cambios_referencia (org_id, moeda, taxa, vigente_de, origem, observacao)
+               values (${orgId}, ${x.moeda}, ${x.taxa}, ${x.vigenteDe}::date, 'politica', 'Câmbio de referência inicial (instalação)')`;
+    }
 
     for (const k of c.campanhas) {
       await tx`insert into public.campanhas (org_id, codigo, nome, inicio, fim, tipo, valor, produtos, canais, condicoes, acumula_com_desconto, acumula_com_outras)

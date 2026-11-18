@@ -75,13 +75,42 @@ export const rotasAdministracao: Rota[] = [
           prazos: z.object({ conviteHoras: z.number().int().min(1).max(720), inatividadeDias: z.number().int().min(7).max(730) }).partial().optional(),
           modulos: z.object({ portalCanal: z.boolean(), api: z.boolean(), ia: z.boolean(), sso: z.boolean(), conviteCanal: z.boolean() }).partial().optional(),
           retencao: z.object({ cotacoesAceitasAnos: z.number().int().min(1).max(30), cotacoesPerdidasMeses: z.number().int().min(1).max(360), auditoriaAnos: z.number().int().min(1).max(30) }).partial().optional(),
+          motivosPerda: z
+            .array(z.object({ codigo: z.string().regex(/^[a-z0-9_]{1,40}$/), nome: z.string().trim().min(2).max(80), pedeTexto: z.boolean(), pedeConcorrente: z.boolean(), ativo: z.boolean() }))
+            .min(1)
+            .max(30)
+            .refine((l) => new Set(l.map((m) => m.codigo)).size === l.length, 'Códigos repetidos.')
+            .refine((l) => l.some((m) => m.ativo), 'Pelo menos um motivo ativo.')
+            .optional(),
+          envioDiagnostico: z
+            .object({
+              ativo: z.boolean(),
+              destino: z.string().url().startsWith('https://', 'O destino precisa ser HTTPS.').max(300).nullable(),
+              modoConta: z.enum(['pseudonimo', 'agregado']),
+              diaDoMes: z.number().int().min(1).max(28),
+            })
+            .partial()
+            .optional(),
         }),
         r.corpo,
       );
       const [o] = await r.tx<{ config: Record<string, Record<string, unknown>> }[]>`select config from public.organizacoes where id = ${r.ator.orgId} for update`;
       const config = { ...(o?.config ?? {}) };
-      for (const [secao, valores] of Object.entries(d)) config[secao] = { ...(config[secao] ?? {}), ...valores };
+      for (const [secao, valores] of Object.entries(d)) {
+        // listas substituem; seções de objeto mesclam
+        config[secao] = Array.isArray(valores) ? (valores as never) : { ...(config[secao] ?? {}), ...valores };
+      }
       await r.tx`update public.organizacoes set config = ${r.tx.json(config as never)} where id = ${r.ator.orgId}`;
+      // A10: ligar ou desligar o envio ao diagnóstico fica registrado como ato próprio
+      const antes = (o?.config?.envioDiagnostico as { ativo?: boolean } | undefined)?.ativo ?? false;
+      const depois = (config.envioDiagnostico as { ativo?: boolean } | undefined)?.ativo ?? false;
+      if (d.envioDiagnostico && antes !== depois) {
+        await r.auditar(depois ? 'diagnostico.envio_ligado' : 'diagnostico.envio_desligado', 'organizacoes', r.ator.orgId, {
+          resumo: depois ? 'Envio de dados ao diagnóstico ligado.' : 'Envio de dados ao diagnóstico desligado.',
+          anterior: { ativo: antes },
+          novo: config.envioDiagnostico,
+        });
+      }
       return { corpo: { config } };
     },
   },

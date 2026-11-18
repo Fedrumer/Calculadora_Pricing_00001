@@ -11,6 +11,7 @@ import { rotas } from '../src/rotas/index.ts';
 
 export const URL_TESTE = process.env.TEST_DATABASE_URL ?? 'postgresql://pricing:pricing@127.0.0.1:5432/pricing_teste';
 export const SEGREDO_AUTOMACAO = 'segredo-de-automacao-para-testes-0001';
+export const SEGREDO_PSEUDONIMO = 'segredo-de-pseudonimo-para-testes-0123456789';
 
 export function lerConfig(arquivo: string): ConfigCliente {
   return JSON.parse(readFileSync(join(RAIZ, 'config/clientes', arquivo), 'utf8')) as ConfigCliente;
@@ -76,6 +77,7 @@ export async function criarAmbiente(o: { config?: string; semMfa?: boolean; ia?:
       segredoHash: 'segredo-de-hash-para-testes-com-32-caracteres',
       chaveCifra: 'chave-de-cifra-para-testes-com-32-caracteres!',
       segredoAutomacao: SEGREDO_AUTOMACAO,
+      segredoPseudonimo: SEGREDO_PSEUDONIMO,
       n8nWebhookUrl: null,
       fusoHorario: 'America/Sao_Paulo',
     },

@@ -6,6 +6,7 @@ import { type ResultadoTela, ResultadoCalculo } from '@/componentes/resultado';
 import { Aviso, Campo, Carregando, Modal, Selo, ou, useAcao, useDados } from '@/componentes/ui';
 import { api } from '@/lib/api';
 import { data, dataHora, moeda } from '@/lib/formato';
+import { motivosDa, nomeDoMotivo } from '@/lib/motivos-perda';
 import { useSessao } from '@/lib/sessao';
 import { supabase } from '@/lib/supabase';
 
@@ -20,7 +21,6 @@ interface Versao {
   criado_em: string;
 }
 
-const MOTIVOS_PERDA = ['Preço', 'Concorrente', 'Prazo', 'Cliente desistiu', 'Sem retorno', 'Outro'];
 
 export default function DetalheCotacao() {
   const [id, setId] = useState('');
@@ -30,7 +30,9 @@ export default function DetalheCotacao() {
   const [versaoVista, setVersaoVista] = useState<number | null>(null);
   const [modal, setModal] = useState<null | 'pedir' | 'aprovar' | 'recusar' | 'perdida'>(null);
   const [texto, setTexto] = useState('');
-  const [motivoPerda, setMotivoPerda] = useState(MOTIVOS_PERDA[0]!);
+  const motivos = motivosDa(s.organizacao.config).filter((m) => m.ativo);
+  const [motivoPerda, setMotivoPerda] = useState('');
+  const [concorrente, setConcorrente] = useState({ nome: '', preco: '' });
   const [ia, setIa] = useState<{ explicacao?: string; sugestoes?: { titulo: string; justificativa: string; resultado: ResultadoTela }[] } | null>(null);
   const [iaOcupada, setIaOcupada] = useState(false);
 
@@ -163,7 +165,14 @@ export default function DetalheCotacao() {
         </Aviso>
       )}
       {c.status === 'recusada' && aprovacoes[0]?.decisao_motivo && <Aviso tipo="erro">Exceção recusada por {nomes.get(aprovacoes[0].aprovador_id) ?? '—'}: {aprovacoes[0].decisao_motivo}</Aviso>}
-      {c.status === 'perdida' && <Aviso tipo="info">Motivo da perda: {c.desfecho_motivo}</Aviso>}
+      {c.status === 'perdida' && (
+        <Aviso tipo="info">
+          Motivo da perda: <strong>{nomeDoMotivo(s.organizacao.config, c.desfecho_categoria) ?? 'não informado'}</strong>
+          {c.desfecho_motivo ? ` (${c.desfecho_motivo})` : ''}
+          {c.concorrente_preco != null ? ` · preço do concorrente: ${moeda(c.concorrente_preco)}` : ''}
+          {c.concorrente_nome ? ` (${c.concorrente_nome})` : ''}
+        </Aviso>
+      )}
 
       <div className="duas">
         <div>
@@ -174,7 +183,7 @@ export default function DetalheCotacao() {
               </h2>
               {c.validade && <span className="sutil">Válida até {data(c.validade)}</span>}
             </div>
-            {vista ? <ResultadoCalculo r={vista.resultado} /> : <div className="vazio">Sem versão calculada.</div>}
+            {vista ? <ResultadoCalculo r={vista.resultado} minhaComissao={dono} /> : <div className="vazio">Sem versão calculada.</div>}
           </div>
           {comIA && vista && (
             <div className="cartao">
@@ -270,24 +279,59 @@ export default function DetalheCotacao() {
           </button>
         </Modal>
       )}
-      {modal === 'perdida' && (
-        <Modal titulo="Registrar perda" aoFechar={() => setModal(null)}>
-          <Aviso tipo="erro">{acao.erro}</Aviso>
-          <Campo rotulo="Motivo">
-            <select name="motivo-perda" value={motivoPerda} onChange={(e) => setMotivoPerda(e.target.value)}>
-              {MOTIVOS_PERDA.map((m) => (
-                <option key={m}>{m}</option>
-              ))}
-            </select>
-          </Campo>
-          <Campo rotulo="Detalhe (opcional)">
-            <input name="detalhe-perda" value={texto} onChange={(e) => setTexto(e.target.value)} />
-          </Campo>
-          <button className="btn primario" disabled={acao.ocupado} onClick={() => void fazer(() => api('POST', `/cotacoes/${id}/desfecho`, { resultado: 'perdida', motivo: texto.trim() ? `${motivoPerda}: ${texto.trim()}` : motivoPerda }), 'Perda registrada.')}>
-            Registrar
-          </button>
-        </Modal>
-      )}
+      {modal === 'perdida' && (() => {
+        const escolhido = motivos.find((m) => m.codigo === motivoPerda);
+        const precoConcorrente = concorrente.preco.trim() ? Number(concorrente.preco.replace(/\./g, '').replace(',', '.')) : undefined;
+        const pronto = !!escolhido && (!escolhido.pedeTexto || texto.trim().length >= 10);
+        return (
+          <Modal titulo="Registrar perda" aoFechar={() => setModal(null)}>
+            <Aviso tipo="erro">{acao.erro}</Aviso>
+            <Campo rotulo="Motivo">
+              <select name="motivo-perda" value={motivoPerda} onChange={(e) => setMotivoPerda(e.target.value)}>
+                <option value="">Escolha o motivo</option>
+                {motivos.map((m) => (
+                  <option key={m.codigo} value={m.codigo}>
+                    {m.nome}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            {escolhido?.pedeConcorrente && (
+              <div className="linha-campos">
+                <Campo rotulo="Concorrente (se souber)">
+                  <input name="concorrente-nome" value={concorrente.nome} onChange={(e) => setConcorrente({ ...concorrente, nome: e.target.value })} />
+                </Campo>
+                <Campo rotulo="Preço do concorrente, R$ (se souber)">
+                  <input name="concorrente-preco" inputMode="decimal" value={concorrente.preco} onChange={(e) => setConcorrente({ ...concorrente, preco: e.target.value })} />
+                </Campo>
+              </div>
+            )}
+            <Campo rotulo={escolhido?.pedeTexto ? 'Descreva o motivo (obrigatório, 10 caracteres ou mais)' : 'Detalhe (opcional)'}>
+              <input name="detalhe-perda" value={texto} onChange={(e) => setTexto(e.target.value)} />
+            </Campo>
+            <button
+              className="btn primario"
+              disabled={acao.ocupado || !pronto}
+              onClick={() =>
+                void fazer(
+                  () =>
+                    api('POST', `/cotacoes/${id}/desfecho`, {
+                      resultado: 'perdida',
+                      categoria: motivoPerda,
+                      ...(texto.trim() ? { motivo: texto.trim() } : {}),
+                      ...(escolhido?.pedeConcorrente && (concorrente.nome.trim() || precoConcorrente !== undefined)
+                        ? { concorrente: { ...(concorrente.nome.trim() ? { nome: concorrente.nome.trim() } : {}), ...(precoConcorrente !== undefined && Number.isFinite(precoConcorrente) ? { preco: precoConcorrente } : {}) } }
+                        : {}),
+                    }),
+                  'Perda registrada.',
+                )
+              }
+            >
+              Registrar
+            </button>
+          </Modal>
+        );
+      })()}
     </>
   );
 }
