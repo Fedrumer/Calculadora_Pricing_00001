@@ -2,6 +2,7 @@
 
 import type { Politica } from '@pricing/motor';
 import { useEffect, useState } from 'react';
+import { CambioReferencia } from '@/componentes/cambio-referencia';
 import { PainelPublicacao } from '@/componentes/publicacao';
 import { Aviso, Carregando, Selo, ou, useAcao, useDados } from '@/componentes/ui';
 import { api } from '@/lib/api';
@@ -18,6 +19,8 @@ interface Custo {
   valor: number;
   produto: string | null;
   base: { de: string; menos?: string[] } | null;
+  moeda: string | null;
+  condicoes: Record<string, string[]> | null;
 }
 
 const ROTULO_ETAPA: Record<string, string> = { preco_base: 'Preço base', fatores: 'Fatores', campanha: 'Campanha', desconto: 'Desconto do vendedor', comissao: 'Comissão do canal', impostos: 'Impostos', custos: 'Custos variáveis', arredondamento: 'Arredondamento', extensao: 'Extensão' };
@@ -58,7 +61,7 @@ export default function PoliticaComercial() {
     setSujo(false);
     void supabase()
       .from('parametros_custo')
-      .select('codigo, nome, categoria, tipo, valor, produto_id, base')
+      .select('codigo, nome, categoria, tipo, valor, produto_id, base, moeda, condicoes')
       .eq('politica_id', politica.id)
       .order('codigo')
       .then((r) => setCustos((r.data ?? []).map((x: any) => ({ ...x, valor: Number(x.valor), produto: lista.dados!.produtos.find((p) => p.id === x.produto_id)?.codigo ?? null }))));
@@ -180,6 +183,55 @@ export default function PoliticaComercial() {
                 <span>Prazo para decidir uma exceção (horas)</span>
                 {campoNum('prazo-aprovacao', regras.prazoAprovacaoHoras, (v) => mudar((r) => void (r.prazoAprovacaoHoras = Math.round(v))))}
               </div>
+              {(regras.limites.folgaCambialMinimaPct !== undefined || custos.some((c) => c.moeda)) && (
+                <div className="detalhe-linha">
+                  <span>Folga cambial mínima (%): abaixo dela a cotação vai para aprovação</span>
+                  {campoNum('folga-cambial', regras.limites.folgaCambialMinimaPct ?? 0, (v) => mudar((r) => void (r.limites.folgaCambialMinimaPct = v)))}
+                </div>
+              )}
+              <h3 style={{ marginTop: 14 }}>Comissão do vendedor</h3>
+              {regras.comissaoVendedor ? (
+                <>
+                  <div className="detalhe-linha">
+                    <span>Base</span>
+                    {editavel ? (
+                      <select name="comissao-vendedor-base" style={{ width: 'auto' }} value={regras.comissaoVendedor.base} onChange={(e) => mudar((r) => void (r.comissaoVendedor!.base = e.target.value as 'margem' | 'receita'))}>
+                        <option value="margem">Sobre a margem</option>
+                        <option value="receita">Sobre a receita</option>
+                      </select>
+                    ) : (
+                      <strong>{regras.comissaoVendedor.base === 'margem' ? 'Sobre a margem' : 'Sobre a receita'}</strong>
+                    )}
+                  </div>
+                  <div className="detalhe-linha">
+                    <span>Percentual (%)</span>
+                    {campoNum('comissao-vendedor-pct', regras.comissaoVendedor.pct, (v) => mudar((r) => void (r.comissaoVendedor!.pct = v)))}
+                  </div>
+                  <div className="detalhe-linha">
+                    <span>Deduzida da margem no veredito</span>
+                    {editavel ? (
+                      <input type="checkbox" name="comissao-vendedor-deduz" checked={regras.comissaoVendedor.deduzDaMargem} onChange={(e) => mudar((r) => void (r.comissaoVendedor!.deduzDaMargem = e.target.checked))} />
+                    ) : (
+                      <strong>{regras.comissaoVendedor.deduzDaMargem ? 'Sim' : 'Não (simulação para o vendedor)'}</strong>
+                    )}
+                  </div>
+                  <p className="sutil">Aparece para o vendedor ao lado do semáforo. É uma simulação: a regra real de remuneração é decisão da empresa com RH e jurídico.</p>
+                  {editavel && (
+                    <button className="btn pequeno" onClick={() => mudar((r) => void (r.comissaoVendedor = null))}>
+                      Remover regra
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="sutil">Sem regra: o vendedor não vê comissão na cotação.</p>
+                  {editavel && (
+                    <button className="btn pequeno" onClick={() => mudar((r) => void (r.comissaoVendedor = { base: 'margem', pct: 10, deduzDaMargem: false }))}>
+                      Adicionar regra
+                    </button>
+                  )}
+                </>
+              )}
             </div>
             <div className="cartao">
               <h2>Alçadas</h2>
@@ -269,6 +321,7 @@ export default function PoliticaComercial() {
                     <th>Categoria</th>
                     <th>Produto</th>
                     <th>Tipo</th>
+                    <th>Moeda</th>
                     <th className="num">Valor</th>
                   </tr>
                 </thead>
@@ -278,7 +331,8 @@ export default function PoliticaComercial() {
                       <td>{c.nome}</td>
                       <td>{ROTULO_CATEGORIA[c.categoria]}</td>
                       <td>{c.produto ? (lista.dados!.produtos.find((p) => p.codigo === c.produto)?.nome ?? c.produto) : 'Todos'}</td>
-                      <td>{c.tipo === 'percentual' ? '% sobre a base' : c.tipo === 'valor_por_unidade' ? 'R$ por unidade' : 'R$ fixo'}</td>
+                      <td>{c.tipo === 'percentual' ? '% sobre a base' : c.tipo === 'valor_por_unidade' ? 'Valor por unidade' : 'Valor fixo'}</td>
+                      <td>{c.tipo === 'percentual' ? '—' : (c.moeda ?? 'BRL')}</td>
                       <td className="num">
                         {editavel ? (
                           <input
@@ -303,6 +357,7 @@ export default function PoliticaComercial() {
               </table>
             </div>
           </div>
+          <CambioReferencia />
           {editavel && !sujo && <PainelPublicacao id={politica.id} aoPublicar={() => lista.recarregar()} />}
         </>
       )}

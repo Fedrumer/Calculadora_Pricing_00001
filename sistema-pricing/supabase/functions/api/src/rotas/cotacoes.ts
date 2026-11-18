@@ -132,14 +132,20 @@ export async function obterCotacao(r: Requisicao, id: string, modo: 'ler' | 'don
 
 async function gravarVersao(r: Requisicao, cotacaoId: string, versao: number, c: Calculo): Promise<string> {
   const { resultado: x } = c;
+  // taxas efetivamente usadas (só as moedas com custo nesta cotação), com o câmbio de equilíbrio
+  const cambiosUsados = x.exposicaoCambial.map((e) => {
+    const ref = c.carregadas.regras.cambios?.find((k) => k.moeda === e.moeda);
+    return { moeda: e.moeda, taxa: e.taxa, vigenteDe: ref?.vigenteDe ?? null, origem: ref?.origem ?? null, cambioEquilibrio: e.cambioEquilibrio, folgaPct: e.folgaPct };
+  });
   const [v] = await r.tx<{ id: string }[]>`
     insert into public.cotacao_versoes (org_id, cotacao_id, versao, entrada, resultado, resultado_publico, tabela_id, politica_id,
       motor_versao, moeda, preco_base, preco_final, desconto_pct, comissao_pct, comissao_valor, margem_valor, margem_pct,
-      veredito, nivel_alcada, criado_por)
+      veredito, nivel_alcada, criado_por, cambios, comissao_vendedor_valor)
     values (${r.ator.orgId}, ${cotacaoId}, ${versao}, ${r.tx.json(c.pedido as never)}, ${r.tx.json(x as never)}, ${r.tx.json(c.publico as never)},
       ${c.carregadas.tabelaId}, ${c.carregadas.politicaId}, ${x.versoes.motor}, ${x.moeda}, ${x.precoBase}, ${x.precoFinal},
       ${x.descontoPct}, ${x.comissaoPct}, ${x.comissaoValor}, ${x.margemValor}, ${x.margemPct},
-      ${x.veredito.status}, ${x.veredito.nivelAlcada}, ${r.ator.tipo === 'usuario' ? r.ator.id : null})
+      ${x.veredito.status}, ${x.veredito.nivelAlcada}, ${r.ator.tipo === 'usuario' ? r.ator.id : null},
+      ${cambiosUsados.length ? r.tx.json(cambiosUsados as never) : null}, ${x.comissaoVendedor?.valor ?? 0})
     returning id`;
   return v!.id;
 }

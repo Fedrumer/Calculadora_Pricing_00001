@@ -174,7 +174,7 @@ export default function DetalheCotacao() {
               </h2>
               {c.validade && <span className="sutil">Válida até {data(c.validade)}</span>}
             </div>
-            {vista ? <ResultadoCalculo r={vista.resultado} /> : <div className="vazio">Sem versão calculada.</div>}
+            {vista ? <ResultadoCalculo r={vista.resultado} minhaComissao={dono} /> : <div className="vazio">Sem versão calculada.</div>}
           </div>
           {comIA && vista && (
             <div className="cartao">

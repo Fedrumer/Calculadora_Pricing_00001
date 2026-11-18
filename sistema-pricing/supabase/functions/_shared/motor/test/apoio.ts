@@ -15,6 +15,7 @@ export function regrasDoCliente(arquivo: string): { regras: ConjuntoRegras; caso
       politica: { id: 'politica-teste', versao: 1, ...politica },
       custos,
       campanhas: c.campanhas,
+      ...(c.cambios ? { cambios: c.cambios.map((x: Record<string, unknown>) => ({ ...x, origem: 'politica' })) } : {}),
     },
     casos: c.casosReferencia,
   };

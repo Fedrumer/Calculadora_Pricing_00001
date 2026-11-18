@@ -1,4 +1,4 @@
-import type { Campanha, ConjuntoRegras, DefinicaoDimensao, Fator, ItemTabela, ParametroCusto, Politica, Produto } from '@pricing/motor';
+import type { CambioReferencia, Campanha, ConjuntoRegras, DefinicaoDimensao, Fator, ItemTabela, ParametroCusto, Politica, Produto } from '@pricing/motor';
 import type { Db } from './contexto.ts';
 import { ErroHttp } from './erros.ts';
 
@@ -15,6 +15,8 @@ export interface OpcoesRegras {
   /** Usa esta tabela (rascunho, por exemplo) em vez da vigente na data. */
   tabelaId?: string;
   politicaId?: string;
+  /** Substitui o câmbio de referência de uma moeda (simulação de impacto antes de publicar). */
+  cambio?: { moeda: string; taxa: number };
 }
 
 /** Monta o conjunto de regras que o motor recebe, a partir do banco. */
@@ -32,7 +34,7 @@ export async function carregarRegras(db: Db, orgId: string, data: string, opcoes
     select id, versao, regras from public.politicas where id = ${politicaId} and org_id = ${orgId}`;
   if (!tabela || !politica) throw new ErroHttp(404, 'REGRA_NAO_ENCONTRADA', 'Tabela ou política não encontrada.');
 
-  const [dimensoes, produtos, componentes, itens, fatores, custos, campanhas, canais] = await Promise.all([
+  const [dimensoes, produtos, componentes, itens, fatores, custos, campanhas, canais, cambios] = await Promise.all([
     db<{ codigo: string; nome: string; tipo: 'categoria' | 'faixa'; valores: DefinicaoDimensao['valores']; faixas: DefinicaoDimensao['faixas'] }[]>`
       select codigo, nome, tipo, valores, faixas from public.dimensoes where org_id = ${orgId} order by ordem, codigo`,
     db<{ id: string; codigo: string; nome: string; ativo: boolean; dimensoes: string[]; multiplicadores: string[] }[]>`
@@ -43,13 +45,15 @@ export async function carregarRegras(db: Db, orgId: string, data: string, opcoes
       select produto_id, componente_id, dimensoes, preco_base from public.itens_tabela where tabela_id = ${tabelaId}`,
     db<{ codigo: string; nome: string; dimensao: string; valor: string; tipo: 'percentual' | 'valor'; ajuste: string; produto_id: string | null; grupo: string | null }[]>`
       select codigo, nome, dimensao, valor, tipo, ajuste, produto_id, grupo from public.fatores where tabela_id = ${tabelaId} order by codigo`,
-    db<{ codigo: string; nome: string; categoria: ParametroCusto['categoria']; tipo: ParametroCusto['tipo']; valor: string; produto_id: string | null; base: ParametroCusto['base'] }[]>`
-      select codigo, nome, categoria, tipo, valor, produto_id, base from public.parametros_custo where politica_id = ${politicaId} order by codigo`,
+    db<{ codigo: string; nome: string; categoria: ParametroCusto['categoria']; tipo: ParametroCusto['tipo']; valor: string; produto_id: string | null; base: ParametroCusto['base']; moeda: string | null; condicoes: ParametroCusto['condicoes'] }[]>`
+      select codigo, nome, categoria, tipo, valor, produto_id, base, moeda, condicoes from public.parametros_custo where politica_id = ${politicaId} order by codigo`,
     db<{ codigo: string; nome: string; inicio: string; fim: string; tipo: 'percentual' | 'valor'; valor: string; produtos: string[] | null; canais: string[] | null; condicoes: Campanha['condicoes']; acumula_com_desconto: boolean; acumula_com_outras: boolean }[]>`
       select codigo, nome, inicio::text, fim::text, tipo, valor, produtos, canais, condicoes, acumula_com_desconto, acumula_com_outras
       from public.campanhas where org_id = ${orgId} and ativo order by codigo`,
     db<{ id: string; codigo: string; nome: string; ativo: boolean }[]>`
       select id, codigo, nome, ativo from public.canais where org_id = ${orgId}`,
+    db<{ moeda: string; taxa: string; vigente_de: string; origem: CambioReferencia['origem'] }[]>`
+      select moeda, taxa, vigente_de::text, origem from app.cambios_vigentes(${orgId}, ${data}::date)`,
   ]);
 
   const codigoProduto = new Map(produtos.map((p) => [p.id, p.codigo]));
@@ -108,7 +112,15 @@ export async function carregarRegras(db: Db, orgId: string, data: string, opcoes
       valor: c.valor,
       produto: c.produto_id ? (codigoProduto.get(c.produto_id) ?? null) : null,
       base: c.base ?? null,
+      ...(c.moeda ? { moeda: c.moeda } : {}),
+      ...(c.condicoes ? { condicoes: c.condicoes } : {}),
     })),
+    cambios: cambios.map(
+      (c): CambioReferencia =>
+        opcoes.cambio && opcoes.cambio.moeda === c.moeda
+          ? { moeda: c.moeda, taxa: opcoes.cambio.taxa, vigenteDe: data, origem: 'politica' }
+          : { moeda: c.moeda, taxa: c.taxa, vigenteDe: c.vigente_de, origem: c.origem },
+    ),
     campanhas: campanhas.map((c) => ({
       codigo: c.codigo,
       nome: c.nome,
@@ -123,6 +135,10 @@ export async function carregarRegras(db: Db, orgId: string, data: string, opcoes
       acumulaComOutras: c.acumula_com_outras,
     })),
   };
+
+  if (opcoes.cambio && !regras.cambios!.some((c) => c.moeda === opcoes.cambio!.moeda)) {
+    regras.cambios!.push({ moeda: opcoes.cambio.moeda, taxa: opcoes.cambio.taxa, vigenteDe: data, origem: 'politica' });
+  }
 
   return {
     regras,
