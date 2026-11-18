@@ -20,6 +20,7 @@ export async function ambienteDeDemonstracao(env: Ambiente): Promise<Ambiente> {
   try {
     await sql.unsafe(`
       create table if not exists app.segredos_demo (nome text primary key, valor text not null, criado_em timestamptz not null default now());
+      alter table app.segredos_demo enable row level security;
       revoke all on app.segredos_demo from public, anon, authenticated;
     `);
     for (const nome of GERADOS) {
