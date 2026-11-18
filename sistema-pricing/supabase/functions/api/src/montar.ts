@@ -34,6 +34,8 @@ export function montarApi(env: Ambiente, sobrescrever: Partial<Deps> = {}) {
     segredoAutomacao: env('SEGREDO_AUTOMACAO') ?? null,
     n8nWebhookUrl: env('N8N_WEBHOOK_URL') ?? null,
     fusoHorario: env('FUSO_HORARIO') ?? 'America/Sao_Paulo',
+    segredoPseudonimo: env('SEGREDO_PSEUDONIMO') ?? null,
+    chaveEnvioDiagnostico: env('CHAVE_ENVIO_DIAGNOSTICO') ?? null,
   };
   const sql: Sql =
     sobrescrever.sql ??

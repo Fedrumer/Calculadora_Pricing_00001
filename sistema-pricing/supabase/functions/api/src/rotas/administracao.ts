@@ -82,6 +82,15 @@ export const rotasAdministracao: Rota[] = [
             .refine((l) => new Set(l.map((m) => m.codigo)).size === l.length, 'Códigos repetidos.')
             .refine((l) => l.some((m) => m.ativo), 'Pelo menos um motivo ativo.')
             .optional(),
+          envioDiagnostico: z
+            .object({
+              ativo: z.boolean(),
+              destino: z.string().url().startsWith('https://', 'O destino precisa ser HTTPS.').max(300).nullable(),
+              modoConta: z.enum(['pseudonimo', 'agregado']),
+              diaDoMes: z.number().int().min(1).max(28),
+            })
+            .partial()
+            .optional(),
         }),
         r.corpo,
       );
@@ -92,6 +101,16 @@ export const rotasAdministracao: Rota[] = [
         config[secao] = Array.isArray(valores) ? (valores as never) : { ...(config[secao] ?? {}), ...valores };
       }
       await r.tx`update public.organizacoes set config = ${r.tx.json(config as never)} where id = ${r.ator.orgId}`;
+      // A10: ligar ou desligar o envio ao diagnóstico fica registrado como ato próprio
+      const antes = (o?.config?.envioDiagnostico as { ativo?: boolean } | undefined)?.ativo ?? false;
+      const depois = (config.envioDiagnostico as { ativo?: boolean } | undefined)?.ativo ?? false;
+      if (d.envioDiagnostico && antes !== depois) {
+        await r.auditar(depois ? 'diagnostico.envio_ligado' : 'diagnostico.envio_desligado', 'organizacoes', r.ator.orgId, {
+          resumo: depois ? 'Envio de dados ao diagnóstico ligado.' : 'Envio de dados ao diagnóstico desligado.',
+          anterior: { ativo: antes },
+          novo: config.envioDiagnostico,
+        });
+      }
       return { corpo: { config } };
     },
   },

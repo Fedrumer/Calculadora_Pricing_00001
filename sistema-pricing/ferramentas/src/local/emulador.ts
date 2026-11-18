@@ -72,6 +72,7 @@ export async function iniciarEmulador(o: OpcoesEmulador) {
         SEGREDO_HASH: 'segredo-de-hash-do-ambiente-local-0123456789',
         CHAVE_CIFRA_DOCUMENTOS: 'chave-de-cifra-do-ambiente-local-0123456789',
         SEGREDO_AUTOMACAO: 'segredo-de-automacao-do-ambiente-local',
+        SEGREDO_PSEUDONIMO: 'segredo-de-pseudonimo-do-ambiente-local-0123456789',
         ANTHROPIC_API_KEY: o.chaveAnthropic,
       })[nome],
     { sql },
@@ -260,7 +261,7 @@ export async function iniciarEmulador(o: OpcoesEmulador) {
     return { status: 200, corpo: r.linhas };
   }
 
-  const TIPOS: Record<string, string> = { pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', csv: 'text/csv' };
+  const TIPOS: Record<string, string> = { pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', csv: 'text/csv', zip: 'application/zip' };
   function storage(metodo: string, caminho: string, url: URL, dados: Buffer, token: string): Saida {
     const claims = token ? lerJwt(segredo, token) : null;
     const assinar = (objeto: string, exp: number) => createHmac('sha256', segredo).update(`${objeto}:${exp}`).digest('base64url');
@@ -282,6 +283,13 @@ export async function iniciarEmulador(o: OpcoesEmulador) {
     if (m[1] && metodo === 'POST') {
       const exp = Math.floor(Date.now() / 1000) + (JSON.parse(dados.toString() || '{}').expiresIn ?? 60);
       return { status: 200, corpo: { signedURL: `/object/sign/${m[2]}/${m[3]}?token=${assinar(objeto, exp)}&exp=${exp}` } };
+    }
+    if (!m[1] && metodo === 'GET') {
+      try {
+        return { status: 200, bruto: readFileSync(arquivo), tipo: TIPOS[arquivo.split('.').pop() ?? ''] ?? 'application/octet-stream' };
+      } catch {
+        return { status: 404, corpo: { message: 'arquivo não encontrado' } };
+      }
     }
     if (metodo === 'POST' || metodo === 'PUT') {
       mkdirSync(dirname(arquivo), { recursive: true });

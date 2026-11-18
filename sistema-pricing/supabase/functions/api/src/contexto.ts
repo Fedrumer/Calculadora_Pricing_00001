@@ -49,6 +49,8 @@ export interface Armazenamento {
   salvar(bucket: string, caminho: string, conteudo: Uint8Array, tipo: string): Promise<void>;
   /** Link assinado de curta duração. */
   urlAssinada(bucket: string, caminho: string, segundos: number): Promise<string>;
+  /** Lê um arquivo gravado (só no servidor). Nulo quando não existe. */
+  ler?(bucket: string, caminho: string): Promise<Uint8Array | null>;
 }
 
 export interface ServicoIA {
@@ -75,6 +77,10 @@ export interface Configuracao {
   /** Webhook do n8n que recebe os eventos de saída (opcional). */
   n8nWebhookUrl: string | null;
   fusoHorario: string;
+  /** A10: segredo do HMAC dos códigos pseudônimos do pacote ao diagnóstico. Nunca sai do servidor. */
+  segredoPseudonimo?: string | null;
+  /** A10: chave que só deposita pacotes no diagnóstico. */
+  chaveEnvioDiagnostico?: string | null;
 }
 
 export interface Deps {

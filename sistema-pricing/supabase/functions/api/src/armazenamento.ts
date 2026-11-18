@@ -25,6 +25,12 @@ export function armazenamentoSupabase(url: string, chaveServico: string, buscar:
       if (!r.ok || !corpo.signedURL) throw new ErroHttp(502, 'FALHA_NO_ARMAZENAMENTO', 'Não foi possível gerar o link do arquivo.');
       return `${base}${corpo.signedURL}`;
     },
+    async ler(bucket, caminho) {
+      const r = await buscar(`${base}/object/${bucket}/${codificar(caminho)}`, { headers: cab });
+      if (r.status === 404 || r.status === 400) return null;
+      if (!r.ok) throw new ErroHttp(502, 'FALHA_NO_ARMAZENAMENTO', `Não foi possível ler o arquivo (${r.status}).`);
+      return new Uint8Array(await r.arrayBuffer());
+    },
   };
 }
 
@@ -39,6 +45,9 @@ export function armazenamentoMemoria(): Armazenamento & { arquivos: Map<string, 
     async urlAssinada(bucket, caminho, segundos) {
       if (!arquivos.has(`${bucket}/${caminho}`)) throw new ErroHttp(404, 'ARQUIVO_NAO_ENCONTRADO', 'Arquivo não encontrado.');
       return `memoria://${bucket}/${caminho}?expira=${segundos}`;
+    },
+    async ler(bucket, caminho) {
+      return arquivos.get(`${bucket}/${caminho}`)?.conteudo ?? null;
     },
   };
 }
