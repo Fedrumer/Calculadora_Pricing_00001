@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Aviso, Campo, useAcao } from './ui';
 
@@ -15,8 +15,13 @@ export function SegundoFator({ aoConcluir, obrigatorio }: { aoConcluir: () => vo
   const [segredo, setSegredo] = useState('');
   const [codigo, setCodigo] = useState('');
   const acao = useAcao();
+  // o cadastro roda uma vez só, mesmo quando o React repete o efeito (modo estrito):
+  // duas execuções ao mesmo tempo apagariam o fator uma da outra
+  const iniciado = useRef(false);
 
   useEffect(() => {
+    if (iniciado.current) return;
+    iniciado.current = true;
     void (async () => {
       const sb = supabase();
       const { data, error } = await sb.auth.mfa.listFactors();

@@ -38,7 +38,9 @@ async function foto(pagina, nome) {
   await pagina.screenshot({ path: `${PASTA}/${String(n).padStart(2, '0')}-${nome}.png`, fullPage: true });
 }
 
-const navegador = await chromium.launch();
+// atrás de um proxy de saída (HTTPS_PROXY), os downloads feitos fora da página também passam por ele
+const proxy = process.env.HTTPS_PROXY ?? process.env.https_proxy;
+const navegador = await chromium.launch(proxy ? { proxy: { server: proxy, bypass: 'localhost,127.0.0.1' } } : {});
 const errosDeConsole = [];
 
 async function entrar(email, opcoes = {}) {
@@ -53,12 +55,23 @@ async function entrar(email, opcoes = {}) {
   // perfis com segundo fator obrigatório: cadastra no primeiro acesso, informa o código nos seguintes
   await pagina.waitForSelector('nav.lateral, input[name=codigo]', { timeout: 15000 });
   if (await pagina.locator('input[name=codigo]').count()) {
-    const chave = pagina.locator('[data-testid=segredo-totp]');
-    if (await chave.count()) segredos.set(email, (await chave.textContent()).trim());
-    if (opcoes.fotoMfa) await foto(pagina, opcoes.fotoMfa);
-    await pagina.fill('input[name=codigo]', totp(segredos.get(email)));
-    await pagina.click('button:has-text("Confirmar")');
-    await pagina.waitForSelector('nav.lateral', { timeout: 15000 });
+    // a chave é lida logo antes de confirmar: se a tela for montada de novo (por exemplo, quando
+    // o servidor de desenvolvimento compila a rota), o cadastro anterior deixa de valer
+    await pagina.waitForLoadState('networkidle');
+    for (let tentativa = 1; ; tentativa++) {
+      const chave = pagina.locator('[data-testid=segredo-totp]');
+      if (await chave.count()) segredos.set(email, (await chave.textContent()).trim());
+      if (opcoes.fotoMfa && tentativa === 1) await foto(pagina, opcoes.fotoMfa);
+      await pagina.fill('input[name=codigo]', totp(segredos.get(email)));
+      await pagina.click('button:has-text("Confirmar")');
+      try {
+        await pagina.waitForSelector('nav.lateral', { timeout: 10000 });
+        break;
+      } catch (e) {
+        if (tentativa >= 3) throw e;
+        await pagina.waitForLoadState('networkidle');
+      }
+    }
   }
   return { contexto, pagina };
 }
@@ -242,7 +255,7 @@ try {
 
   const convidada = await navegador.newContext({ viewport: { width: 1360, height: 900 } });
   const pc = await convidada.newPage();
-  await pc.goto(link.replace(/^https?:\/\/[^/]+/, BASE));
+  await pc.goto(`${BASE}${link.slice(link.indexOf('/convite'))}`);
   await pc.waitForSelector('input[name=senha]');
   await pc.fill('input[name=senha]', 'SenhaDaNina2026Forte');
   await pc.fill('input[name=confirmacao]', 'SenhaDaNina2026Forte');
@@ -250,7 +263,7 @@ try {
   await foto(pc, 'convidada-aceite-do-convite');
   await pc.click('button:has-text("Criar meu acesso")');
   await pc.waitForSelector('text=Acesso criado');
-  await pc.goto(link.replace(/^https?:\/\/[^/]+/, BASE));
+  await pc.goto(`${BASE}${link.slice(link.indexOf('/convite'))}`);
   await pc.waitForSelector('text=Convite indisponível');
   conferir(true, 'convidada define a senha e aceita os termos; o link não funciona uma segunda vez');
   await convidada.close();
