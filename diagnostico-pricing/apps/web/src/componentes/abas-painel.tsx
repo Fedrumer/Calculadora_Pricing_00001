@@ -7,7 +7,7 @@ import { rpc } from '@/lib/api';
 import { ROTULO_CENARIO, ROTULO_DIMENSAO, ROTULO_PREMISSA, ROTULO_RECORTE, moeda, moedaCurta, numero, pct } from '@/lib/formato';
 import type { Achado, Metrica, Painel } from '@/lib/tipos';
 
-const valorMetrica = (m: Metrica) => (m.valor === null ? 'indisponível' : m.unidade === '%' ? pct(m.valor) : numero(m.valor, 2));
+const valorMetrica = (m: Metrica) => (m.valor === null ? 'indisponível' : m.unidade === '%' ? pct(m.valor) : m.unidade === 'R$' ? moeda(m.valor) : numero(m.valor, 2));
 const nota = (p: Painel, d: string) => p.pontuacoes.find((x) => x.dimensao === d) ?? null;
 const metrica = (p: Painel, c: string) => p.metricas.find((m) => m.codigo === c) ?? null;
 const cenario = (p: Painel, c: string) => p.cenarios.find((x) => x.codigo === c) ?? null;
@@ -99,7 +99,7 @@ export function AbaResumo({ p }: { p: Painel }) {
               <Regua nota={d.nota} />
             </div>
           ))}
-          <p className="sutil">Nota de 0 a 100 por faixas de limiar do catálogo (versão {p.diagnostico.versao_catalogo}). Mix, elasticidade, competitividade e governança entram na Fase 2; a nota geral redistribui os pesos entre as dimensões calculadas.</p>
+          <p className="sutil">Nota de 0 a 100 por faixas de limiar do catálogo (versão {p.diagnostico.versao_catalogo}). Dimensão sem métrica com limiar fica sem nota e fora da nota geral, que redistribui os pesos entre as dimensões calculadas.</p>
         </div>
         <div className="cartao">
           <h2>Maiores achados</h2>
