@@ -7,13 +7,13 @@ import { Aviso, Campo, useAcao } from '@/componentes/ui';
 import { AMBIENTE, supabase } from '@/lib/supabase';
 
 const ACESSOS_DEMO = [
-  ['Vendedor', 'vendedor@aurora.demo'],
-  ['Usuário de canal', 'canal@corretora-alfa.demo'],
-  ['Aprovador (gestor)', 'gestor@aurora.demo'],
-  ['Aprovador (diretoria)', 'diretoria@aurora.demo'],
-  ['Gestor de pricing', 'pricing@aurora.demo'],
-  ['Administrador', 'admin@aurora.demo'],
-  ['Leitura', 'financeiro@aurora.demo'],
+  ['Vendedora', 'vendedor@operadora.demo'],
+  ['Agência parceira', 'canal@agencia-horizonte.demo'],
+  ['Aprovador (gerente comercial)', 'gerente@operadora.demo'],
+  ['Aprovador (diretoria)', 'diretoria@operadora.demo'],
+  ['Gestor de pricing', 'pricing@operadora.demo'],
+  ['Administrador', 'admin@operadora.demo'],
+  ['Leitura', 'financeiro@operadora.demo'],
 ];
 
 export default function Entrar() {
