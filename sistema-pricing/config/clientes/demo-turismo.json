@@ -1,0 +1,1123 @@
+{
+  "$comentario": "Empresa fictícia da demonstração: a mesma operadora da Nota de Decisão nº 02. Todos os nomes, preços, custos e políticas são inventados. O pacote Lisboa de julho, 1 passageiro em apartamento duplo, vendido por agência, reproduz os números da Nota centavo a centavo (caso de referência).",
+  "organizacao": {
+    "nome": "Operadora Exemplo Turismo (fictícia)",
+    "slug": "operadora-exemplo",
+    "config": {
+      "identidade": {
+        "nomeFantasia": "Operadora Exemplo Turismo",
+        "corPrimaria": "#1d3557",
+        "corDestaque": "#e76f51",
+        "rodapeProposta": "Operadora Exemplo Turismo é uma empresa fictícia criada para demonstração. Proposta sem valor comercial."
+      },
+      "prazos": {
+        "conviteHoras": 72,
+        "inatividadeDias": 90,
+        "sessaoHoras": 12
+      },
+      "modulos": {
+        "portalCanal": true,
+        "api": true,
+        "ia": true,
+        "sso": false,
+        "conviteCanal": true
+      },
+      "retencao": {
+        "cotacoesAceitasAnos": 5,
+        "cotacoesPerdidasMeses": 24,
+        "auditoriaAnos": 5
+      },
+      "formulario": {
+        "rotuloClienteFinal": "Passageiro ou empresa",
+        "pedirDocumento": true
+      },
+      "motivosPerda": [
+        {
+          "codigo": "preco_concorrente",
+          "nome": "Preço acima do concorrente",
+          "pedeTexto": false,
+          "pedeConcorrente": true,
+          "ativo": true
+        },
+        {
+          "codigo": "prazo",
+          "nome": "Prazo ou disponibilidade",
+          "pedeTexto": false,
+          "pedeConcorrente": false,
+          "ativo": true
+        },
+        {
+          "codigo": "escopo",
+          "nome": "Produto não atende",
+          "pedeTexto": false,
+          "pedeConcorrente": false,
+          "ativo": true
+        },
+        {
+          "codigo": "desistiu",
+          "nome": "Cliente desistiu da compra",
+          "pedeTexto": false,
+          "pedeConcorrente": false,
+          "ativo": true
+        },
+        {
+          "codigo": "sem_resposta",
+          "nome": "Sem resposta do cliente",
+          "pedeTexto": false,
+          "pedeConcorrente": false,
+          "ativo": true
+        },
+        {
+          "codigo": "outro",
+          "nome": "Outro",
+          "pedeTexto": true,
+          "pedeConcorrente": false,
+          "ativo": true
+        }
+      ],
+      "painel": {
+        "faixasDesconto": [
+          2,
+          5,
+          10
+        ]
+      },
+      "envioDiagnostico": {
+        "ativo": false,
+        "modoConta": "pseudonimo",
+        "diaDoMes": 2,
+        "destino": null
+      }
+    }
+  },
+  "unidades": [
+    {
+      "codigo": "sp",
+      "nome": "Loja São Paulo"
+    },
+    {
+      "codigo": "online",
+      "nome": "Central de vendas online"
+    }
+  ],
+  "canais": [
+    {
+      "codigo": "agencia-horizonte",
+      "nome": "Agência Horizonte Viagens",
+      "tipo": "agencia",
+      "permiteConvite": true
+    },
+    {
+      "codigo": "agencia-rota",
+      "nome": "Agência Rota Livre",
+      "tipo": "agencia",
+      "permiteConvite": false
+    }
+  ],
+  "dimensoes": [
+    {
+      "codigo": "temporada",
+      "nome": "Temporada da saída",
+      "tipo": "categoria",
+      "valores": [
+        {
+          "codigo": "alta",
+          "nome": "Alta (julho, dezembro e janeiro)"
+        },
+        {
+          "codigo": "baixa",
+          "nome": "Baixa (demais meses)"
+        }
+      ]
+    },
+    {
+      "codigo": "acomodacao",
+      "nome": "Acomodação",
+      "tipo": "categoria",
+      "valores": [
+        {
+          "codigo": "duplo",
+          "nome": "Apartamento duplo"
+        },
+        {
+          "codigo": "individual",
+          "nome": "Apartamento individual"
+        }
+      ]
+    },
+    {
+      "codigo": "passageiros",
+      "nome": "Passageiros",
+      "tipo": "faixa",
+      "faixas": [
+        {
+          "codigo": "1-9",
+          "nome": "1 a 9",
+          "min": 1,
+          "max": 9
+        },
+        {
+          "codigo": "10-19",
+          "nome": "10 a 19 (grupo)",
+          "min": 10,
+          "max": 19
+        },
+        {
+          "codigo": "20+",
+          "nome": "20 ou mais (grupo grande)",
+          "min": 20,
+          "max": null
+        }
+      ]
+    }
+  ],
+  "produtos": [
+    {
+      "codigo": "LISBOA",
+      "nome": "Pacote Lisboa",
+      "descricao": "7 noites em Lisboa com aéreo, hotel, traslados, seguro e city tour guiado.",
+      "ativo": true,
+      "dimensoes": [
+        "temporada",
+        "acomodacao"
+      ],
+      "multiplicadores": [
+        "passageiros"
+      ],
+      "componentes": []
+    },
+    {
+      "codigo": "MADRI",
+      "nome": "Pacote Madri",
+      "descricao": "7 noites em Madri com aéreo, hotel, traslados, seguro e city tour guiado.",
+      "ativo": true,
+      "dimensoes": [
+        "temporada",
+        "acomodacao"
+      ],
+      "multiplicadores": [
+        "passageiros"
+      ],
+      "componentes": []
+    },
+    {
+      "codigo": "PARIS",
+      "nome": "Pacote Paris",
+      "descricao": "7 noites em Paris com aéreo, hotel, traslados, seguro e city tour guiado.",
+      "ativo": true,
+      "dimensoes": [
+        "temporada",
+        "acomodacao"
+      ],
+      "multiplicadores": [
+        "passageiros"
+      ],
+      "componentes": []
+    },
+    {
+      "codigo": "GRAMADO",
+      "nome": "Pacote Gramado",
+      "descricao": "5 noites em Gramado com aéreo nacional, hotel, traslados, seguro e passeio guiado.",
+      "ativo": true,
+      "dimensoes": [
+        "temporada",
+        "acomodacao"
+      ],
+      "multiplicadores": [
+        "passageiros"
+      ],
+      "componentes": []
+    }
+  ],
+  "tabela": {
+    "nome": "Tabela 2026 (preço por passageiro)",
+    "moeda": "BRL",
+    "vigenciaInicio": "2025-11-01",
+    "itens": [
+      {
+        "produto": "LISBOA",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "duplo"
+        },
+        "precoBase": 9900
+      },
+      {
+        "produto": "LISBOA",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "individual"
+        },
+        "precoBase": 12900
+      },
+      {
+        "produto": "LISBOA",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "baixa",
+          "acomodacao": "duplo"
+        },
+        "precoBase": 7900
+      },
+      {
+        "produto": "LISBOA",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "baixa",
+          "acomodacao": "individual"
+        },
+        "precoBase": 10400
+      },
+      {
+        "produto": "MADRI",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "duplo"
+        },
+        "precoBase": 9400
+      },
+      {
+        "produto": "MADRI",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "individual"
+        },
+        "precoBase": 12200
+      },
+      {
+        "produto": "MADRI",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "baixa",
+          "acomodacao": "duplo"
+        },
+        "precoBase": 7500
+      },
+      {
+        "produto": "MADRI",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "baixa",
+          "acomodacao": "individual"
+        },
+        "precoBase": 9800
+      },
+      {
+        "produto": "PARIS",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "duplo"
+        },
+        "precoBase": 11900
+      },
+      {
+        "produto": "PARIS",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "individual"
+        },
+        "precoBase": 15600
+      },
+      {
+        "produto": "PARIS",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "baixa",
+          "acomodacao": "duplo"
+        },
+        "precoBase": 9500
+      },
+      {
+        "produto": "PARIS",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "baixa",
+          "acomodacao": "individual"
+        },
+        "precoBase": 12500
+      },
+      {
+        "produto": "GRAMADO",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "duplo"
+        },
+        "precoBase": 3900
+      },
+      {
+        "produto": "GRAMADO",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "individual"
+        },
+        "precoBase": 5200
+      },
+      {
+        "produto": "GRAMADO",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "baixa",
+          "acomodacao": "duplo"
+        },
+        "precoBase": 2900
+      },
+      {
+        "produto": "GRAMADO",
+        "componente": null,
+        "dimensoes": {
+          "temporada": "baixa",
+          "acomodacao": "individual"
+        },
+        "precoBase": 3800
+      }
+    ],
+    "fatores": [
+      {
+        "codigo": "grupo-10",
+        "nome": "Grupo de 10 a 19 passageiros",
+        "dimensao": "passageiros",
+        "valor": "10-19",
+        "tipo": "percentual",
+        "ajuste": -3
+      },
+      {
+        "codigo": "grupo-20",
+        "nome": "Grupo de 20 passageiros ou mais",
+        "dimensao": "passageiros",
+        "valor": "20+",
+        "tipo": "percentual",
+        "ajuste": -5
+      }
+    ]
+  },
+  "politica": {
+    "vigenciaInicio": "2025-11-01",
+    "etapas": [
+      {
+        "id": "base",
+        "tipo": "preco_base",
+        "nome": "Preço de tabela"
+      },
+      {
+        "id": "fatores",
+        "tipo": "fatores",
+        "composicao": "multiplicativa",
+        "nome": "Desconto de grupo"
+      },
+      {
+        "id": "campanha",
+        "tipo": "campanha",
+        "nome": "Campanha"
+      },
+      {
+        "id": "desconto",
+        "tipo": "desconto",
+        "nome": "Desconto do vendedor"
+      },
+      {
+        "id": "arredondamento",
+        "tipo": "arredondamento",
+        "nome": "Arredondamento"
+      },
+      {
+        "id": "comissao",
+        "tipo": "comissao",
+        "base": {
+          "de": "preco"
+        },
+        "modo": "deduz_da_margem",
+        "nome": "Comissão da agência"
+      },
+      {
+        "id": "impostos",
+        "tipo": "impostos",
+        "base": {
+          "de": "preco"
+        },
+        "nome": "Impostos"
+      },
+      {
+        "id": "custos",
+        "tipo": "custos",
+        "base": {
+          "de": "preco"
+        },
+        "nome": "Custos do pacote"
+      }
+    ],
+    "arredondamento": {
+      "casas": 2,
+      "modo": "meio_para_cima"
+    },
+    "limites": {
+      "descontoLivrePct": 2,
+      "descontoMaximoPct": 8,
+      "margemMinimaPct": 1.5,
+      "margemMetaPct": 5,
+      "folgaCambialMinimaPct": 5
+    },
+    "alcadas": [
+      {
+        "nivel": 1,
+        "nome": "Gerente comercial",
+        "descontoAtePct": 5,
+        "margemMinimaPct": 1.5
+      },
+      {
+        "nivel": 2,
+        "nome": "Diretoria",
+        "descontoAtePct": 8,
+        "permiteComissaoForaTabela": true
+      }
+    ],
+    "comissoes": [
+      {
+        "canal": "agencia-horizonte",
+        "pct": 12
+      },
+      {
+        "canal": "agencia-rota",
+        "pct": 12
+      }
+    ],
+    "validadeDias": 7,
+    "prazoAprovacaoHoras": 8,
+    "comissaoVendedor": {
+      "base": "margem",
+      "pct": 10,
+      "deduzDaMargem": false
+    },
+    "custos": [
+      {
+        "codigo": "impostos",
+        "nome": "Impostos sobre a venda",
+        "categoria": "imposto",
+        "tipo": "percentual",
+        "valor": 6
+      },
+      {
+        "codigo": "traslado",
+        "nome": "Traslados",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 89.9
+      },
+      {
+        "codigo": "seguro",
+        "nome": "Seguro viagem",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 58.55
+      },
+      {
+        "codigo": "guia",
+        "nome": "Guia local",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 75
+      },
+      {
+        "codigo": "aereo-lisboa",
+        "nome": "Aéreo (Lisboa)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 489.53,
+        "produto": "LISBOA",
+        "moeda": "EUR"
+      },
+      {
+        "codigo": "aereo-madri",
+        "nome": "Aéreo (Madri)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 430.0,
+        "produto": "MADRI",
+        "moeda": "EUR"
+      },
+      {
+        "codigo": "aereo-paris",
+        "nome": "Aéreo (Paris)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 560.0,
+        "produto": "PARIS",
+        "moeda": "EUR"
+      },
+      {
+        "codigo": "hotel-lisboa-alta-duplo",
+        "nome": "Hotel (Lisboa, duplo, temporada alta)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 708.43,
+        "produto": "LISBOA",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "alta"
+          ],
+          "acomodacao": [
+            "duplo"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-lisboa-alta-individual",
+        "nome": "Hotel (Lisboa, individual, temporada alta)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 1059.9,
+        "produto": "LISBOA",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "alta"
+          ],
+          "acomodacao": [
+            "individual"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-lisboa-baixa-duplo",
+        "nome": "Hotel (Lisboa, duplo, temporada baixa)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 451.6,
+        "produto": "LISBOA",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "baixa"
+          ],
+          "acomodacao": [
+            "duplo"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-lisboa-baixa-individual",
+        "nome": "Hotel (Lisboa, individual, temporada baixa)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 744.0,
+        "produto": "LISBOA",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "baixa"
+          ],
+          "acomodacao": [
+            "individual"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-madri-alta-duplo",
+        "nome": "Hotel (Madri, duplo, temporada alta)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 701.4,
+        "produto": "MADRI",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "alta"
+          ],
+          "acomodacao": [
+            "duplo"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-madri-alta-individual",
+        "nome": "Hotel (Madri, individual, temporada alta)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 1033.4,
+        "produto": "MADRI",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "alta"
+          ],
+          "acomodacao": [
+            "individual"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-madri-baixa-duplo",
+        "nome": "Hotel (Madri, duplo, temporada baixa)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 458.0,
+        "produto": "MADRI",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "baixa"
+          ],
+          "acomodacao": [
+            "duplo"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-madri-baixa-individual",
+        "nome": "Hotel (Madri, individual, temporada baixa)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 730.3,
+        "produto": "MADRI",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "baixa"
+          ],
+          "acomodacao": [
+            "individual"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-paris-alta-duplo",
+        "nome": "Hotel (Paris, duplo, temporada alta)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 886.0,
+        "produto": "PARIS",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "alta"
+          ],
+          "acomodacao": [
+            "duplo"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-paris-alta-individual",
+        "nome": "Hotel (Paris, individual, temporada alta)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 1316.3,
+        "produto": "PARIS",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "alta"
+          ],
+          "acomodacao": [
+            "individual"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-paris-baixa-duplo",
+        "nome": "Hotel (Paris, duplo, temporada baixa)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 539.6,
+        "produto": "PARIS",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "baixa"
+          ],
+          "acomodacao": [
+            "duplo"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-paris-baixa-individual",
+        "nome": "Hotel (Paris, individual, temporada baixa)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 882.7,
+        "produto": "PARIS",
+        "moeda": "EUR",
+        "condicoes": {
+          "temporada": [
+            "baixa"
+          ],
+          "acomodacao": [
+            "individual"
+          ]
+        }
+      },
+      {
+        "codigo": "aereo-gramado-alta",
+        "nome": "Aéreo nacional (Gramado, temporada alta)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 1150,
+        "produto": "GRAMADO",
+        "condicoes": {
+          "temporada": [
+            "alta"
+          ]
+        }
+      },
+      {
+        "codigo": "aereo-gramado-baixa",
+        "nome": "Aéreo nacional (Gramado, temporada baixa)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 880,
+        "produto": "GRAMADO",
+        "condicoes": {
+          "temporada": [
+            "baixa"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-gramado-alta-duplo",
+        "nome": "Hotel (Gramado, duplo, temporada alta)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 1500,
+        "produto": "GRAMADO",
+        "condicoes": {
+          "temporada": [
+            "alta"
+          ],
+          "acomodacao": [
+            "duplo"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-gramado-alta-individual",
+        "nome": "Hotel (Gramado, individual, temporada alta)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 2420,
+        "produto": "GRAMADO",
+        "condicoes": {
+          "temporada": [
+            "alta"
+          ],
+          "acomodacao": [
+            "individual"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-gramado-baixa-duplo",
+        "nome": "Hotel (Gramado, duplo, temporada baixa)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 920,
+        "produto": "GRAMADO",
+        "condicoes": {
+          "temporada": [
+            "baixa"
+          ],
+          "acomodacao": [
+            "duplo"
+          ]
+        }
+      },
+      {
+        "codigo": "hotel-gramado-baixa-individual",
+        "nome": "Hotel (Gramado, individual, temporada baixa)",
+        "categoria": "custo_variavel",
+        "tipo": "valor_por_unidade",
+        "valor": 1580,
+        "produto": "GRAMADO",
+        "condicoes": {
+          "temporada": [
+            "baixa"
+          ],
+          "acomodacao": [
+            "individual"
+          ]
+        }
+      }
+    ]
+  },
+  "cambios": [
+    {
+      "moeda": "EUR",
+      "taxa": 6.1,
+      "vigenteDe": "2025-11-01"
+    }
+  ],
+  "campanhas": [
+    {
+      "codigo": "paris-baixa",
+      "nome": "Paris na baixa temporada",
+      "inicio": "2025-11-01",
+      "fim": "2027-12-31",
+      "tipo": "percentual",
+      "valor": 4,
+      "produtos": [
+        "PARIS"
+      ],
+      "condicoes": {
+        "temporada": [
+          "baixa"
+        ]
+      },
+      "acumulaComDesconto": true,
+      "acumulaComOutras": true
+    }
+  ],
+  "usuarios": [
+    {
+      "email": "admin@operadora.demo",
+      "nome": "Alice Admin",
+      "papeis": [
+        {
+          "papel": "admin"
+        }
+      ]
+    },
+    {
+      "email": "pricing@operadora.demo",
+      "nome": "Paulo Pricing",
+      "limiteAlcada": 1,
+      "papeis": [
+        {
+          "papel": "gestor_pricing"
+        }
+      ]
+    },
+    {
+      "email": "diretoria@operadora.demo",
+      "nome": "Dora Diretora",
+      "limiteAlcada": 2,
+      "papeis": [
+        {
+          "papel": "aprovador"
+        }
+      ]
+    },
+    {
+      "email": "gerente@operadora.demo",
+      "nome": "Gil Gerente",
+      "limiteAlcada": 1,
+      "papeis": [
+        {
+          "papel": "aprovador"
+        }
+      ]
+    },
+    {
+      "email": "vendedor@operadora.demo",
+      "nome": "Vera Vendedora",
+      "papeis": [
+        {
+          "papel": "vendedor",
+          "unidade": "sp"
+        }
+      ],
+      "demo": {
+        "perfilDesconto": "medio"
+      }
+    },
+    {
+      "email": "vendedor2@operadora.demo",
+      "nome": "Rui Rebaixa",
+      "papeis": [
+        {
+          "papel": "vendedor",
+          "unidade": "sp"
+        }
+      ],
+      "demo": {
+        "perfilDesconto": "alto"
+      }
+    },
+    {
+      "email": "vendedor3@operadora.demo",
+      "nome": "Sara Segura",
+      "papeis": [
+        {
+          "papel": "vendedor",
+          "unidade": "online"
+        }
+      ],
+      "demo": {
+        "perfilDesconto": "baixo"
+      }
+    },
+    {
+      "email": "canal@agencia-horizonte.demo",
+      "nome": "Carla Horizonte",
+      "papeis": [
+        {
+          "papel": "canal",
+          "canal": "agencia-horizonte"
+        }
+      ],
+      "demo": {
+        "perfilDesconto": "medio"
+      }
+    },
+    {
+      "email": "canal@agencia-rota.demo",
+      "nome": "Bruno Rota",
+      "papeis": [
+        {
+          "papel": "canal",
+          "canal": "agencia-rota"
+        }
+      ],
+      "demo": {
+        "perfilDesconto": "baixo"
+      }
+    },
+    {
+      "email": "financeiro@operadora.demo",
+      "nome": "Fábio Financeiro",
+      "papeis": [
+        {
+          "papel": "leitura"
+        }
+      ]
+    },
+    {
+      "email": "suporte@consultoria.demo",
+      "nome": "Suporte da Consultoria",
+      "papeis": [
+        {
+          "papel": "suporte",
+          "validoDias": 90
+        }
+      ]
+    }
+  ],
+  "demo": {
+    "reajustePct": 0,
+    "trajetoriaCambio": {
+      "EUR": {
+        "centro": 6.1,
+        "amplitude": 0.18
+      }
+    },
+    "multiplicadores": {
+      "passageiros": [
+        1,
+        2,
+        2,
+        2,
+        2,
+        3,
+        4,
+        4,
+        5,
+        6,
+        12,
+        24
+      ]
+    },
+    "probabilidadeCanal": 0.45,
+    "sazonalidade": {
+      "7": 1.8,
+      "12": 1.7,
+      "1": 1.3,
+      "6": 1.2
+    }
+  },
+  "casosReferencia": [
+    {
+      "nome": "Lisboa de julho, 1 passageiro em duplo, por agência, sem desconto (Nota nº 02)",
+      "pedido": {
+        "produto": "LISBOA",
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "duplo",
+          "passageiros": 1
+        },
+        "canal": "agencia-horizonte",
+        "data": "2025-11-10"
+      },
+      "esperado": {
+        "precoBase": 9900.0,
+        "precoFinal": 9900.0,
+        "comissaoValor": 1188.0,
+        "margemValor": 587.0,
+        "margemPct": 5.93,
+        "comissaoVendedor": 58.7,
+        "cambioEquilibrio": 6.59,
+        "folgaCambialPct": 8.03,
+        "veredito": "dentro"
+      }
+    },
+    {
+      "nome": "Lisboa de julho com 5% de desconto: margem de R$ 181,10 e aprovação do gerente",
+      "pedido": {
+        "produto": "LISBOA",
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "duplo",
+          "passageiros": 1
+        },
+        "canal": "agencia-horizonte",
+        "data": "2025-11-10",
+        "descontoPct": 5
+      },
+      "esperado": {
+        "precoFinal": 9405.0,
+        "comissaoValor": 1128.6,
+        "margemValor": 181.1,
+        "margemPct": 1.93,
+        "comissaoVendedor": 18.11,
+        "veredito": "exige_aprovacao",
+        "nivelAlcada": 1
+      }
+    },
+    {
+      "nome": "Lisboa de julho com 8% de desconto: margem negativa, bloqueada",
+      "pedido": {
+        "produto": "LISBOA",
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "duplo",
+          "passageiros": 1
+        },
+        "canal": "agencia-horizonte",
+        "data": "2025-11-10",
+        "descontoPct": 8
+      },
+      "esperado": {
+        "precoFinal": 9108.0,
+        "margemValor": -62.44,
+        "comissaoVendedor": 0,
+        "veredito": "bloqueado"
+      }
+    },
+    {
+      "nome": "Gramado de julho, 2 passageiros em duplo, venda direta (nacional, sem câmbio)",
+      "pedido": {
+        "produto": "GRAMADO",
+        "dimensoes": {
+          "temporada": "alta",
+          "acomodacao": "duplo",
+          "passageiros": 2
+        },
+        "data": "2025-11-10"
+      },
+      "esperado": {
+        "precoFinal": 7800.0,
+        "comissaoValor": 0,
+        "margemValor": 1585.1,
+        "margemPct": 20.32,
+        "comissaoVendedor": 158.51,
+        "veredito": "dentro"
+      }
+    }
+  ]
+}

@@ -52,8 +52,11 @@ export async function carregarRegras(db: Db, orgId: string, data: string, opcoes
       from public.campanhas where org_id = ${orgId} and ativo order by codigo`,
     db<{ id: string; codigo: string; nome: string; ativo: boolean }[]>`
       select id, codigo, nome, ativo from public.canais where org_id = ${orgId}`,
+    // histórico até a data: o motor escolhe, para cada pedido, a taxa vigente na data dele
+    // (uma cotação de hoje usa a de hoje; um caso de referência antigo, a da data do caso)
     db<{ moeda: string; taxa: string; vigente_de: string; origem: CambioReferencia['origem'] }[]>`
-      select moeda, taxa, vigente_de::text, origem from app.cambios_vigentes(${orgId}, ${data}::date)`,
+      select moeda, taxa, vigente_de::text, origem from public.cambios_referencia
+      where org_id = ${orgId} and vigente_de <= ${data}::date order by moeda, vigente_de`,
   ]);
 
   const codigoProduto = new Map(produtos.map((p) => [p.id, p.codigo]));
@@ -115,12 +118,9 @@ export async function carregarRegras(db: Db, orgId: string, data: string, opcoes
       ...(c.moeda ? { moeda: c.moeda } : {}),
       ...(c.condicoes ? { condicoes: c.condicoes } : {}),
     })),
-    cambios: cambios.map(
-      (c): CambioReferencia =>
-        opcoes.cambio && opcoes.cambio.moeda === c.moeda
-          ? { moeda: c.moeda, taxa: opcoes.cambio.taxa, vigenteDe: data, origem: 'politica' }
-          : { moeda: c.moeda, taxa: c.taxa, vigenteDe: c.vigente_de, origem: c.origem },
-    ),
+    cambios: cambios
+      .filter((c) => !(opcoes.cambio && opcoes.cambio.moeda === c.moeda && c.vigente_de === data))
+      .map((c): CambioReferencia => ({ moeda: c.moeda, taxa: c.taxa, vigenteDe: c.vigente_de, origem: c.origem })),
     campanhas: campanhas.map((c) => ({
       codigo: c.codigo,
       nome: c.nome,
@@ -136,9 +136,8 @@ export async function carregarRegras(db: Db, orgId: string, data: string, opcoes
     })),
   };
 
-  if (opcoes.cambio && !regras.cambios!.some((c) => c.moeda === opcoes.cambio!.moeda)) {
-    regras.cambios!.push({ moeda: opcoes.cambio.moeda, taxa: opcoes.cambio.taxa, vigenteDe: data, origem: 'politica' });
-  }
+  // simulação: a taxa informada passa a valer na data das regras
+  if (opcoes.cambio) regras.cambios!.push({ moeda: opcoes.cambio.moeda, taxa: opcoes.cambio.taxa, vigenteDe: data, origem: 'politica' });
 
   return {
     regras,

@@ -16,7 +16,7 @@ import { iniciarEmulador } from '../local/emulador.ts';
 const urlBanco = process.env.DATABASE_URL ?? 'postgresql://pricing:pricing@127.0.0.1:5432/pricing_local';
 const porta = Number(arg('porta', '54321'));
 const senha = process.env.DEMO_SENHA ?? 'Demonstracao2026';
-const config = lerConfig(arg('config', 'demo-assistencia.json')!);
+const config = lerConfig(arg('config', 'demo-turismo.json')!);
 const manter = arg('manter') !== undefined;
 
 if (!manter) await recriarBanco(urlBanco);

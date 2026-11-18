@@ -57,13 +57,18 @@ export async function gerarHistorico(sql: Sql, orgId: string, config: ConfigClie
     return lista[0]![0];
   };
 
-  // Tabela reajustada no meio do histórico: mostra versões e vigências.
+  const extra = config.demo ?? {};
+
+  // Tabela reajustada no meio do histórico: mostra versões e vigências. Na operadora de
+  // turismo o reajuste fica desligado, para o pacote de hoje bater com a Nota nº 02.
+  const reajustePct = o.reajustePct ?? extra.reajustePct ?? 6;
   const viradaDias = Math.floor(dias * 0.37);
-  const virada = iso(diaAtras(viradaDias, 0, 0));
+  const virada = reajustePct > 0 ? iso(diaAtras(viradaDias, 0, 0)) : '9999-12-31';
   const [t1] = await sql<{ id: string }[]>`select id from public.tabelas_preco where org_id = ${orgId} and versao = 1`;
   const jaTem = await sql`select 1 from public.tabelas_preco where org_id = ${orgId} and versao = 2`;
-  if (jaTem.length === 0 && virada > config.tabela.vigenciaInicio) {
-    const fator = 1 + (o.reajustePct ?? 6) / 100;
+  const reajustarAgora = reajustePct > 0 && jaTem.length === 0 && virada > config.tabela.vigenciaInicio;
+  if (reajustarAgora) {
+    const fator = 1 + reajustePct / 100;
     await sql.begin(async (tx) => {
       await tx`select set_config('app.ator_tipo', 'sistema', true), set_config('app.contexto', ${JSON.stringify({ origem: 'carga da demonstração' })}, true)`;
       const [t2] = await tx<{ id: string }[]>`
@@ -78,9 +83,36 @@ export async function gerarHistorico(sql: Sql, orgId: string, config: ConfigClie
     });
   }
 
+  // Trajetória sintética do câmbio de referência: uma publicação no início de cada mês,
+  // em torno do centro configurado, terminando exatamente no centro no mês corrente.
+  // A série é a mesma em todas as partes da carga (semente própria, por moeda).
+  for (const [moedaCodigo, t] of Object.entries(extra.trajetoriaCambio ?? {})) {
+    const inicial = (config.cambios ?? []).find((c) => c.moeda === moedaCodigo)?.vigenteDe ?? config.tabela.vigenciaInicio;
+    const meses: string[] = [];
+    const cursor = new Date(`${inicial.slice(0, 7)}-01T12:00:00Z`);
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    const mesAtual = iso(hoje).slice(0, 7);
+    while (iso(cursor).slice(0, 7) <= mesAtual) {
+      meses.push(iso(cursor).slice(0, 10));
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    }
+    const r2 = semente([...moedaCodigo].reduce((s, ch) => s * 31 + ch.charCodeAt(0), 7));
+    let desvio = 0;
+    const serie = meses.map((m, i) => {
+      desvio = Math.max(-1, Math.min(1, desvio * 0.6 + (r2() - 0.5) * 1.2));
+      const taxa = i === meses.length - 1 ? t.centro : t.centro + desvio * t.amplitude;
+      return { vigenteDe: m, taxa: Math.round(taxa * 10000) / 10000 };
+    });
+    for (const s of serie) {
+      await sql`insert into public.cambios_referencia (org_id, moeda, taxa, vigente_de, origem, observacao)
+                values (${orgId}, ${moedaCodigo}, ${s.taxa}, ${s.vigenteDe}::date, 'politica', 'Série sintética da demonstração')
+                on conflict (org_id, moeda, vigente_de) do nothing`;
+    }
+  }
+
   // Com a tabela reajustada, os casos de referência são recalculados para a regra
   // vigente hoje (em cliente real, o gestor refaz a conta à mão e atualiza o caso).
-  {
+  if (reajustarAgora) {
     const dataHoje = iso(hoje);
     const vigentes = await carregarRegras(sql, orgId, dataHoje);
     const casos = await sql<{ id: string; pedido: PedidoCotacao }[]>`select id, pedido from public.casos_referencia where org_id = ${orgId}`;
@@ -88,11 +120,12 @@ export async function gerarHistorico(sql: Sql, orgId: string, config: ConfigClie
       const pedido = { ...c.pedido, data: dataHoje };
       const r = calcular(pedido, vigentes.regras);
       await sql`update public.casos_referencia set pedido = ${sql.json(pedido as never)},
-        esperado = ${sql.json({ precoBase: r.precoBase, precoFinal: r.precoFinal, comissaoValor: r.comissaoValor, margemValor: r.margemValor, margemPct: r.margemPct, veredito: r.veredito.status, nivelAlcada: r.veredito.nivelAlcada } as never)}
+        esperado = ${sql.json({ precoBase: r.precoBase, precoFinal: r.precoFinal, comissaoValor: r.comissaoValor, margemValor: r.margemValor, margemPct: r.margemPct, veredito: r.veredito.status, nivelAlcada: r.veredito.nivelAlcada, ...(r.comissaoVendedor ? { comissaoVendedor: r.comissaoVendedor.valor } : {}) } as never)}
         where id = ${c.id}`;
     }
   }
 
+  const perfilDe = new Map((config.usuarios ?? []).map((u) => [u.email.toLowerCase(), u.demo?.perfilDesconto ?? 'medio']));
   const usuarios = await sql<{ id: string; email: string; nome: string; limite_alcada: number | null; papel: string; canal: string | null; unidade_id: string | null }[]>`
     select u.id, u.email, u.nome, u.limite_alcada, up.papel, k.codigo as canal, up.unidade_id
     from public.usuarios u join public.usuario_papel up on up.usuario_id = u.id left join public.canais k on k.id = up.canal_id
@@ -102,8 +135,9 @@ export async function gerarHistorico(sql: Sql, orgId: string, config: ConfigClie
   if (vendedores.length === 0) throw new Error('A demonstração precisa de ao menos um vendedor ou usuário de canal.');
   const canais = config.canais.map((c) => c.codigo);
   const cacheRegras = new Map<string, Awaited<ReturnType<typeof carregarRegras>>>();
+  // por mês: a tabela e o câmbio de referência podem mudar de um mês para outro
   const regrasEm = async (data: string) => {
-    const chave = data < virada ? 'antes' : 'depois';
+    const chave = `${data < virada ? 'antes' : 'depois'}-${data.slice(0, 7)}`;
     if (!cacheRegras.has(chave)) cacheRegras.set(chave, await carregarRegras(sql, orgId, data));
     return cacheRegras.get(chave)!;
   };
@@ -115,15 +149,30 @@ export async function gerarHistorico(sql: Sql, orgId: string, config: ConfigClie
       const d = regras.dimensoes.find((x) => x.codigo === codigo)!;
       if (d.tipo === 'categoria') dimensoes[codigo] = pesado(d.valores!.map((v, i) => [v.codigo, Math.max(6 - i * 1.5, 1)] as [string, number]));
       else {
-        const f = pesado(d.faixas!.map((x, i) => [x, [6, 3, 1][i] ?? 1] as [typeof x, number]));
-        const teto = f.max ?? f.min * 3;
-        dimensoes[codigo] = Math.round(f.min + rnd() * (Math.min(teto, f.min + 60) - f.min));
-        if (codigo === 'meses') dimensoes[codigo] = escolher([6, 12, 12, 12, 24]);
+        const lista = extra.multiplicadores?.[codigo];
+        if (lista?.length) dimensoes[codigo] = escolher(lista);
+        else {
+          const f = pesado(d.faixas!.map((x, i) => [x, [6, 3, 1][i] ?? 1] as [typeof x, number]));
+          const teto = f.max ?? f.min * 3;
+          dimensoes[codigo] = Math.round(f.min + rnd() * (Math.min(teto, f.min + 60) - f.min));
+          if (codigo === 'meses') dimensoes[codigo] = escolher([6, 12, 12, 12, 24]);
+        }
       }
     }
     const opcionais = produto.componentes.filter((c) => !c.obrigatorio && c.ativo && rnd() < 0.3).map((c) => c.codigo);
-    const canal = dono.papel === 'canal' ? dono.canal : rnd() < 0.35 ? escolher(canais) : null;
-    const descontoPct = pesado<() => number>([[() => 0, 38], [() => Math.round(rnd() * 5 * 2) / 2, 38], [() => 5.5 + Math.round(rnd() * 4.5 * 2) / 2, 14], [() => 10.5 + Math.round(rnd() * 9 * 2) / 2, 6], [() => 21 + Math.round(rnd() * 6), 4]])();
+    const canal = dono.papel === 'canal' ? dono.canal : rnd() < (extra.probabilidadeCanal ?? 0.35) ? escolher(canais) : null;
+    // faixas de desconto a partir da política: zero, até o livre, até a 1ª alçada, até o máximo e acima dele
+    const { descontoLivrePct: livre, descontoMaximoPct: maximo } = regras.politica.limites;
+    const alcada1 = Math.min(...regras.politica.alcadas.map((a) => a.descontoAtePct), maximo);
+    const meio = (de: number, ate: number) => () => Math.max(de + 0.5, Math.round((de + rnd() * (ate - de)) * 2) / 2);
+    const pesos = { baixo: [55, 33, 8, 3, 1], medio: [38, 34, 16, 8, 4], alto: [12, 24, 32, 22, 10] }[perfilDe.get(dono.email.toLowerCase()) ?? 'medio'];
+    const descontoPct = pesado<() => number>([
+      [() => 0, pesos[0]!],
+      [() => Math.round(rnd() * livre * 2) / 2, pesos[1]!],
+      [meio(livre, alcada1), pesos[2]!],
+      [meio(alcada1, maximo), pesos[3]!],
+      [meio(maximo, maximo + 4), pesos[4]!],
+    ])();
     return { produto: produto.codigo, ...(opcionais.length ? { componentes: opcionais } : {}), dimensoes, descontoPct, canal, data };
   }
 
@@ -143,7 +192,9 @@ export async function gerarHistorico(sql: Sql, orgId: string, config: ConfigClie
   for (let n = inicioJanela; n >= fimJanela; n--) {
     const dia = diaAtras(n, 12, 0);
     const fimDeSemana = [0, 6].includes(dia.getUTCDay());
-    const quantas = fimDeSemana ? (rnd() < 0.2 ? 1 : 0) : 1 + Math.floor(rnd() * 4) + (n < 120 ? 1 : 0);
+    const sazonal = extra.sazonalidade?.[String(dia.getUTCMonth() + 1)] ?? 1;
+    const base = fimDeSemana ? (rnd() < 0.2 ? 1 : 0) : 1 + Math.floor(rnd() * 4) + (n < 120 ? 1 : 0);
+    const quantas = Math.floor(base * sazonal + rnd() * (sazonal - 1));
     for (let k = 0; k < quantas; k++) {
       const criada = diaAtras(n);
       if (criada > hoje) continue;

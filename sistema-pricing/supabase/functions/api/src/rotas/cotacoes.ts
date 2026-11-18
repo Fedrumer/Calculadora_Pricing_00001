@@ -1,4 +1,4 @@
-import { type PedidoCotacao, type Resultado, type ResultadoPublico, calcular, resultadoPublico } from '@pricing/motor';
+import { type CambioReferencia, type PedidoCotacao, type Resultado, type ResultadoPublico, calcular, resultadoPublico } from '@pricing/motor';
 import { z } from 'zod';
 import { type Requisicao, type Rota, validar } from '../app.ts';
 import { type Ator, canaisDoAtor, ehExterno, ehInterno, hoje, somarDias, temPapel } from '../contexto.ts';
@@ -135,7 +135,9 @@ async function gravarVersao(r: Requisicao, cotacaoId: string, versao: number, c:
   const { resultado: x } = c;
   // taxas efetivamente usadas (só as moedas com custo nesta cotação), com o câmbio de equilíbrio
   const cambiosUsados = x.exposicaoCambial.map((e) => {
-    const ref = c.carregadas.regras.cambios?.find((k) => k.moeda === e.moeda);
+    const ref = (c.carregadas.regras.cambios ?? [])
+      .filter((k) => k.moeda === e.moeda && k.vigenteDe <= c.pedido.data)
+      .reduce<CambioReferencia | undefined>((a, b) => (!a || b.vigenteDe > a.vigenteDe ? b : a), undefined);
     return { moeda: e.moeda, taxa: e.taxa, vigenteDe: ref?.vigenteDe ?? null, origem: ref?.origem ?? null, cambioEquilibrio: e.cambioEquilibrio, folgaPct: e.folgaPct };
   });
   const [v] = await r.tx<{ id: string }[]>`

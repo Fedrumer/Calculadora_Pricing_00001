@@ -15,7 +15,22 @@ export interface ConfigCliente {
   campanhas: ConjuntoRegras['campanhas'];
   /** Câmbio de referência inicial, por moeda (só quando há custo em moeda estrangeira). */
   cambios?: { moeda: string; taxa: number; vigenteDe: string }[];
-  usuarios?: { email: string; nome: string; limiteAlcada?: number; papeis: { papel: string; unidade?: string; canal?: string; validoDias?: number }[] }[];
+  usuarios?: {
+    email: string;
+    nome: string;
+    limiteAlcada?: number;
+    papeis: { papel: string; unidade?: string; canal?: string; validoDias?: number }[];
+    /** Só para os dados sintéticos da demonstração. */
+    demo?: { perfilDesconto?: 'baixo' | 'medio' | 'alto' };
+  }[];
+  /** Parâmetros dos dados sintéticos da demonstração (ignorados na instalação de cliente). */
+  demo?: {
+    reajustePct?: number;
+    trajetoriaCambio?: Record<string, { centro: number; amplitude: number }>;
+    multiplicadores?: Record<string, number[]>;
+    probabilidadeCanal?: number;
+    sazonalidade?: Record<string, number>;
+  };
   casosReferencia: CasoReferencia[];
 }
 

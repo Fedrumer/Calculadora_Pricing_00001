@@ -11,7 +11,7 @@ if (process.env.AMBIENTE !== 'demonstracao') {
   console.error('Recusado: defina AMBIENTE=demonstracao para confirmar que este é o ambiente de demonstração.');
   process.exit(2);
 }
-const config = lerConfig(arg('config', 'demo-assistencia.json')!);
+const config = lerConfig(arg('config', 'demo-turismo.json')!);
 const sql = conectar(exigir('SUPABASE_DB_URL'), 2);
 const url = exigir('SUPABASE_URL').replace(/\/$/, '');
 const chave = exigir('SUPABASE_SERVICE_ROLE_KEY');

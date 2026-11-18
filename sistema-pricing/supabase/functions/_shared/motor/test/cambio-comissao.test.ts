@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type ConjuntoRegras, ErroMotor, type PedidoCotacao, calcular, resultadoPublico, validarRegras } from '../src/index.ts';
+import { type ConjuntoRegras, ErroMotor, type PedidoCotacao, calcular, executarCasos, resultadoPublico, validarRegras } from '../src/index.ts';
 import { regrasDoCliente } from './apoio.ts';
 
 // Pacote Lisboa de julho da Nota de Decisão nº 02, montado à parte da configuração
@@ -221,5 +221,28 @@ describe('validação', () => {
 
   it('a configuração de turismo do teste é válida', () => {
     expect(validarRegras(turismo())).toEqual({ erros: [], avisos: [] });
+  });
+});
+
+describe('configuração de demonstração da operadora de turismo', () => {
+  const turismoDemo = regrasDoCliente('demo-turismo.json');
+
+  it('é válida e 100% dos casos de referência batem, inclusive o da Nota nº 02', () => {
+    expect(validarRegras(turismoDemo.regras)).toEqual({ erros: [], avisos: [] });
+    const relatorio = executarCasos(turismoDemo.casos, turismoDemo.regras);
+    expect(relatorio.casos.filter((c) => !c.passou)).toEqual([]);
+    expect(relatorio.total).toBe(4);
+  });
+
+  it('todos os pacotes têm margem positiva pela agência, sem desconto', () => {
+    for (const produto of ['LISBOA', 'MADRI', 'PARIS', 'GRAMADO']) {
+      for (const temporada of ['alta', 'baixa']) {
+        for (const acomodacao of ['duplo', 'individual']) {
+          const r = calcular({ produto, dimensoes: { temporada, acomodacao, passageiros: 2 }, canal: 'agencia-rota', data: '2026-03-10' }, turismoDemo.regras);
+          expect(r.margemPct, `${produto} ${temporada} ${acomodacao}`).toBeGreaterThan(5);
+          expect(r.exposicaoCambial.length, produto).toBe(produto === 'GRAMADO' ? 0 : 1);
+        }
+      }
+    }
   });
 });
