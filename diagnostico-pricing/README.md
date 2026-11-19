@@ -32,6 +32,16 @@ folga até o câmbio de equilíbrio, ocupação dos bloqueios, custo de lugar n�
 anterior), informativas até a definição dos limiares. Cada diagnóstico tem um segmento, que escolhe as métricas e
 os pesos da nota geral.
 
+### Simulação (pacote P2 do plano v3)
+
+O serviço `servicos/simulacao` troca os três cenários fixos por uma distribuição de 10.000 sorteios: o banco entrega
+a base agregada (`motor.base_simulacao`), o serviço em TypeScript sorteia as premissas pela faixa do catálogo
+(P10 conservador, P50 base, P90 agressivo), roda as alavancas em sequência e grava média, P10, P50, P90, chance de
+ganho, contribuição de cada alavanca e o tornado. Também traz premissas correlacionadas, varredura com ponto de
+virada, regra de escolha entre opções, capacidade no sorteio e os modelos das Notas nº 01 e nº 02. Publicado como
+Edge Function `simular`; no ambiente local, o emulador atende a mesma rota. `motor.simular` fica como referência:
+o teste de paridade confere os dois ao centavo.
+
 Ficam para a Fase 2, como no roadmap: as outras quatro dimensões, as outras cinco alavancas, elasticidade
 estimada, narrativa por IA, simulador com controles deslizantes e exportação em PDF. Veja `docs/pendencias.md`.
 
@@ -39,6 +49,7 @@ estimada, narrativa por IA, simulador com controles deslizantes e exportação e
 
 | Pasta | Conteúdo |
 | --- | --- |
+| `servicos/simulacao` | Serviço de simulação de Monte Carlo (TypeScript puro), empacotado em `supabase/functions/simular` |
 | `supabase/migrations` | Tudo o que roda em produção fora da tela: esquema, catálogos versão 1 e 2, motor de cálculo em SQL, funções da aplicação e RLS. O de-para com as versões registradas no projeto está em `docs/migracoes.md` |
 | `apps/web` | Aplicação web (Next.js). Chama funções do banco e exibe o resultado; não calcula métrica |
 | `ferramentas` | Ambiente local sem Docker (emulador do Supabase), as duas empresas fictícias (distribuidora e operadora de turismo), testes do motor, do turismo e do isolamento, roteiro no navegador |
@@ -100,9 +111,9 @@ A aplicação abre em `http://localhost:3100`. Os arquivos das empresas fictíci
 `.local/arquivos-demo-turismo`, no formato em que cada uma os enviaria, para testar a carga pela tela
 (`pnpm demo:arquivos -- ./pasta --turismo` grava os da operadora em outra pasta).
 
-`pnpm test` roda 30 testes: o caso de referência do motor, o de turismo, a operadora fictícia e o isolamento por perfil.
+`pnpm test` roda 48 testes: o caso de referência do motor, o de turismo, a operadora fictícia, a simulação (paridade, correlação, Notas nº 01 e nº 02, capacidade) e o isolamento por perfil.
 
-Roteiro de ponta a ponta no navegador (37 conferências), com o ambiente local e a aplicação no ar:
+Roteiro de ponta a ponta no navegador (40 conferências), com o ambiente local e a aplicação no ar:
 
 ```bash
 node ferramentas/e2e/roteiro.mjs ./capturas
@@ -118,6 +129,8 @@ node ferramentas/e2e/roteiro.mjs ./capturas
 4. Confira a instalação pela mesma porta que o navegador usa (27 conferências; instala a empresa fictícia se
    ainda não existir e espera os usuários `consultor@demo.local` e `cliente@demo.local` no Auth):
    `SUPABASE_URL=... SUPABASE_CHAVE=<chave publicável> SENHA=... pnpm homologar`
+   (atrás de proxy, acrescente `NODE_USE_ENV_PROXY=1`). A Edge Function `simular` é publicada a partir de
+   `supabase/functions/simular/index.js`, gerado por `pnpm --filter @diagnostico/simulacao empacotar`.
 5. Para dar acesso a alguém do cliente: crie o usuário em Authentication e chame
    `select public.definir_usuario('pessoa@cliente.com.br', 'Nome', 'cliente_leitor', '<id do cliente>');` logado como consultor.
 

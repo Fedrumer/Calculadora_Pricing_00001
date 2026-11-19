@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { BarrasCenarios, Cascata, Regua } from '@/componentes/graficos';
+import { FaixaSimulada } from '@/componentes/faixa-simulada';
 import { Aviso, useAcao } from '@/componentes/ui';
 import { rpc } from '@/lib/api';
 import { ROTULO_CENARIO, ROTULO_DIMENSAO, ROTULO_PREMISSA, ROTULO_RECORTE, moeda, moedaCurta, numero, pct } from '@/lib/formato';
@@ -283,6 +284,7 @@ export function AbaOportunidades({ p, podeEditar, aoMudar }: { p: Painel; podeEd
           </table>
         </div>
       </div>
+      {podeEditar && <FaixaSimulada diagnostico={p.diagnostico.id} />}
       <div className="cartao">
         <h2>Achados que sustentam as alavancas</h2>
         <ListaAchados achados={p.achados} />

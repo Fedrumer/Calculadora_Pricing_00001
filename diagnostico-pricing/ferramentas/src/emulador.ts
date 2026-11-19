@@ -6,6 +6,7 @@
 
 import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { type IncomingMessage, type ServerResponse, createServer } from 'node:http';
+import { ErroRpc, atender as atenderSimulacao } from '@diagnostico/simulacao';
 import type { Sql } from './banco.ts';
 
 const b64u = (b: Buffer | string) => Buffer.from(b).toString('base64url');
@@ -47,6 +48,16 @@ export async function chamar<T = any>(sql: Sql, claims: Record<string, unknown> 
     saida = linhas[0]?.r ?? null;
   });
   return saida as T;
+}
+
+/** Como chamar, mas com o erro no formato do serviço (403 para perfil sem permissão). */
+export async function chamarComErro(sql: Sql, claims: Record<string, unknown>, funcao: string, args: Record<string, unknown>) {
+  try {
+    return await chamar(sql, claims, funcao, args);
+  } catch (e) {
+    const pg = e as { code?: string; message?: string };
+    throw new ErroRpc(pg.code === '42501' ? 403 : 400, pg.message ?? 'erro');
+  }
 }
 
 export async function criarUsuarioAuth(sql: Sql, email: string, senha: string, nome: string): Promise<string> {
@@ -109,6 +120,13 @@ export async function iniciarEmulador(o: { sql: Sql; porta: number; segredoJwt?:
     }
   }
 
+  // Edge Function `simular`: o mesmo código da função publicada, com as chamadas rpc no JWT de quem pediu.
+  async function funcaoSimular(corpo: unknown, token: string): Promise<Saida> {
+    const claims = token ? lerJwt(segredo, token) : null;
+    if (claims?.role !== 'authenticated') return erro(401, 'Sessão ausente ou expirada.');
+    return atenderSimulacao(corpo, { rpc: (f, a) => chamarComErro(sql, claims, f, a), agora: () => performance.now() });
+  }
+
   const servidor = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const cors = {
       'access-control-allow-origin': req.headers.origin ?? '*',
@@ -128,6 +146,7 @@ export async function iniciarEmulador(o: { sql: Sql; porta: number; segredoJwt?:
       let s: Saida;
       if (url.pathname.startsWith('/auth/v1')) s = await auth(metodo, url.pathname.slice(8), url, corpo, token);
       else if (url.pathname.startsWith('/rest/v1')) s = await rest(metodo, url.pathname.slice(8), corpo, token);
+      else if (url.pathname === '/functions/v1/simular' && metodo === 'POST') s = await funcaoSimular(corpo, token);
       else s = { status: 404, corpo: { message: 'rota não emulada' } };
       res.writeHead(s.status, { ...cors, 'content-type': 'application/json; charset=utf-8' }).end(s.corpo === undefined ? '' : JSON.stringify(s.corpo));
     } catch (e) {

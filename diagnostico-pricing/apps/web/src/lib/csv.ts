@@ -71,6 +71,13 @@ export const CAMPOS: Record<string, Campo[]> = {
     { campo: 'custo_unitario_moeda', rotulo: 'Custo do lugar na moeda do fornecedor', tipo: 'numero', sinonimos: ['custounitariomoeda', 'customoeda', 'custolugar', 'custo'] },
     { campo: 'moeda', rotulo: 'Moeda (EUR, USD, BRL)', tipo: 'texto', sinonimos: ['moeda'] },
   ],
+  capacidade: [
+    { campo: 'recurso', rotulo: 'Recurso (equipe, frota, estoque)', tipo: 'texto', obrigatorio: true, sinonimos: ['recurso', 'equipe', 'setor'] },
+    { campo: 'unidade', rotulo: 'Unidade (pedidos, horas, lugares)', tipo: 'texto', sinonimos: ['unidade'] },
+    { campo: 'capacidade_mes', rotulo: 'Capacidade por mês', tipo: 'numero', obrigatorio: true, sinonimos: ['capacidademes', 'capacidade', 'capacidademensal'] },
+    { campo: 'uso_por_venda', rotulo: 'Uso por venda (padrão 1)', tipo: 'numero', sinonimos: ['usoporvenda', 'uso', 'consumo'] },
+    { campo: 'custo_unidade_extra', rotulo: 'Custo da unidade extra (R$; vazio = não vende acima)', tipo: 'numero', sinonimos: ['custounidadeextra', 'custoextra', 'horaextra'] },
+  ],
 };
 
 export interface Planilha { cabecalhos: string[]; linhas: string[][] }

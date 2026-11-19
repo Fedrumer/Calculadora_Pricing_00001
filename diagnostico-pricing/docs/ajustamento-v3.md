@@ -1,10 +1,78 @@
-<!-- Cópia do documento "Ajustamento do sistema de diagnóstico ao plano v3" (https://claude.ai/artifact/PcVRGmBvcp4ZwbZBzfxSVy), exportada em 18/11/2026. O original é o documento; esta cópia serve de referência para as sessões de implementação. -->
+<!-- Cópia do documento "Ajustamento do sistema de diagnóstico ao plano v3" (https://claude.ai/artifact/PcVRGmBvcp4ZwbZBzfxSVy), versão com 13 pacotes e as seções 13 e 14, exportada em 19/11/2026. O original é o documento; esta cópia serve de referência para as sessões de implementação. -->
 
 # Ajustamento do sistema de diagnóstico ao plano v3
 
 2026-11-18 · Fernando Duarte Bezerra
 
-Este documento diz ao Claude Code o que mudar no sistema de diagnóstico já construído para atender o plano v3, em dez pacotes, sem quebrar o que hoje passa nos testes. A base é a análise [Sistema de diagnóstico — ajustes ao plano v3](https://claude.ai/artifact/3PK3bYFa2aWcxTbAXrtGXh); aqui ela vira tabela, função, teste e critério de aceite.
+Este documento diz ao Claude Code o que mudar no sistema de diagnóstico já construído para atender o plano v3, em treze pacotes (P0 a P12), sem quebrar o que hoje passa nos testes. A base é a análise [Sistema de diagnóstico — ajustes ao plano v3](https://claude.ai/artifact/3PK3bYFa2aWcxTbAXrtGXh); aqui ela vira tabela, função, teste e critério de aceite.
+
+## Cobertura do escopo do plano v3 e da apresentação
+
+Revisão de 18/11/2026: cada análise, técnica e métrica prometida no [plano de negócio v3](https://claude.ai/artifact/HXb2ioY5yvwFvHMkiY7NfJ), no escopo das análises de decisão e na [apresentação comercial](https://claude.ai/artifact/3aKbyT5wHCcFCiAQJQvm33) agora tem pacote neste plano. A versão anterior deixava de fora 13 itens, cobria pela metade outros 7 e tinha só parte de mais 4; eles estão especificados nas seções 13 e 14. Uma conferência independente contra cada slide achou mais 10 itens e 4 divergências de números, tratados no fim da tabela e em 13.8 a 13.10. Situação conferida no código em 18/11/2026, com P0 parcial e P1 feitos.
+
+| Item prometido | Onde está prometido | Pacote | Situação |
+|---|---|---|---|
+| **Simulação e Nota de Decisão** |  |  |  |
+| 10.000 cenários com resultado em faixa (P10, P50, P90) | Apresentação (técnica 1), escopo (módulo 5) | P2 | Previsto |
+| Premissas que andam juntas sorteadas juntas | Apresentação (técnica 1) | P2 | Novo (13.1) |
+| Premissas que mais pesam no resultado | Plano v3, apresentação (Nota) | P2 | Previsto |
+| Reação da concorrência com chance por tipo | Escopo, apresentação (técnica 6) | P2 | Previsto |
+| Ponto em que a recomendação muda | Apresentação (técnica 6), Notas nº 01 e nº 02 | P2 | Novo (13.2) |
+| Escolha entre opções com limite de risco | Nota nº 02 | P2 | Novo (13.3) |
+| Resultado em frequências naturais | Plano v3, apresentação | P2 | Previsto |
+| Custo de não decidir, por mês | Plano v3, apresentação (Nota) | P3 | Previsto |
+| Equilíbrio e meta em unidades e em reais, com custos percentuais | Escopo (módulo 4), apresentação (técnica 3) | P3 | Completado (13.6) |
+| Volume e meta conferidos contra a capacidade | Escopo (módulos 3 e 4), apresentação (dados) | P2, P10 | Novo (13.4) |
+| Premissas com origem; câmbio e inflação pelo Focus | Plano v3, apresentação (Nota) | P3, P5 | Previsto |
+| Curva futura de câmbio e de juros | Plano v3, apresentação (Nota) | P3 | Pendente (licença da B3) |
+| Simulador entregue com a Nota | Escopo, apresentação (Nota e exemplo 2) | P3 | Novo (13.5) |
+| Medição combinada na Nota: indicador, grupo de comparação e data de leitura | Apresentação (Nota) | P3, P7 | Completado (13.6) |
+| Notas nº 01 e nº 02 refeitas no sistema | Apresentação (exemplos) | P3 | Completado (antes só a nº 02) |
+| **Análises** |  |  |  |
+| Composição do preço: custo de servir completo, despesas fixas, piso, preço-alvo e margem unitária por produto, cliente e canal | Escopo (módulo 1), apresentação | P10 | Parcial: cascata e banda de preço feitas; resto novo (14) |
+| Curva ABC por margem e matriz margem × volume com quatro grupos | Escopo (módulo 2), apresentação | P10 | Novo (14) |
+| Análise de cesta | Escopo (módulo 2), apresentação | P10 | Novo (14) |
+| Serviço adicional: cobrar à parte ou embutir, volume de equilíbrio, capacidade | Escopo (módulo 3), Nota nº 01 | P3, P10 | Completado: antecipado do P5 (13.6) |
+| Mapa de descontos por vendedor e cliente | Apresentação | Fase 1; sistema de cotação (A5) | Feito |
+| Elasticidade medida pelo histórico, por categoria, imediata e após meses | Apresentação (técnica 2), escopo (comércio) | P11 | Novo (14) |
+| Elasticidade por propostas ganhas e perdidas | Plano v3, apresentação (dados) | P5 | Previsto |
+| Pesquisa de disposição a pagar | Plano v3, apresentação (dados) | P9 | Previsto |
+| Faixas de referência do setor | Plano v3, apresentação (dados) | P5 | Previsto |
+| Previsão de demanda com faixa | Apresentação (técnica 4) | P11 | Novo (14) |
+| Curva de reservas à frente ou atrás do esperado | Escopo (turismo), apresentação (técnica 4) | P1, P11 | Parcial: comparação com o ano anterior feita; previsão nova (14) |
+| Grupo de controle: tamanho, diferença em diferenças, leitura bayesiana | Plano v3, apresentação (técnica 5 e medição) | P7; sistema de cotação (A9) | Previsto |
+| Preços dos concorrentes e histórico de reações | Escopo, apresentação (técnica 6) | P11 | Novo (14) |
+| **Segmentos** |  |  |  |
+| Comércio: repasse de reajuste de fornecedor | Escopo | P3 | Novo (13.6) |
+| Comércio: dispersão por cliente e vendedor; elasticidade por categoria | Escopo | Fase 1; P11 | Dispersão feita; elasticidade nova |
+| Turismo: câmbio entre venda e pagamento, tamanho do bloqueio, custo de travar o câmbio | Escopo, Nota nº 02 | P3 | Completado (13.6) |
+| Turismo: comissão e over por fornecedor | Escopo | P1, P10 | Markup feito; over novo (14) |
+| MGAs: canal, conversão e comissionamento | Escopo, plano v3 | P5 | Previsto |
+| MGAs: chance de a carteira atingir a comissão de performance | Escopo | P5 | Completado (13.7) |
+| Serviços: chance de ganhar a proposta pelo preço | Escopo, apresentação | P5 | Previsto |
+| Serviços: custo de projetos de preço fechado | Escopo | P12 | Novo (14) |
+| Contratos recorrentes: cancelamento e valor do cliente | Escopo, apresentação | P12 | Novo (14) |
+| **Oferta e operação** |  |  |  |
+| Garantia de 10x; proposta com ganho provável e margem de equilíbrio | Plano v3, apresentação (retorno) | P4 | Previsto |
+| Cota de Notas, Nota extra, alertas, relatório contra a linha de base | Plano v3, apresentação (planos) | P8 | Previsto |
+| Parte variável com teto | Plano v3, apresentação (planos) | P7 | Previsto |
+| Números antes e depois dos clientes fundadores | Plano v3, apresentação (fundadores) | P7, P8 | Previsto |
+| Comissão do vendedor sobre a margem | Plano v3, apresentação (implantação) | P5; sistema de cotação (A4, A7) | Cálculo no sistema de cotação feito; análise prevista |
+| Motivo de perda obrigatório, em lista | Plano v3, apresentação (implantação) | Sistema de cotação (A3) | Feito |
+| Dados das cotações do cliente para o acompanhamento | Arquitetura do sistema de pricing | P6; sistema de cotação (A10) | Completado: envio de pacote (14) |
+| **Acrescentados na conferência** |  |  |  |
+| Chance de atingir a meta | Escopo (módulos 4 e 5) | P2 | Novo (13.3) |
+| Quanto comprar ou reservar para a temporada (comércio) | Apresentação (perguntas, previsão) | P10 | Novo (14) |
+| Comissão sobre a venda ou sobre a margem, como tipo de decisão | Apresentação (perguntas) | P5 | Novo (13.7) |
+| Chance de fechar a proposta pelo preço, como curva e decisão | Apresentação (técnicas), escopo (serviços) | P5 | Completado (13.7) |
+| Fórmulas das alavancas de turismo, canal, alçada e comissão | Escopo, plano (seção 7) | P3, P5, P10 | Completado (13.8) |
+| Tamanho do piloto em unidades e semanas; intervalo de 95%; protocolo de uma página | Apresentação (controle, medição) | P7 | Completado (13.9) |
+| Elasticidade de forma constante; faixa de margem e de faturamento; número de sorteios; equilíbrio por custo fixo | Apresentação (elasticidade, equilíbrio, exemplos) | P2, P3 | Completado (13.6, 13.10) |
+| Dados pessoais anonimizados nas cargas por planilha; base organizada devolvida à empresa | Apresentação (dados) | P10 | Novo (14) |
+| Regras da pesquisa de disposição a pagar e das faixas de referência | Plano v3, apresentação (dados) | P5, P9 | Completado (14) |
+| Atualização de tabela no nível Essencial; regra do cliente fundador | Apresentação (planos, fundadores) | Sistema de cotação; P8 | Completado (14) |
+
+Meta reversa no exemplo de turismo: os dois números em circulação estão certos, cada um para uma estrutura de custo. A nota do slide (+556%, 0,05 ÷ 0,009) supõe que todos os custos do pacote são fixos por passageiro. A Nota nº 02 (+224%) supõe que 18% do preço é comissão e impostos, que caem junto com o desconto. O sistema calcula a meta com a estrutura de custo de cada cliente e tem as duas como casos de aceite (13.6); a nota do slide fica como está, e vale só dizer nela que os custos são fixos por passageiro.
 
 ## 1. Estado atual
 
@@ -43,7 +111,7 @@ O que já funciona continua funcionando: cada pacote termina com os testes atuai
 5. **Mesmo modelo de segurança.** O navegador só lê; escrita por função que confere o perfil; serviços recebem `diagnostico_id` explícito; cada tabela nova entra no bloco de RLS e nos testes de acesso.
 6. **Toda métrica nova tem caso de referência conferido à mão**, como as dez atuais.
 7. **Um pacote por pull request**, com `docs/pendencias.md` atualizado no mesmo PR.
-8. **Repositórios privados antes do pacote 2.** O repositório atual é público e mistura três projetos (a raiz tem outro aplicativo, um cotador em React e PocketBase). Simulação e medição são o que sustenta a mensalidade; não devem ficar públicas. O `README` do sistema de pricing já traz o comando de separação com histórico (`git subtree split`).
+8. **Repositório**** público durante a fase de testes (decisão de 19/11/2026)****.** O repositório atual é público e mistura três projetos (a raiz tem outro aplicativo, um cotador em React e PocketBase). A construção segue nele até o fim, sem dado real de cliente. Antes de replicar o sistema para a primeira empresa real, o código vai para repositório privado em plano pago do GitHub, que também mantém o GitHub Pages. O `README` do sistema de pricing já traz o comando de separação com histórico (`git subtree split`).
 
 ## 3. Modelo de dados
 
@@ -88,6 +156,8 @@ São 5 tabelas alteradas e 26 novas, distribuídas pelos pacotes da seção 10. 
 | `alertas_regras` e `alertas_disparos` | metrica, recorte, limiar; disparado_em, valor | P8 |
 | `horas_registro` | contrato_id, nota_id, diagnostico_id, data, horas, atividade | P8 |
 | `pesquisas_dap` | resposta, segmento, muito_barato, barato, caro, muito_caro, preco_testado, compraria | P9 |
+
+As tabelas, colunas e blocos de carga dos complementos (P2, P3, P5) e dos pacotes P6 revisto, P10, P11 e P12 estão nas seções 13 e 14.
 
 ## 4. Serviço de simulação
 
@@ -145,7 +215,7 @@ A Nota vira a entidade central: é o que a mensalidade vende. Ela usa a base de 
 - **Sensibilidade**: as três premissas de maior amplitude no tornado, com a frase "acompanhe X".
 - **Equilíbrio**: variação de volume que mantém a contribuição, −p ÷ (m + p); com comissão e impostos percentuais, a margem nova é calculada direto.
 
-**Tipos de decisão na primeira carga de ****`tipos_decisao`**: `reajuste` e `desconto` (usam as duas alavancas atuais) e `bloqueio_cambio` (turismo, refaz a Nota nº 02). `comissao_canal` e `servico_adicional` entram no P5.
+**Tipos de decisão na primeira carga de ****`tipos_decisao`**: `reajuste`, `desconto` e `repasse_fornecedor`; `servico_adicional` (comércio, refaz a Nota nº 01); `bloqueio_cambio` (turismo, refaz a Nota nº 02). `comissao_canal` e `meta_performance` entram no P5; `preco_projeto` e `reajuste_contrato`, no P12. Cada tipo define sua regra de escolha (13.3).
 
 **Narrativa**: um fluxo do n8n manda ao Claude só os números já calculados e grava o rascunho do texto. Antes de `entregar_nota`, a função `conferir_numeros_nota` extrai todo número do texto e confere com a simulação, com tolerância de arredondamento; se algum não bater, a entrega é recusada.
 
@@ -227,6 +297,8 @@ Para MGAs o sistema não calcula prêmio de risco nem tarifa: o preço técnico 
 
 `tamanho_bloqueio`, `cambio_travar_ou_repassar`, `markup_fornecedor`, `comissao_canal`, `preco_antecedencia`, `alcada_desconto`, `comissao_sobre_margem`. Cada uma traz premissas em `premissas_distribuicao` e uma regra no serviço de simulação, com teste por caso de referência.
 
+Fórmula e pacote de cada alavanca: seção 13.8.
+
 ### Validações novas em `motor.validar`
 
 - Data do serviço igual ou posterior à data da venda.
@@ -270,14 +342,14 @@ Efeito = (\bar{Y}^{trat}_{depois} - \bar{Y}^{trat}_{antes}) - (\bar{Y}^{ctrl}_{d
 
 **Testes de aceite**:
 
-- [ ] Base sintética com efeito conhecido de +2 pontos de margem injetado no grupo tratado: a leitura recupera o efeito dentro do intervalo de 90%.
+- [ ] Base sintética com efeito conhecido de +2 pontos de margem injetado no grupo tratado: a leitura recupera o efeito dentro do intervalo de 95% (13.9).
 - [ ] Sem efeito injetado: a leitura não declara ganho em pelo menos 90 de 100 repetições.
 - [ ] Protocolo assinado recusa alteração.
 - [ ] Variável respeita o teto e nunca fica negativa.
 
 ## 9. Automações no n8n, telas e sistema de pricing
 
-O n8n entra no diagnóstico com seis fluxos; as telas ganham quatro áreas novas; o sistema de pricing recebe três ajustes pequenos.
+O n8n entra no diagnóstico com seis fluxos; as telas ganham oito áreas novas; o sistema de cotação já recebeu os três ajustes que lhe cabem.
 
 ### Fluxos do n8n (arquivos em `diagnostico-pricing/n8n/workflows`)
 
@@ -286,7 +358,7 @@ O n8n entra no diagnóstico com seis fluxos; as telas ganham quatro áreas novas
 | Focus semanal | Toda segunda-feira | Lê a API de Expectativas de Mercado do Banco Central (`olinda.bcb.gov.br/olinda/servico/Expectativas/versao/v1/odata/...`, recursos anuais, mensais e inflação 12 meses) e grava `premissas_mercado` | P3 |
 | Rascunho da Nota | Nota passa a `simulada` | Envia ao Claude os números da simulação, grava o texto e roda `conferir_numeros_nota` | P3 |
 | Data de revisão | Diário | Avisa o consultor das Notas com revisão no dia | P3 |
-| Extrato mensal | Dia 2 de cada mês | Lê a visão de extrato da instância do cliente com papel somente leitura e carrega no diagnóstico de acompanhamento | P6 |
+| Pacotes da instância | Chegada de um pacote | Carrega no diagnóstico de acompanhamento o pacote que a instância enviou (seção 14) e avisa o consultor; nada lê o banco do cliente | P6 |
 | Alertas de margem | Após o cálculo do acompanhamento | Compara métricas com `alertas_regras` e avisa cliente e consultor | P8 |
 | Fechamento do mês | Último dia útil | Conta Notas entregues por contrato contra a cota e marca as extras; soma horas | P8 |
 
@@ -298,29 +370,36 @@ O n8n entra no diagnóstico com seis fluxos; as telas ganham quatro áreas novas
 - **Proposta**: três níveis lado a lado, com Gestão em destaque, e o selo da garantia. Só o consultor vê. P4.
 - **Medição**: protocolo, grupos, linha de base e leituras. O cliente vê o relatório. P7.
 - **Contratos e horas**: nível, cota usada, horas por entrega. Só o consultor. P8.
+- **Simulador do cliente**: na página da Nota entregue, premissas ajustáveis e resultado refeito na hora. P3.
+- **Pacotes recebidos**: lista por cliente e competência, conferência do manifesto e carga. Só o consultor. P6.
+- **Composição e portfólio**: cascata do preço por produto, cliente e canal; curva ABC por margem; matriz com os quatro grupos; cesta. P10.
+- **Previsão e elasticidade**: séries com faixa, curva de reservas, elasticidade por categoria e reações dos concorrentes. P11.
 
 ### Sistema de pricing (`sistema-pricing/`)
 
-1. **Motivo de perda em lista**: manter o gatilho atual e trocar o texto livre por lista configurável por cliente, com texto opcional. A análise de ganhas e perdidas precisa de categoria. P5.
-2. **Visão ****`extrato_diagnostico`**** e papel ****`leitor_consultoria`**: cotações aceitas e perdidas com data, canal, produto, vendedor, desconto, comissão, margem e motivo, sem dado pessoal do cliente final. P6.
-3. **Empresa fictícia**: trocar `demo-assistencia` por uma operadora de turismo coerente com a do diagnóstico, para a demonstração de 20 minutos contar uma só história. P1.
+1. **Motivo de perda em lista**: feito no sistema de cotação (ajuste A3), com categoria obrigatória e preço do concorrente opcional.
+2. **Envio ao diagnóstico**: substitui a visão `extrato_diagnostico` e o papel `leitor_consultoria`. A instância gera e envia o pacote pseudonimizado (ajuste A10); o diagnóstico recebe no P6.
+3. **Empresa fictícia de turismo**: feita no sistema de cotação (ajuste A1), com o pacote Lisboa calibrado pela Nota nº 02.
 
 ## 10. Plano de execução
 
-Dez pacotes, um pull request cada. P0 a P3 formam a Fase 0 do plano (semanas 3–4, demonstração e Nota); P4 e P5 a Fase 1 (semanas 5–8, diagnóstico vendável com garantia); P6 a P8 a Fase 2 (semanas 9–16, dentro da primeira customização); P9 a Fase 3.
+Treze pacotes, um pull request cada. P0 a P3 formam a Fase 0 (semanas 3–4: demonstração e Notas nº 01 e nº 02 refeitas no sistema); P4, P5 e P10 a Fase 1 (semanas 5–8: diagnóstico vendável com garantia e os cinco módulos de análise); P6, P7, P8 e P11 a Fase 2 (semanas 9–16, dentro da primeira customização); P9 e P12 a Fase 3. P2, P3, P5 e P6 cresceram nesta revisão (seções 13 e 14).
 
 | Pacote | Entrega | Depende de | Critério de aceite |
 |---|---|---|---|
 | P0 Preparação | Repositórios privados para `diagnostico-pricing` e `sistema-pricing` com histórico; histórico de migrações alinhado; RLS ligado em `app.segredos_demo` no projeto do sistema de pricing | — | Lista de migrações igual no arquivo e no projeto; os 19 testes e o roteiro de 26 conferências verdes no repositório novo |
 | P1 Turismo na base | Colunas de reserva em `transacoes` e `motor.fato`, `bloqueios`, `diagnosticos.segmento` e `tipo`, validações novas, catálogo versão 2 com métricas de turismo, `demo-turismo.ts`, nova empresa fictícia no sistema de pricing | P0 | Operadora fictícia carrega e calcula; caso de referência de turismo conferido à mão; distribuição segue com nota 66,4 |
-| P2 Simulação | `motor.base_simulacao`, pacote TypeScript, Edge Function, `premissas_distribuicao`, tabelas de simulação | P0 | Os quatro testes da seção 4 |
-| P3 Nota de Decisão | Tabelas e funções da Nota, tipos `reajuste`, `desconto` e `bloqueio_cambio`, `premissas_mercado`, fluxos Focus, rascunho e revisão, telas de Notas e Oportunidades nova | P1, P2 | Nota nº 02 refeita no sistema sobre a operadora fictícia; entrega recusada sem aprovação ou com número divergente; roteiro de 20 minutos roda sem falha |
+| P2 Simulação | `motor.base_simulacao`, pacote TypeScript, Edge Function, `premissas_distribuicao`, tabelas de simulação; premissas correlacionadas, varredura e ponto de virada, regra de escolha e grade de opções, capacidade no sorteio com o bloco `capacidade` (13.1 a 13.4); chance de atingir a meta, elasticidade de forma constante, medidas de margem e de faturamento (13.10) | P0 | Os quatro testes da seção 4 e os testes de 13.1 a 13.4 e 13.10 |
+| P3 Nota de Decisão | Tabelas e funções da Nota, tipos `reajuste`, `desconto`, `repasse_fornecedor`, `servico_adicional` e `bloqueio_cambio`, `premissas_mercado`, fluxos Focus, rascunho e revisão, simulador do cliente, Nota completa, telas de Notas e Oportunidades nova (seção 5, 13.5 e 13.6) | P1, P2 | Notas nº 01 e nº 02 refeitas no sistema com chance a até 2 pontos e resultado provável a até 5% da apresentação; entrega recusada sem aprovação ou com número divergente; simulador do cliente reproduz a Nota; roteiro de 20 minutos roda sem falha |
 | P4 Garantia e proposta | `ofertas_catalogo`, `garantias`, `proposta()`, `travar_garantia`, tela de proposta | P2 | Os dois testes da seção 6; premissa alterada após a trava aparece na auditoria e no painel |
-| P5 MGAs e plano B | Catálogo de MGAs, `propostas`, `comissoes_pagas`, `contratos_performance`, serviço Python (regressão), origem das premissas, motivo de perda em lista no sistema de pricing, tipos `comissao_canal` e `servico_adicional` | P1, P3 | Regressão igual a um caso calculado fora do sistema; origem visível em toda premissa |
-| P6 Extrato da instância | `contratos`, `extratos_cliente`, diagnóstico de acompanhamento, visão e papel no sistema de pricing, fluxo mensal | P3 | Extrato da instância de demonstração entra sem acesso de escrita; teste de acesso do papel novo |
-| P7 Medição | Protocolo, grupos, efeito mínimo, leituras, variável, tela | P5, P6 | Os quatro testes da seção 8 |
-| P8 Recorrência | Alertas, cota de Notas, horas, relatório do nível Gestão, fluxos de alerta e fechamento | P6, P7 | Alerta dispara na base de demonstração quando a métrica cruza o limiar; Nota além da cota sai como extra |
-| P9 Comércio e pesquisa | `pesquisas_dap`, Van Westendorp e Gabor-Granger, comparação entre clientes do mesmo setor | P5 | Curvas conferidas contra cálculo de referência |
+| P5 MGAs e plano B | Catálogo de MGAs, `propostas` (alimentado também pelo `cotacoe``s.csv` do pacote, seção 14), `comissoes_pagas`, `contratos_performance`, serviço Python (regressão), origem das premissas, tipos `comissao_canal`, `meta_performance`, `preco_proposta` e `comissao_vendedor` (13.7); alavancas `comissao_canal`, `alcada_desconto` e `comissao_sobre_margem` (13.8); faixas de referência com fonte (seção 14) | P1, P3 | Regressão igual a um caso calculado fora do sistema; origem visível em toda premissa; chance de atingir a meta de performance conferida à mão |
+| P6 Pacotes da instância | `contratos`, `extratos_cliente`, diagnóstico de acompanhamento, função `receber-pacote`, tela de pacotes recebidos e carga com mapeamento fixo (seção 14) | P3 | Pacote da instância de demonstração recebido, conferido e carregado sem de-para; a chave de envio não lê nada nem deposita para outro cliente |
+| P7 Medição | Protocolo, grupos, efeito mínimo, leituras, variável, tela; tamanho do piloto, intervalo de 95% e protocolo de uma página (13.9) | P5, P6 | Os quatro testes da seção 8 |
+| P8 Recorrência | Alertas, cota de Notas, horas, relatório do nível Gestão, fluxos de alerta e fechamento; regra do cliente fundador e registro da atualização de tabela (seção 14) | P6, P7 | Alerta dispara na base de demonstração quando a métrica cruza o limiar; Nota além da cota sai como extra |
+| P9 Comércio e pesquisa | `pesquisas_dap`, Van Westendorp e Gabor-Granger com as regras da seção 14, comparação entre clientes do mesmo setor | P5 | Curvas conferidas contra cálculo de referência |
+| P10 Composição, portfólio e capacidade | Prazo e forma de pagamento, bloco de despesas fixas, catálogo versão 3, curva ABC por margem, matriz e quatro grupos, cesta, over por fornecedor, margem-alvo, tipo quantidade_compra, alavancas markup_fornecedor e preco_antecedencia (13.8), cargas com dados pessoais pseudonimizados e base organizada entregue (seção 14) | P2 | Caso de referência à mão por métrica; quatro grupos conferidos num caso montado; distribuição segue com nota 66,4 |
+| P11 Previsão, elasticidade e concorrência | Blocos de histórico de preços e preços dos concorrentes, previsão de demanda, curva de reservas, elasticidade pelo histórico, reação da concorrência (seção 14) | P5, P10 | Testes de recuperação da seção 14 |
+| P12 Serviços e contratos recorrentes | Blocos de projetos e contratos recorrentes, tipos preco_projeto e reajuste_contrato, sobrevivência e regressão de Cox (seção 14) | P5, P11 | Base sintética com desvio de horas e cancelamento conhecidos |
 
 Se a regra de troca de segmento disparar na semana 6, P5 perde a parte de MGAs e o pacote de comércio sobe, sem mudar o resto da ordem.
 
@@ -333,9 +412,9 @@ Você vai implementar o pacote P1 do documento diagnostico-pricing/docs/ajustame
 no sistema de diagnóstico de pricing (pasta diagnostico-pricing, projeto Supabase diagnostico_pricing).
 
 Antes de começar:
-1. Leia ajustamento-v3.md inteiro, o README.md e docs/pendencias.md da pasta.
+1. Leia ajustamento-v3.md inteiro, inclusive a Cobertura do escopo e as seções 13 e 14, o README.md e docs/pendencias.md da pasta.
 2. Leia as cinco migrações em supabase/migrations e os testes em ferramentas/testes.
-3. Rode pnpm test e confirme que os 19 testes passam antes de mudar qualquer coisa.
+3. Rode pnpm test e confirme que todos os testes passam (30 depois do P1) antes de mudar qualquer coisa.
 
 Regras (seção 2 do documento):
 - Só migrações novas; não edite as existentes. Não rode supabase db push sem alinhar o histórico.
@@ -354,6 +433,39 @@ Entrega:
 Se algo no documento contradizer o código existente, pare, descreva a contradição e proponha a saída antes de implementar.
 ```
 
+### Prompt para construir todos os pacotes em sequência
+
+Use este quando quiser que o Claude Code siga até o P12 sem abrir uma sessão por pacote, na ordem das fases da seção 10. Ele usa o padrão provisório de cada pendência da seção 12 e só para quando um critério de aceite não fecha.
+
+```text
+Você vai concluir o sistema de diagnóstico de pricing seguindo diagnostico-pricing/docs/ajustamento-v3.md
+(exporte de novo o documento antes de começar: ele inclui as seções 13 e 14 e os pacotes P10 a P12),
+do ponto em que docs/pendencias.md parou até o P12, e os ajustes de sistema-pricing/docs/ajustes-v3.md
+que os pacotes do diagnóstico usam.
+
+Decisão de 19/11/2026: o repositório fica público durante os testes. A regra 8 não bloqueia mais o P2.
+Não use dado real de cliente.
+
+Ordem:
+1. Termine o P1 no projeto Supabase diagnostico_pricing (as funções de validação, base, métricas, pontuação,
+   API e acesso que ficaram de fora), registre em docs/migracoes.md e rode pnpm homologar contra o projeto real.
+2. Fase 0: P2 e P3. Fase 1: P4, P5 e P10. Fase 2: P6, P7, P8 e P11. Fase 3: P9 e P12.
+   Um pull request por pacote, nesta ordem.
+3. Para cada pendência da seção 12, use o padrão da coluna "Enquanto não decide" e registre em
+   docs/pendencias.md que é provisório.
+
+Regras de cada pacote:
+- Antes: pnpm test verde. Depois: pnpm test, pnpm typecheck, roteiro do navegador e homologação verdes.
+- A distribuição fictícia continua com nota geral 66,4 e ganhos de R$ 18.031, R$ 52.147 e R$ 108.883 nos três cenários.
+- Só migrações novas; não renomeie cliente_id; Monte Carlo no serviço TypeScript, não em SQL.
+- Toda métrica, alavanca, previsão e leitura estatística nova tem caso de referência conferido à mão.
+- Os critérios de aceite da seção 10 e das seções 13 e 14 passam antes do próximo pacote.
+- Atualize docs/pendencias.md no mesmo pull request: feito, verificado, não verificado.
+
+Pare e me pergunte só se um critério de aceite não puder ser cumprido ou se o documento contradisser o código
+de um jeito que mude o resultado para o cliente.
+```
+
 ## 12. Pendências que bloqueiam pacotes
 
 Nenhuma pendência impede começar por P0, P1 e P2; três delas afetam pacotes até o P4 (limiares no P1, licença no P3, definição de ganho no P4).
@@ -368,6 +480,233 @@ Nenhuma pendência impede começar por P0, P1 e P2; três delas afetam pacotes a
 | Dados de sinistralidade que a MGA pode compartilhar e exigências da Susep | Métrica de comissão de performance no P5 | Métrica fica fora do catálogo de MGAs |
 | 16 sugestões pendentes no documento de arquitetura | Nenhum pacote | O código já segue as da Fase 1; fechar para o documento refletir o código |
 | Acessos `consultor@demo.local` e `cliente@demo.local` sem troca de senha | Carga de dados reais | Trocar a senha ou remover antes do primeiro cliente |
+| Correlações iniciais das Notas nº 01 e nº 02 | Teste de aceite do P3 | 0,5 entre adesão e pedidos a mais, origem informada |
+| Limite de risco padrão da regra de escolha | Nenhum pacote | 10% de chance de prejuízo |
+| Rodadas e níveis que recebem o simulador do cliente | Nenhum pacote | 50 rodadas por dia, todos os níveis |
+| Cortes da curva ABC e da matriz; mínimos da cesta; taxa do custo financeiro do prazo | Nota geral do P10 | 80% e 95%, medianas, 30 pedidos e lift 1,2, Selic projetada; métricas informativas |
+| Janela e mínimo de eventos da reação da concorrência; variação mínima de preço para estimar elasticidade | Nenhum pacote | 30 dias e 5 eventos; regra de variação no catálogo, ajustada no primeiro cliente |
+| Estrutura de custo da operadora fictícia (custos fixos por passageiro, como no slide, ou 18% proporcional ao preço, como na Nota nº 02) | Nenhum pacote | As duas ficam como casos de aceite; escolher uma só para as três bases fictícias (slide, sistema de cotação e diagnóstico) |
+| Faixas iniciais das premissas sem histórico (reação do canal à comissão, captura da alçada, queda do desconto com comissão sobre margem) | Nenhum pacote | Origem informada e faixa larga, até o primeiro cliente |
+| Mínimo de respondentes da pesquisa de disposição a pagar | Nenhum pacote | 50 por segmento |
+| Números e fontes dos slides (sorteios, tabela de concorrência) | Nenhum pacote | Padronizar pelos números do sistema depois do P3 |
+
+## 13. Complementos à simulação e à Nota (P2, P3, P5)
+
+Estes complementos fecham o que a apresentação promete sobre a simulação e a Nota. Entram nos pacotes indicados, junto com o que as seções 4 e 5 já pedem.
+
+### 13.1 Premissas que andam juntas (P2)
+
+- Tabela `premissas_correlacao` (por tipo de decisão ou por Nota): `premissa_a`, `premissa_b`, `rho` (correlação de postos, entre −0,95 e 0,95), `origem`, `fonte`.
+- Sorteio por cópula gaussiana: normais independentes viram normais correlacionadas pela decomposição de Cholesky, depois uniformes pela distribuição normal acumulada, depois o valor de cada premissa pela sua função quantil (seção 4). As faixas P10, P50 e P90 de cada premissa não mudam.
+- A correlação de postos desejada (ρs) vira correlação das normais por r = 2 × sen(π × ρs ÷ 6).
+- Matriz que não é positiva definida: o serviço recusa e aponta o par incoerente; não corrige sozinho.
+- A premissa discreta (reação da concorrência) entra na mesma cópula pela sua uniforme, o que permite correlacioná-la com outras.
+- Valores iniciais no P3: adesão à taxa e pedidos a mais (Nota nº 01) com ρs = 0,5 e origem `informada`, até conferir o valor usado na Nota original.
+
+Testes: com ρs = 0, mesmo resultado da simulação sem correlação e mesma semente; com ρs = 0,8, correlação de Spearman amostral entre 0,77 e 0,83 em 10.000 sorteios; P10, P50 e P90 amostrais de cada premissa a menos de 1% dos informados.
+
+### 13.2 Ponto em que a recomendação muda (P2)
+
+- Função `varrer(simulacao, premissa, valores)`: refaz a simulação com os mesmos sorteios para cada valor (por exemplo, chance de reação de 0% a 60%, de 5 em 5 pontos) e grava em `simulacao_varreduras` (`simulacao_id`, `premissa`, `valor`, `opcao`, `media`, `p50`, `prob_positivo`, `prob_prejuizo`, `opcao_escolhida`).
+- Ponto de virada: primeiro valor em que a opção escolhida pela regra de 13.3 muda, interpolado entre os dois pontos vizinhos. A Nota mostra a frase "a recomendação muda se X passar de Y".
+- Toda Nota com reação da concorrência roda a varredura dessa premissa por padrão; o consultor pode varrer qualquer outra.
+
+Testes: na Nota nº 01 refeita, o ponto de virada fica entre 30% e 40% (apresentação: cerca de 35%); na nº 02, a escolha passa de 100 para 90 lugares entre 30% e 35% de chance de reação.
+
+### 13.3 Regra de escolha e grade de opções (P2, P3)
+
+- Coluna `tipos_decisao.criterio` com quatro regras: `max_media`, `max_p50`, `max_prob_ganho` e `max_p50_com_risco` (maior P50 entre as opções com chance de prejuízo até um limite, padrão 10%).
+- Opções em grade: um tipo pode gerar opções por faixa (bloqueio de 60 a 180 lugares, de 10 em 10), todas com os mesmos sorteios.
+- A Nota mostra a regra usada e, ao lado, o que cada uma das outras escolheria.
+
+Teste: na Nota nº 02, `max_p50_com_risco` com limite de 10% escolhe 100 lugares com câmbio travado, e 140 lugares têm P50 negativo.
+
+**Chance de atingir a meta.** Cada opção pode ter uma meta de margem ou de faturamento no horizonte da Nota. A simulação devolve, além da chance de ganho, `prob_meta`: a chance de o resultado ficar na meta ou acima, também em frequência natural. A meta vem do cliente; sem ela, usa a margem-meta da política do sistema de cotação, quando houver.
+
+### 13.4 Capacidade dentro do sorteio (P2, com os dados do P10)
+
+- Premissa de capacidade por recurso (unidades por mês) e uso por venda, vinda do bloco `capacidade` (seção 14). Em cada sorteio, o volume acima da capacidade livre não é vendido; se o bloco trouxer custo de capacidade extra, ele é cobrado em vez disso.
+- Saídas novas por opção: chance de faltar capacidade e volume perdido médio.
+- O volume de equilíbrio (seção 5) é conferido contra a capacidade livre; se passar dela, a Nota avisa que a decisão não se paga mesmo que a venda venha.
+
+O bloco de carga `capacidade` (recurso, unidade, capacidade por mês, uso por venda, custo da unidade extra) nasce no P2, para a capacidade já funcionar no P3; o P10 só acrescenta a métrica de utilização.
+
+Testes: com capacidade livre de 100 unidades e volume adicional sorteado acima disso, nenhum sorteio vende mais de 100 a mais; com custo de unidade extra informado, a margem cai por esse custo em vez de o volume ser cortado.
+
+### 13.5 Simulador entregue com a Nota (P3)
+
+- Na página da Nota entregue, o cliente muda as premissas que o consultor marcou como ajustáveis (P10, P50 e P90, chance de reação, valores das opções) e vê de novo a chance, a faixa e a recomendação.
+- Usa o serviço da seção 4. Se o tempo de 10.000 sorteios medido no P2 passar de 3 segundos, a tela roda 2.000 e avisa.
+- Rodadas do cliente ficam em `simulacoes` com `origem = 'cliente'`, ligadas à Nota, e nunca alteram a versão entregue. Limite padrão de 50 rodadas por dia por cliente.
+- Os perfis `cliente_editor` e `cliente_leitor` simulam; só o consultor salva premissas na Nota.
+
+Testes: rodada do cliente com as premissas da versão entregue reproduz o resultado da Nota; o cliente não grava em `nota_versoes` nem em `nota_premissas`.
+
+### 13.6 Nota completa (P3)
+
+- **Equilíbrio e meta** em unidades e em reais. Com custos proporcionais ao preço (comissão, impostos), a margem nova é calculada direto, sem a fórmula simples. Casos de conferência: Nota nº 02, desconto de 5%, margem de R$ 587 para R$ 181 por passageiro e +224% de passageiros (18% do preço proporcional); a mesma conta com todos os custos fixos dá margem de R$ 92 e cerca de +540%, o número do slide.
+- **Custo de não decidir** por mês e no horizonte da Nota.
+- **Medição combinada**: campos `indicador`, `grupo_comparacao` (unidade e critério propostos) e `data_leitura` em `notas_decisao`; no P7 eles viram um `protocolos_medicao`.
+- **Câmbio no pagamento** (bloqueio): centro no câmbio de referência informado ou, para o dólar, na mediana do Focus para a data do pagamento; faixa pela volatilidade histórica de 12 meses da PTAX da moeda, ajustada ao prazo (σ × √t), com origem `referencia`.
+- **Custo de travar o câmbio**: (câmbio travado − câmbio esperado no pagamento) × valor em moeda. O câmbio travado é informado (cotação do banco) até a licença da curva futura. "Travar" e "em aberto" usam os mesmos sorteios de procura.
+- **Tipo ****`repasse_fornecedor`** (comércio): aumento de custo do fornecedor em faixa; opções repassar 0%, 50% ou 100%; elasticidade da categoria.
+- **Tipo ****`servico_adicional`**, antecipado do P5 para refazer a Nota nº 01: opções "embutir com reajuste" e "taxa opcional"; premissas adesão, pedidos a mais, custo por entrega, custo fixo e capacidade.
+
+O critério de aceite do P3 passa a ser: Notas nº 01 e nº 02 refeitas com as premissas originais, com chance de ganho a até 2 pontos e resultado provável a até 5% dos valores da apresentação.
+
+**Equilíbrio: fórmulas e casos que o teste confere.** Mudança de preço p com margem m: variação de volume = −p ÷ (m + p). Custo fixo novo: vendas a mais = custo fixo adicional ÷ margem de contribuição unitária. Com custos proporcionais ao preço, a margem nova é calculada direto. Casos:
+
+| Caso | Resultado esperado |
+|---|---|
+| Margem de 30%, desconto de 5% | +20% de volume |
+| Margem de 30%, desconto de 10% | +50% de volume |
+| Margem de 30%, reajuste de 5% | volume pode cair até 14,3% |
+| Serviço de R$ 20 mil por mês, margem de R$ 80 por venda | 250 vendas a mais por mês |
+| Nota nº 01: reajuste de 3% e taxa opcional | +5,1% e +2,5% de pedidos |
+| Nota nº 02: desconto de 5% | +224% de passageiros |
+| Slide do exemplo de turismo: margem de 5,9%, desconto de 5%, todos os custos fixos por passageiro | cerca de +556% (0,05 ÷ 0,009); com a margem exata de R$ 587, +538% |
+
+**Elasticidade no serviço adicional.** A opção "embutir com reajuste" sorteia a elasticidade em faixa, como na Nota nº 01.
+
+**Roteiro de 20 minutos do diagnóstico** (aceite do P3): 1. arquivos da operadora fictícia carregados (pacote baixado ou planilhas); 2. painel de margem e de câmbio; 3. oportunidades com faixa por alavanca; 4. Nota nº 02 com o tamanho do bloqueio, travar ou não o câmbio e o ponto de virada; 5. simulador do cliente mudando a chance de reação; 6. Nota nº 01 com as duas formas de cobrar a entrega. O passo 7, proposta com ganho provável, margem de equilíbrio e garantia, entra com o P4. O roteiro automatizado no navegador confere cada passo.
+
+### 13.7 MGAs: meta de performance (P5)
+
+- Tipo `meta_performance`: sorteia a produção mensal da carteira por canal (base: histórico; com o P11, a previsão) e a métrica da meta (`contratos_performance.meta_tipo`); devolve a chance de atingir cada faixa e o bônus esperado.
+- Meta que dependa de sinistralidade só entra com dado compartilhado pela MGA (pendência da seção 12).
+
+Teste: caso montado à mão com produção e meta conhecidas; a chance de atingir confere com o cálculo analítico a menos de 1 ponto.
+
+**Chance de fechar pelo preço (P5).** A regressão logística de ganhas e perdidas gera também a curva da chance de ganhar contra o desconto (ou o preço), com faixa. Tipo `preco_proposta`: escolhe o preço que maximiza a margem esperada (chance de ganhar × margem), sorteando os coeficientes dentro do erro da regressão.
+
+**Comissão sobre a venda ou sobre a margem (P5).** Tipo `comissao_vendedor`, com a alavanca `comissao_sobre_margem` (13.8) sobre `comissoes_pagas` e `propostas`. Usa o mesmo cálculo do simulador de comissão do sistema de cotação (ajuste A7).
+
+### 13.8 Regras das alavancas novas (P3, P5, P10)
+
+| Alavanca | Pacote | Regra |
+|---|---|---|
+| `tamanho_bloqueio` | P3 | Grade de lugares; procura sorteada; vendidos = mínimo entre procura e lugares; sobra paga a multa ou o custo do lugar; escolha pela regra de 13.3 |
+| `cambio_travar_ou_repassar` | P3 | Travar: custo em moeda × câmbio travado. Em aberto: × câmbio sorteado no pagamento. Repassar: preço corrigido pelo câmbio até a data-limite, com elasticidade |
+| `markup_fornecedor` | P10 | Onde o markup atual fica abaixo do alvo do catálogo, preço novo = custo × (1 + alvo); quantidade ajustada pela elasticidade; só entra onde o ganho é positivo (mesma estrutura do reajuste seletivo) |
+| `preco_antecedencia` | P10 | Preço por faixa de antecedência = preço × (1 + ajuste da faixa); procura de cada faixa pela elasticidade da faixa; total limitado aos lugares do bloqueio |
+| `comissao_canal` | P5 | Comissão do canal passa de k para k'; margem por venda muda em (k − k') × preço; volume do canal = Q × (1 + εc × (k' − k) ÷ k), com εc (reação do canal à comissão) em faixa |
+| `alcada_desconto` | P5 | Descontos acima do novo limite passam a exigir aprovação; uma fração deles volta ao limite (captura) e outra fração das vendas se perde; ganho = desconto recuperado − margem das vendas perdidas |
+| `comissao_sobre_margem` | P5 | Custo de comissão pela regra nova (percentual × margem) contra a atual (percentual × receita); desconto médio de cada vendedor cai em faixa; ganho = margem recuperada pelo desconto menor − diferença no custo de comissão |
+
+Cada alavanca tem caso de referência à mão no pacote em que entra. Premissas sem histórico (reação do canal, captura, queda do desconto) entram com origem `informada` e faixa larga.
+
+### 13.9 Medição: tamanho do piloto, confiança e protocolo (P7)
+
+- **Tamanho do piloto**: inverte a fórmula do efeito mínimo da seção 8. Unidades por grupo = 2 × (2,80 × σ ÷ efeito esperado)². Para métricas semanais, semanas = unidades-semana necessárias ÷ unidades disponíveis por grupo, supondo semanas independentes (aproximação declarada na tela). A tela responde "quantas lojas, regiões ou clientes e quantas semanas".
+- **Intervalo de 95%**, como no slide de controle. A tabela `medicoes` ganha `nivel_confianca`, e o primeiro teste da seção 8 confere a recuperação do efeito dentro do intervalo de 95%.
+- **Protocolo de uma página**: `protocolo_documento(p_protocolo)` gera a página de impressão com métrica, linha de base, comparação, tamanho, regra de leitura e data. Teste: cabe numa página A4 no navegador.
+
+### 13.10 Forma de cálculo e números de referência (P2, P3, P11)
+
+- **Forma da elasticidade**: o serviço aceita `constante`, com q' = q × (p' ÷ p)^ε, padrão das Notas e do slide de elasticidade, e `linear`, com q × (1 + ε × Δp ÷ p), igual a `motor.simular`. O teste de paridade do P2 usa `linear`; as Notas usam `constante`. Conferência: com ε = −1,2, um reajuste de 3% dá −3,5%; um reajuste de 5% com ε de −0,5, −1,2 e −2,0 dá −2,4%, −5,7% e −9,3%.
+- **Medidas**: `simulacao_resultado` ganha a coluna `medida` (`margem`, `faturamento`, `volume`), para a Nota mostrar a faixa de margem e a de faturamento.
+- **Sorteios**: padrão de 10.000, configurável por Nota, que informa o número usado. As Notas refeitas no sistema usam 10.000, e a linha de fonte dos slides passa a citar esse número (hoje cita 6.000 no exemplo de turismo e 20.000 na tabela de concorrência).
+- **Referência da Nota nº 01 com reação**: valem os números da Nota original. Sem reação, 32 e 76 em 100 (reajuste e taxa); com 20% de chance, 39 e 60; com 40%, 48 e 45; com 60%, 57 e 30. Os slides diferem em até 1 ponto (32 e 75, 40 e 60, 49 e 45; 31 e 76 no exemplo), dentro da tolerância de 2 pontos; padronizar os slides pelos números do sistema.
+- **Curto ou longo prazo (P11)**: Nota com horizonte de até 3 meses usa a elasticidade de curto prazo; acima disso, a de longo prazo. A Nota mostra as duas.
+
+## 14. Análises novas e recebimento de dados (P6, P10, P11, P12)
+
+### P6 revisto: pacotes da instância
+
+O P6 deixa de ler o banco do cliente com um papel somente leitura. A instância do sistema de cotação envia, todo mês, um pacote pseudonimizado no formato `pacote-diagnostico/1` (ajuste A10 do documento [Ajustes do Sistema de Pricing](https://claude.ai/artifact/6FNumBoL6UrH3Q5j8hzqFQ)).
+
+- Função `receber-pacote`: aceita só chave de envio válida, que deposita pacotes de um único cliente e não lê nada; confere versão, hashes e contagens do manifesto; guarda o ZIP em armazenamento privado; registra em `extratos_cliente`; devolve recibo.
+- Mesmo hash na mesma competência não muda nada; hash novo vira nova versão e a anterior fica marcada como substituída.
+- Tela do consultor "Pacotes recebidos": carrega o pacote no diagnóstico de acompanhamento com mapeamento fixo, sem de-para. Os arquivos `transacoes`, `custos`, `produtos`, `contas` e `custos_servir` já usam os nomes de campo dos blocos atuais; `cotacoes.csv` entra no bloco `propostas` do P5 por mapeamento fixo: `aceita` vira ganha, `perdida` e `expirada` viram perdida, `emitida` vira aberta; `categoria_perda` vai para `motivo_perda`, `preco_lista` × `quantidade` para `valor_lista` e `comissao_canal_pct` para `comissao_pct`. Piloto e braço seguem para a medição do P7.
+- Aceita a versão atual do contrato do pacote e a anterior.
+
+### P10 Composição, portfólio e capacidade (Fase 1)
+
+| Dado novo | Conteúdo |
+|---|---|
+| `transacoes` | Colunas `prazo_pagamento_dias` e `forma_pagamento` |
+| Bloco `despesas_fixas` | Mês, centro de custo, valor, critério de rateio (receita, volume ou horas) |
+| Bloco `capacidade` | Criado no P2 (13.4); o P10 acrescenta só a métrica de utilização |
+| `custos_servir.tipo` | Valor novo `taxa_cartao`, por forma de pagamento |
+
+Métricas do catálogo versão 3, informativas até haver limiar:
+
+| Código | Dimensão | Cálculo |
+|---|---|---|
+| `custo_financeiro_prazo_pct` | realizacao | preço faturado × taxa mensal × prazo ÷ 30, sobre a receita; taxa da Selic projetada em `premissas_mercado` ou informada |
+| `taxa_cartao_pct` | realizacao | taxas de cartão ÷ receita |
+| `margem_apos_fixos_pct` | margem | margem de contribuição menos despesas fixas rateadas, ÷ receita |
+| `receita_abaixo_piso_pct` | margem | receita vendida abaixo do piso de custo (custo variável unitário total, inclusive custo de servir) |
+| `distancia_preco_alvo_pct` | margem | (preço-alvo − preço praticado) ÷ preço-alvo, com preço-alvo = custo variável ÷ (1 − margem-alvo) |
+| `concentracao_margem_pct` | portfolio | parcela dos produtos que formam 80% da margem de contribuição total |
+| `utilizacao_capacidade_pct` | capacidade | uso ÷ capacidade, por recurso |
+| `over_fornecedor_pct` | margem (turismo) | over recebido ÷ custo, por fornecedor |
+
+O piso de custo convive com o piso da banda de preço já existente: um é o mínimo que não dá prejuízo, o outro o mínimo praticado pelo mercado da própria empresa.
+
+**Portfólio (módulo 2):**
+
+- Curva ABC por margem de contribuição total (A até 80% acumulado, B até 95%, C o resto; cortes no catálogo), ao lado da ABC por receita, com destaque para os produtos que mudam de classe.
+- Matriz margem unitária × volume, com cortes nas medianas (configuráveis), e quatro grupos: proteger margem (margem acima da mediana); ajustar preço (margem abaixo, volume acima, sem efeito de cesta); manter como gerador de volume ou tráfego (margem abaixo, com efeito de cesta); revisar ou descontinuar (margem abaixo, volume abaixo e sem efeito de cesta, ou margem negativa).
+- Uma regra de achado por grupo, com o valor exposto e a ação recomendada.
+
+**Cesta:**
+
+- Pares de produtos no mesmo pedido (`nota_fiscal`): suporte, confiança e lift; mínimos no catálogo (padrão: 30 pedidos com o par e lift de pelo menos 1,2).
+- Efeito de cesta de um produto: margem média dos pedidos que o contêm, menos a margem do próprio produto.
+- Depende de pedido com vários itens, que vem da carga do sistema de gestão do cliente. O pacote do sistema de cotação tem um produto por cotação e não alimenta a cesta.
+
+Testes: caso de referência à mão para cada métrica; os quatro grupos conferidos num caso montado; a empresa fictícia de distribuição segue com nota geral 66,4.
+
+**Também no P10:**
+
+- **Margem-alvo**: `diagnosticos.margem_alvo_pct`, informada pelo consultor; quando o cliente usa o sistema de cotação, o padrão é a margem-meta da política dele. Sem margem-alvo, `distancia_preco_alvo_pct` não é calculada.
+- **Quanto comprar para a temporada** (tipo `quantidade_compra`, comércio): grade de quantidades; procura sorteada (informada no P10, prevista pelo P11 depois); vendido = mínimo entre procura e quantidade; sobra vale o custo menos o valor residual informado; falta perde a margem; escolha pela regra de 13.3. É o cálculo do bloqueio de turismo aplicado ao estoque.
+- **Alavancas de turismo** `markup_fornecedor` e `preco_antecedencia`, com as regras de 13.8.
+- **Dados pessoais nas cargas por planilha**: a carga ganha a marca `clientes_pessoas_fisicas`. Com ela, `conta` vira código HMAC com chave por cliente guardada só no servidor, e `contas.nome` é descartado. Para cliente empresa, nada muda, porque razão social não é dado pessoal. E-mail, telefone e documento não têm campo de destino, e o arquivo original não é guardado. Teste: depois de uma carga marcada, nenhum valor original de conta aparece no banco.
+- **Base organizada entregue à empresa**: `exportar_base(p_diag)` gera um ZIP com os blocos normalizados e validados (nos nomes de campo da carga) e um dicionário de dados, anexado à publicação do diagnóstico.
+- **Efeito de cesta relevante**: o produto tem pelo menos um par que passa os mínimos do catálogo (suporte e lift).
+
+### P11 Previsão, elasticidade histórica e concorrência (Fase 2)
+
+Roda no serviço Python da seção 8.
+
+| Dado ou saída | Conteúdo |
+|---|---|
+| Bloco `historico_precos` | Produto, início, fim, preço de tabela, tipo `tabela` ou `promocao` |
+| Bloco `precos_concorrentes` | Data, concorrente, produto ou equivalente, preço |
+| Tabela `previsoes` | Série, mês, P10, P50, P90, modelo |
+| Tabela `elasticidades_estimadas` | Recorte, curto prazo, longo prazo, P10, P50, P90, observações, método |
+| Tabela `reacoes_concorrencia` | Tipo de evento, reações por tipo, eventos, chance |
+
+- **Previsão de demanda**: série mensal por produto ou categoria; decomposição STL (tendência, sazonalidade, resto); suavização exponencial com tendência e sazonalidade (ETS), escolhida por AIC; 6 meses à frente com intervalo de 80% (P10 a P90). Com menos de 24 meses, só tendência, e a previsão sai marcada.
+- **Curva de reservas (turismo)**: reservas finais previstas = reservas atuais × fator médio de crescimento até a saída, por antecedência, nas saídas passadas; faixa pela dispersão desses fatores; status à frente ou atrás do esperado.
+- **Elasticidade pelo histórico**: painel produto × mês; logaritmo da quantidade contra logaritmo do preço líquido, com efeitos fixos de produto e de mês (compara com o que não mudou de preço e absorve a sazonalidade), preço do concorrente como controle quando houver e defasagens de 1 a 3 meses (curto prazo = coeficiente do mês; longo prazo = soma); erros agrupados por produto. Saída P10, P50 e P90 por categoria, com origem `medido`. Sem variação de preço suficiente (regra no catálogo), não estima, e o plano B segue para `estimado`.
+- **Reação da concorrência**: para cada mudança de preço própria (de `historico_precos`), verifica se o concorrente mudou o preço em até N dias (padrão 30) e classifica em ignorar, acompanhar, copiar ou contra-atacar. Com menos de 5 eventos, a chance entra com origem `informada` e faixa larga.
+- As três saídas entram nas Notas como premissas, com origem e fonte.
+
+Testes: base sintética com elasticidade −1,2 injetada — o intervalo de 80% estimado contém −1,2; série com sazonalidade conhecida — o intervalo de 80% cobre entre 70% e 90% dos meses de teste; reação — caso montado à mão.
+
+### P12 Serviços e contratos recorrentes (Fase 3)
+
+| Dado novo | Conteúdo |
+|---|---|
+| Bloco `projetos` | Tipo, horas orçadas, horas realizadas, custo por hora, preço |
+| Bloco `contratos_recorrentes` | Conta, início, fim ou cancelamento, valor mensal, reajustes, motivo |
+
+- **Custo de projeto de preço fechado**: Monte Carlo com a distribuição observada da razão horas realizadas ÷ orçadas por tipo de projeto (reamostragem). Saídas: chance de prejuízo no preço proposto e preço que leva essa chance a até 10%. Tipo de decisão `preco_projeto`.
+- **Cancelamento e valor do cliente**: curva de sobrevivência (Kaplan-Meier) por segmento; regressão de Cox com o reajuste recebido como covariável, para medir quanto um reajuste muda o risco de cancelamento; valor do cliente = soma da margem mensal × chance de continuar, descontada. Tipo de decisão `reajuste_contrato`.
+- Mesmo serviço Python; o `statsmodels` tem os dois modelos.
+
+Testes: base sintética com desvio de horas e taxa de cancelamento conhecidos, recuperados dentro do intervalo de 80%.
+
+### P5, P8 e P9: regras que faltavam
+
+- **Faixas de referência do setor (P5)**: `faixas_elasticidade` começa vazia e só aceita linha com fonte publicada (URL e data). Sem linha para o segmento, a origem cai para `informada`.
+- **Van Westendorp (P9)**: ponto de barateza marginal = cruzamento de "muito barato" com "não é barato" (1 − barato); ponto de carência marginal = cruzamento de "muito caro" com "não é caro" (1 − caro); a faixa aceitável vai de um ao outro; preço ótimo = cruzamento de "muito barato" com "muito caro".
+- **Gabor-Granger (P9)**: proporção que compraria em cada preço testado dá a curva de demanda; elasticidade entre preços vizinhos; faixa P10–P90 por reamostragem dos respondentes; entra nas Notas com origem `pesquisa`. Mínimo padrão de 50 respondentes por segmento, no catálogo.
+- **Cliente fundador (P8)**: `contratos.fundador = true` cobra o nível Gestão e entrega o Completo (cota de 6 Notas e medição com grupo de controle), sem parte variável, por 12 meses. Uma restrição impede mais de 2 contratos fundadores ativos.
+- **Atualização de tabela (nível Essencial, P8)**: o trabalho é feito no sistema de cotação do cliente (importação do fluxo 04 e publicação com simulação de impacto). No diagnóstico, `horas_registro.atividade` ganha o valor `atualizacao_tabela`, e o fechamento do mês lista as atualizações feitas por contrato.
 
 ### Fontes
 
