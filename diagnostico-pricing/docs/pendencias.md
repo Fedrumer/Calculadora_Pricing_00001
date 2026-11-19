@@ -9,7 +9,7 @@ página registra, por pacote, o que foi feito, o que foi verificado e o que não
 | --- | --- |
 | P0 Preparação | Feito. Os repositórios privados deixaram de ser pré-requisito pela decisão de 19/11/2026 (regra 8 revista: o repositório fica público durante os testes, sem dado real de cliente) |
 | P1 Turismo na base | Feito, aplicado no projeto Supabase e homologado (19/11/2026) |
-| P2 Simulação | Feito, aplicado no projeto e com a Edge Function `simular` publicada (19/11/2026). Ver abaixo o que falta homologar |
+| P2 Simulação | Feito, aplicado no projeto, Edge Function `simular` publicada e homologado (19/11/2026) |
 | P3 a P12 | Não começados. Ordem: P3; P4, P5 e P10; P6, P7, P8 e P11; P9 e P12 |
 
 ## Padrões provisórios das pendências da seção 12
@@ -90,14 +90,20 @@ Cada pendência abaixo segue a coluna "Enquanto não decide" do plano até você
   `simulacoes`. Pela função publicada, sem sessão de usuário: recusa (403). Verificador de segurança: só os itens
   intencionais já registrados.
 
+### Homologação no projeto `diagnostico_pricing` (19/11/2026)
+
+- `pnpm homologar` passou nas **40 conferências** (eram 31) contra os serviços reais: a distribuidora segue com nota
+  66,4 e ganhos de R$ 18.031, R$ 52.147 e R$ 108.883; a Edge Function `simular` calcula 10.000 cenários em
+  **352 ms** no projeto (cerca de 1,4 s de ida e volta) e dá o mesmo P10 e P50 (R$ 50.166) que o pacote do
+  repositório com a mesma semente, o que confirma que o código publicado é o do repositório; a simulação fica
+  gravada com o tornado; o cliente leitor e o visitante não chamam a função nem leem as tabelas novas.
+- **Senha dos acessos de demonstração redefinida** (sua decisão de 19/11/2026): `consultor@demo.local` e
+  `cliente@demo.local` têm uma senha nova, só de demonstração, que não está no repositório. A senha antiga deixou de
+  valer. Continua valendo a pendência de trocar ou remover esses acessos antes do primeiro cliente.
+
 ### Não verificado
 
-- **`pnpm homologar` contra o projeto real.** O login de `consultor@demo.local` foi recusado com a senha do ambiente
-  local; a senha dos acessos de demonstração do projeto não está neste ambiente. A homologação ganhou as conferências
-  do P2 (a função publicada e o pacote local dão o mesmo P50 com a mesma semente, a simulação fica gravada, o cliente
-  não chama a função) e roda assim que houver a senha: `SENHA=... pnpm homologar`.
-- **Limite de execução da Edge Function com 10.000 sorteios** na base de demonstração: não medido no projeto, pelo
-  mesmo motivo. Localmente leva cerca de 1 s.
+- Simulação com dados reais de um cliente (a base é a empresa fictícia).
 
 ### Contradições entre o plano e o código, e a saída adotada
 
@@ -107,7 +113,8 @@ Cada pendência abaixo segue a coluna "Enquanto não decide" do plano até você
    (0,10 − 0,042) ÷ (0,238 − 0,042) = 29,5%. Com 100 mil sorteios, a chance de prejuízo a 30% é 10,09%. A Nota
    original chega a 9,9% em 30% pelo acaso dos sorteios dela; com 10.000 sorteios, a troca cai entre 25% e 30% ou
    entre 30% e 35% conforme a semente. O sistema interpola o ponto de virada pela chance de prejuízo e dá 29% a 31%
-   ("cerca de 30%", como diz a Nota original); o teste confere esse intervalo.
+   ("cerca de 30%", como diz a Nota original); o teste confere esse intervalo. **Critério aceito por você em
+   19/11/2026: de 28% a 32%.**
 2. **Correlação inicial de 0,5 na Nota nº 01** (13.1 e seção 12): ver a tabela de padrões acima.
 3. **Distribuições das Notas.** O plano descreve premissas por P10, P50 e P90; as Notas originais usam triangulares
    (mínimo, provável, máximo) e a volatilidade do câmbio. O serviço aceita os dois formatos, e as Notas refeitas

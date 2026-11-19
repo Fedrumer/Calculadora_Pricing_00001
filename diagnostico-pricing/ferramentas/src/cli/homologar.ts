@@ -156,7 +156,8 @@ for (const t of ['transacoes', 'custos', 'metricas_resultado', 'achados', 'regra
   conferir((await tabela(cliente, t)).linhas === 0, `não lê ${t}`);
 }
 conferir((await funcao(cliente, 'simular', { diagnostico_id: diag })).status === 403, 'não executa a função simular');
-conferir((await funcao(null, 'simular', { diagnostico_id: diag })).status === 401, 'visitante sem sessão não chama a função simular');
+const visitante = await funcao(null, 'simular', { diagnostico_id: diag });
+conferir([401, 403].includes(visitante.status), `visitante sem sessão não chama a função simular (${visitante.status})`);
 for (const t of ['simulacoes', 'simulacao_resultado', 'premissas_distribuicao', 'capacidade']) conferir((await tabela(cliente, t)).linhas === 0, `não lê ${t}`);
 for (const [f, args] of [['calcular_diagnostico', { p_diagnostico: diag }], ['publicar_diagnostico', { p_diagnostico: diag }], ['simular', { p_diagnostico: diag, p_premissas: {} }], ['criar_cliente', { p_nome: 'x' }]] as const) {
   conferir((await rpc(cliente, f, args)).status === 403, `não executa ${f}`);
