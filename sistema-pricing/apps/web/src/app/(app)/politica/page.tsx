@@ -4,9 +4,10 @@ import type { Politica } from '@pricing/motor';
 import { useEffect, useState } from 'react';
 import { CambioReferencia } from '@/componentes/cambio-referencia';
 import { PainelPublicacao } from '@/componentes/publicacao';
+import { SimuladorComissao } from '@/componentes/simulador-comissao';
 import { Aviso, Carregando, Selo, ou, useAcao, useDados } from '@/componentes/ui';
 import { api } from '@/lib/api';
-import { data } from '@/lib/formato';
+import { data, hojeIso } from '@/lib/formato';
 import { useSessao } from '@/lib/sessao';
 import { supabase } from '@/lib/supabase';
 
@@ -358,6 +359,11 @@ export default function PoliticaComercial() {
             </div>
           </div>
           <CambioReferencia />
+          {s.tem('gestor_pricing', 'admin', 'leitura') && (
+            <SimuladorComissao
+              regraAtual={(lista.dados.politicas.find((p) => p.status === 'publicada' && p.vigencia_inicio <= hojeIso() && (!p.vigencia_fim || p.vigencia_fim >= hojeIso()))?.regras?.comissaoVendedor ?? null) as never}
+            />
+          )}
           {editavel && !sujo && <PainelPublicacao id={politica.id} aoPublicar={() => lista.recarregar()} />}
         </>
       )}
