@@ -17,10 +17,12 @@ isso não for feito, continue aplicando pelo conector e registrando aqui.
 | `20261117000400_api.sql` | `20261117015725` | `api` |
 | `20261117000500_rls.sql` | `20261117015756` | `rls` |
 | `20261118000100_turismo.sql` (estrutura e catálogo versão 2: linhas 1 a 97) | `20261118145833` | `turismo_estrutura_e_catalogo` |
-| `20261118000100_turismo.sql` (validação, motor, API e acesso: linhas 98 em diante) | pendente | — |
+| `20261118000100_turismo.sql` (validação: linhas 98 a 283) | `20261119004416` | `turismo_validacao` |
+| `20261118000100_turismo.sql` (base de cálculo e métricas de turismo: linhas 284 a 490) | `20261119004543` | `turismo_base_e_metricas` |
+| `20261118000100_turismo.sql` (pontuação, painel, API e acesso: linhas 491 em diante) | `20261119004652` | `turismo_pontuacao_api_e_acesso` |
 
-O arquivo do motor foi aplicado em duas partes pelo tamanho; o conteúdo somado é o do arquivo, conferido por
-hash do corpo de cada função.
+Arquivos grandes foram aplicados em partes; o conteúdo somado é o do arquivo, conferido por hash do corpo de
+cada função (37 funções idênticas ao banco local dos testes em 19/11/2026).
 
 ## Projeto do sistema de pricing (`Calculadora_Pricing_00001`)
 

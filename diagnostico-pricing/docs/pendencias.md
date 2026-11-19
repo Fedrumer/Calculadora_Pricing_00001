@@ -8,7 +8,7 @@ o que foi feito, o que foi verificado e o que não foi.
 | Pacote | Situação |
 | --- | --- |
 | P0 Preparação | Parcial: documento salvo, de-para das migrações em `docs/migracoes.md`, RLS ligado em `app.segredos_demo`. Faltam os repositórios privados, que dependem de você |
-| P1 Turismo na base | Feito no código e verificado localmente. No projeto Supabase, só a estrutura e o catálogo entraram (veja abaixo) |
+| P1 Turismo na base | Feito, aplicado no projeto Supabase e homologado (19/11/2026) |
 | P2 a P9 | Não começados. O P2 (simulação) espera os repositórios privados, como manda a regra 8 do plano |
 
 ## P0 Preparação (18/11/2026)
@@ -56,13 +56,19 @@ o que foi feito, o que foi verificado e o que não foi.
 
 ### Não verificado
 
-- **Aplicação no projeto Supabase incompleta.** O trecho de estrutura e catálogo entrou (`turismo_estrutura_e_catalogo`).
-  O segundo trecho (validação) ficou parado numa pergunta de confirmação do conector que não foi respondida a tempo;
-  as funções do motor e da API ainda são as da Fase 1. Até completar: o catálogo versão 2 está vigente no projeto com as
-  funções antigas, e um recálculo da distribuição lá mostraria as dimensões Câmbio e Capacidade vazias na nota por
-  dimensão (a nota geral não muda). A homologação no projeto real fica para depois de completar.
+- (Resolvido em 19/11/2026: a migração foi aplicada inteira no projeto e homologada; veja abaixo.)
 - **Empresa fictícia no sistema de pricing**: não trocada. Veja as contradições abaixo.
 - Dados reais de uma operadora.
+
+### Homologação no projeto `diagnostico_pricing` (19/11/2026)
+
+- A migração entrou em quatro partes (veja `docs/migracoes.md`); as 37 funções do projeto têm o mesmo corpo,
+  por hash, que as do banco local dos testes.
+- `pnpm homologar` passou nas 31 conferências contra os serviços reais: a distribuidora segue com nota 66,4 e ganhos
+  de R$ 18.031, R$ 52.147 e R$ 108.883 no catálogo versão 2; a operadora fictícia foi carregada pela API
+  (1.737 reservas), calcula sem arquivo de custos e chega aos R$ 586,98 por passageiro no bloqueio de Lisboa; o
+  isolamento de visitante e cliente leitor continua o mesmo.
+- A operadora fictícia ficou publicada no projeto. O acesso `cliente@demo.local` continua ligado só à distribuidora.
 
 ### Contradições entre o plano e o código, e a saída adotada
 

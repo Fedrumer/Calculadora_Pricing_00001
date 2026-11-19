@@ -7,6 +7,7 @@
 // e cliente@demo.local (o script o liga ao cliente da demonstração). Na primeira execução instala
 // a empresa fictícia; nas seguintes reaproveita o que existe. Cada conferência que falha encerra com erro.
 import { type Demo, NOMES_ARQUIVO, PERIODO, gerarDemo } from '../demo.ts';
+import { type DemoTurismo, NOMES_ARQUIVO_TURISMO, PERIODO_TURISMO, gerarDemoTurismo } from '../demo-turismo.ts';
 
 const URL_BASE = (process.env.SUPABASE_URL ?? '').replace(/\/$/, '');
 const CHAVE = process.env.SUPABASE_CHAVE ?? '';
@@ -98,6 +99,30 @@ conferir(escrita.status === 403, 'nem o consultor escreve direto em tabela');
 const versao = await ok<number>(consultor, 'publicar_diagnostico', { p_diagnostico: diag });
 conferir(versao >= 1, `publicado como versão ${versao}`);
 await ok(consultor, 'definir_usuario', { p_email: CLIENTE, p_nome: 'Diretora comercial (cliente)', p_perfil: 'cliente_leitor', p_cliente: idCliente });
+
+console.log('Operadora de turismo');
+conferir(painel.diagnostico.segmento === 'distribuicao' && painel.diagnostico.versao_catalogo === 2 && nota('geral') === 66.4,
+  'a distribuidora segue com nota 66,4 no catálogo versão 2');
+lista = await ok<any[]>(consultor, 'listar_diagnosticos');
+let turismo = lista.find((d) => d.cliente.startsWith('Atlântica Viagens'))?.id as string | undefined;
+if (!turismo) {
+  const demo = gerarDemoTurismo();
+  const cliente = await ok<string>(consultor, 'criar_cliente', { p_nome: 'Atlântica Viagens (fictícia)', p_setor: 'operadora' });
+  turismo = await ok<string>(consultor, 'criar_diagnostico', { p_cliente: cliente, p_nome: 'Diagnóstico de pricing 2026', p_inicio: PERIODO_TURISMO.inicio, p_fim: PERIODO_TURISMO.fim, p_precos_liquidos: true, p_segmento: 'operadora' });
+  for (const bloco of Object.keys(demo) as (keyof DemoTurismo)[]) {
+    const upload = await ok<string>(consultor, 'iniciar_upload', { p_diagnostico: turismo, p_bloco: bloco, p_nome_arquivo: NOMES_ARQUIVO_TURISMO[bloco], p_mapeamento: {} });
+    for (let i = 0; i < demo[bloco].length; i += 2000) await ok(consultor, 'enviar_linhas', { p_upload: upload, p_linhas: demo[bloco].slice(i, i + 2000) });
+    await ok(consultor, 'concluir_upload', { p_upload: upload });
+  }
+  conferir(true, `operadora fictícia carregada pela API (${demo.transacoes.length} reservas)`);
+}
+conferir((await ok(consultor, 'calcular_diagnostico', { p_diagnostico: turismo })).calculado === true, 'a operadora calcula sem arquivo de custos');
+const pt = await ok(consultor, 'painel', { p_diagnostico: turismo });
+const mt = (c: string) => pt.metricas.find((x: any) => x.codigo === c);
+const lisboa = mt('margem_passageiro').detalhe.por_produto.find((x: any) => x.produto === 'LIS-JUL');
+conferir(lisboa.passageiros === 34 && Math.abs(lisboa.margem_passageiro - 586.98) < 0.01, 'bloqueio de Lisboa com 34 passageiros e R$ 586,98 por passageiro');
+conferir(['resultado_cambial_pct', 'cambio_equilibrio', 'ocupacao_bloqueio_pct', 'custo_lugar_nao_vendido'].every((c) => mt(c).valor !== null), 'métricas de câmbio e capacidade calculadas');
+await ok(consultor, 'publicar_diagnostico', { p_diagnostico: turismo });
 
 console.log('Cliente (leitura)');
 const cliente = await entrar(CLIENTE);
