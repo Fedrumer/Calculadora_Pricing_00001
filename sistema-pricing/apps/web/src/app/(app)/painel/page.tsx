@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { BarrasHorizontais, GraficoColunas, GraficoLinha } from '@/componentes/graficos';
 import { Aviso, Carregando, ou, useDados } from '@/componentes/ui';
-import { dataHora, hojeIso, mesCurto, moeda, numero, pct } from '@/lib/formato';
+import { data, dataHora, hojeIso, mesCurto, moeda, numero, pct } from '@/lib/formato';
 import { useSessao } from '@/lib/sessao';
 import { supabase } from '@/lib/supabase';
 
@@ -209,7 +209,9 @@ export default function Painel() {
             </div>
             <div className="cartao" data-testid="exposicao-cambial">
               <h2>Exposição cambial</h2>
-              <p className="sutil">Cotações fechadas nos últimos 90 dias com custo em moeda estrangeira, comparadas ao câmbio de referência de hoje.</p>
+              <p className="sutil">
+                Cotações fechadas nos últimos 90 dias com custo em moeda estrangeira, comparadas à PTAX mais recente (quando o fluxo de câmbio está ligado) ou ao câmbio de referência de hoje.
+              </p>
               {dados.painel.exposicaoCambial.length === 0 ? (
                 <p className="sutil">Nenhuma cotação fechada com custo em moeda estrangeira no período.</p>
               ) : (
@@ -226,13 +228,16 @@ export default function Painel() {
                       <span className="rotulo">Câmbio que zera a margem (média)</span>
                       <span className="valor">{e.cambioEquilibrioMedio != null ? numero(e.cambioEquilibrioMedio, 4) : '—'}</span>
                       <small>
-                        Referência hoje: {e.cambioReferencia != null ? numero(e.cambioReferencia, 4) : 'não publicada'}
+                        {e.fonte === 'ptax' ? `PTAX de ${data(e.dataPtax)}` : 'Referência hoje'}: {e.cambioReferencia != null ? numero(e.cambioReferencia, 4) : 'não publicada'}
+                        {e.fonte === 'ptax' && e.referenciaPolitica != null ? ` (referência da política ${numero(e.referenciaPolitica, 4)})` : ''}
                         {e.folgaMediaPct != null ? `, folga de ${pct(e.folgaMediaPct)}` : ''}
                       </small>
                     </div>
                     <p style={{ gridColumn: '1 / -1' }}>
                       {e.semMargemNaReferencia > 0 ? (
-                        <span className="selo vermelho">{numero(e.semMargemNaReferencia)} ficariam sem margem ao câmbio de hoje</span>
+                        <span className="selo vermelho">
+                          {numero(e.semMargemNaReferencia)} ficariam sem margem {e.fonte === 'ptax' ? 'à PTAX' : 'ao câmbio de hoje'}
+                        </span>
                       ) : (
                         <span className="selo verde">Todas ainda têm margem ao câmbio de hoje</span>
                       )}
@@ -242,6 +247,58 @@ export default function Painel() {
               )}
             </div>
           </div>
+
+          {dados.painel.pilotos?.length > 0 && (
+            <div className="cartao" data-testid="pilotos-painel">
+              <h2>Pilotos</h2>
+              <p className="sutil">
+                Comparação descritiva entre o grupo de tratamento e o de controle, antes (o mesmo número de dias antes do início) e durante o piloto. O teste estatístico fica na medição do
+                diagnóstico.
+              </p>
+              {dados.painel.pilotos.map((p: any) => (
+                <div key={p.id} style={{ marginBottom: 16 }}>
+                  <h3 style={{ margin: '8px 0' }}>
+                    {p.nome}{' '}
+                    <span className={`selo ${p.status === 'ativo' ? 'verde' : 'azul'}`}>{p.status === 'ativo' ? 'ativo' : 'encerrado'}</span>
+                  </h3>
+                  <p className="sutil">
+                    {p.notaReferencia ? `${p.notaReferencia}. ` : ''}De {data(p.inicio)} a {data(p.fim)}; grupos por {p.criterio}.
+                  </p>
+                  <div className="rolagem">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Grupo</th>
+                          <th>Fase</th>
+                          <th className="num">Emitidas</th>
+                          <th className="num">Conversão</th>
+                          <th className="num">Margem das fechadas</th>
+                          <th className="num">Desconto médio</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {p.bracos.flatMap((b: any) =>
+                          (['antes', 'durante'] as const).map((fase) => {
+                            const x = b[fase];
+                            return (
+                              <tr key={`${b.braco}-${fase}`}>
+                                <td>{fase === 'antes' ? (b.braco === 'tratamento' ? 'Tratamento' : 'Controle') : ''}</td>
+                                <td>{fase === 'antes' ? 'Antes' : 'Durante'}</td>
+                                <td className="num">{numero(x?.emitidas ?? 0)}</td>
+                                <td className="num">{x?.conversaoPct != null ? pct(x.conversaoPct) : '—'}</td>
+                                <td className="num">{x?.margemPct != null ? pct(x.margemPct) : '—'}</td>
+                                <td className="num">{x?.descontoMedioPct != null ? pct(x.descontoMedioPct) : '—'}</td>
+                              </tr>
+                            );
+                          }),
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="cartao">
             <h2>Por produto</h2>

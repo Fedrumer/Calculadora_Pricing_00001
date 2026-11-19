@@ -7,7 +7,7 @@ import { cifrar, hmac, soDigitos } from '../cripto.ts';
 import { ErroHttp, conflito, invalido, naoEncontrado, proibido } from '../erros.ts';
 import { type MotivoPerda, motivosDaOrganizacao } from '../motivos-perda.ts';
 import { gerarProposta } from '../pdf.ts';
-import { type RegrasCarregadas, carregarRegras } from '../regras.ts';
+import { type ContextoCotacao, type RegrasCarregadas, carregarRegras } from '../regras.ts';
 
 export const esquemaPedido = z.object({
   produto: z.string().min(1).max(60),
@@ -55,10 +55,17 @@ function exigirQuemCota(r: Requisicao) {
 }
 
 /** Resolve o canal do pedido conforme o escopo do ator e chama o motor. */
-export async function calcularPedido(r: Requisicao, entrada: z.infer<typeof esquemaPedido>, data = hoje(r.deps)): Promise<Calculo> {
+export async function calcularPedido(r: Requisicao, entrada: z.infer<typeof esquemaPedido>, data = hoje(r.deps), contexto?: ContextoCotacao): Promise<Calculo> {
   const { ator, tx, deps } = r;
-  const carregadas = await carregarRegras(tx, ator.orgId, data);
   const proprios = canaisDoAtor(ator);
+  // A9: quem cota (vendedor, canal, unidade) decide se a cotação cai num piloto
+  const ctx: ContextoCotacao = contexto ?? {
+    vendedorId: ator.tipo === 'usuario' ? ator.id : null,
+    canalCodigo: entrada.canal ?? null,
+    canalId: !entrada.canal && proprios.length === 1 ? proprios[0] : null,
+    unidadeId: ator.tipo === 'usuario' ? await unidadeDoAtor(r, null) : null,
+  };
+  const carregadas = await carregarRegras(tx, ator.orgId, data, { contexto: ctx });
   let canal = carregadas.canais.find((c) => c.codigo === entrada.canal) ?? null;
   if (entrada.canal && !canal) throw invalido(`Canal "${entrada.canal}" não existe.`);
 
@@ -166,17 +173,23 @@ async function unidadeDoAtor(r: Requisicao, codigo: string | null | undefined): 
 export async function criarCotacao(r: Requisicao, dados: z.infer<typeof esquemaCriar>, origem: string) {
   const { ator, tx, deps } = r;
   exigirQuemCota(r);
-  const c = await calcularPedido(r, dados.pedido);
   const unidadeId = await unidadeDoAtor(r, dados.unidade);
+  const proprios = canaisDoAtor(ator);
+  const c = await calcularPedido(r, dados.pedido, hoje(deps), {
+    vendedorId: ator.tipo === 'usuario' ? ator.id : null,
+    canalCodigo: dados.pedido.canal ?? null,
+    canalId: !dados.pedido.canal && proprios.length === 1 ? proprios[0] : null,
+    unidadeId,
+  });
   // só vale um início plausível: no passado e há menos de 12 horas
   const abertura = dados.iniciadaEm ? new Date(dados.iniciadaEm) : null;
   const iniciada = abertura && abertura <= deps.agora() && deps.agora().getTime() - abertura.getTime() < 12 * 3600_000 ? abertura : null;
   const [{ numero } = { numero: 0 }] = await tx<{ numero: number }[]>`select app.proximo_numero(${ator.orgId}, 'cotacao')::int as numero`;
   const [cot] = await tx<{ id: string }[]>`
-    insert into public.cotacoes (org_id, numero, cliente_nome, cliente_email, canal_id, unidade_id, dono_id, chave_api_id, produto_id, origem, observacao, iniciada_em)
+    insert into public.cotacoes (org_id, numero, cliente_nome, cliente_email, canal_id, unidade_id, dono_id, chave_api_id, produto_id, origem, observacao, iniciada_em, piloto_id, braco)
     values (${ator.orgId}, ${numero}, ${dados.cliente.nome}, ${dados.cliente.email ?? null}, ${c.canalId}, ${unidadeId},
       ${ator.tipo === 'usuario' ? ator.id : null}, ${ator.chave?.id ?? null}, ${c.carregadas.produtoIds[c.pedido.produto]!},
-      ${origem}, ${dados.observacao ?? null}, ${iniciada})
+      ${origem}, ${dados.observacao ?? null}, ${iniciada}, ${c.carregadas.piloto?.id ?? null}, ${c.carregadas.piloto?.braco ?? null})
     returning id`;
   const id = cot!.id;
   const documento = soDigitos(dados.cliente.documento ?? '');
@@ -298,7 +311,13 @@ export const rotasCotacoes: Rota[] = [
       if (!['rascunho', 'recusada', 'aprovada', 'emitida', 'expirada'].includes(c.status)) {
         throw conflito(`Uma cotação "${c.status}" não aceita nova versão.`, 'STATUS_INVALIDO');
       }
-      const calculo = await calcularPedido(r, dados.pedido);
+      const [orig] = await r.tx<{ unidade_id: string | null }[]>`select unidade_id from public.cotacoes where id = ${c.id}`;
+      const calculo = await calcularPedido(r, dados.pedido, hoje(r.deps), {
+        vendedorId: c.dono_id,
+        canalCodigo: dados.pedido.canal ?? null,
+        canalId: dados.pedido.canal ? null : c.canal_id,
+        unidadeId: orig?.unidade_id ?? null,
+      });
       if (calculo.carregadas.produtoIds[calculo.pedido.produto] !== c.produto_id) throw invalido('A nova versão precisa manter o mesmo produto.');
       const versao = c.versao_atual + 1;
       const versaoId = await gravarVersao(r, c.id, versao, calculo);

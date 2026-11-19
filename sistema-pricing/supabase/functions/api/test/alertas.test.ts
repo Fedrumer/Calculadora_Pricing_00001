@@ -70,6 +70,12 @@ describe('alertas de câmbio (PTAX)', () => {
     expect(r.corpo.alertas.find((x: any) => x.tipo === 'aceitas_sem_margem_na_ptax').dados).toMatchObject({ cotacoes: 1, valorMoeda: 1197.96 });
     expect(r.corpo.para).toEqual(['pricing@operadora.demo']);
 
+    // com a PTAX gravada, a exposição cambial do painel passa a compará-la, e mostra a referência da política
+    const [ind] = await a.sql<{ e: any[] }[]>`select app.indicadores(${a.orgId}, current_date - 30, current_date) -> 'exposicaoCambial' as e`;
+    expect(ind!.e[0]).toMatchObject({ moeda: 'EUR', fonte: 'ptax', dataPtax: dia, semMargemNaReferencia: 1 });
+    expect(Number(ind!.e[0].cambioReferencia)).toBe(6.5);
+    expect(Number(ind!.e[0].referenciaPolitica)).toBe(6.1);
+
     // o mesmo boletim de novo: nada gravado, nada repetido no mesmo dia
     const de_novo = await a.chamar('POST', '/automacao/cambios-mercado', { cabecalhos: automacao, corpo: { cotacoes: [{ moeda: 'EUR', data: dia, taxaVenda: 6.5 }] } });
     expect(de_novo.corpo).toMatchObject({ gravadas: 0, alertas: [], repetidosHoje: 2 });
