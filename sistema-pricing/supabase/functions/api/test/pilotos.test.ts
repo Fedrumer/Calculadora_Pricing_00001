@@ -52,6 +52,16 @@ describe('piloto com grupo de controle', () => {
     piloto = r.corpo.id;
   });
 
+  it('a tela lista os candidatos por critério: só vendedores ativos entre os usuários', async () => {
+    const r = await a.chamar('GET', '/pilotos/candidatos', { como: T.pricing });
+    expect(r.status).toBe(200);
+    const nomes = r.corpo.vendedor.map((v: any) => v.nome);
+    expect(nomes).toEqual(expect.arrayContaining(['Vera Vendedora', 'Rui Rebaixa', 'Sara Segura']));
+    expect(nomes).not.toContain('Paulo Pricing');
+    expect(r.corpo.canal.length).toBe(2);
+    expect((await a.chamar('GET', '/pilotos/candidatos', { como: T.vera })).status).toBe(403);
+  });
+
   it('o mesmo membro não entra nos dois braços', async () => {
     const r = await a.chamar('POST', '/pilotos', { como: T.pricing, corpo: corpoPiloto({ controle: [a.usuarios.get(T.vera)] }) });
     expect(r.status).toBe(422);

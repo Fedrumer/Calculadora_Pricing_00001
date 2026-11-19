@@ -49,7 +49,8 @@ const limpar = (r: RegraComissao) => ({ base: r.base, pct: r.pct, ...(r.base ===
 
 export function SimuladorComissao({ regraAtual }: { regraAtual: RegraComissao | null }) {
   const [a, setA] = useState<RegraComissao>(regraAtual ?? { base: 'receita', pct: 2 });
-  const [b, setB] = useState<RegraComissao>({ base: 'margem', pct: 10 });
+  // B começa diferente de A, para a comparação já dizer algo
+  const [b, setB] = useState<RegraComissao>(regraAtual?.base === 'margem' ? { base: 'receita', pct: 2 } : { base: 'margem', pct: 10 });
   const [inicio, setInicio] = useState(diasAtras(365));
   const [fim, setFim] = useState(hojeIso());
   const [resultado, setResultado] = useState<any>(null);

@@ -72,6 +72,22 @@ async function conferir(r: Requisicao, d: z.infer<typeof esquema>) {
 
 export const rotasPilotos: Rota[] = [
   {
+    // quem pode entrar num piloto, por critério: vendedores (perfil vendedor ativo), canais ativos e unidades
+    metodo: 'GET',
+    caminho: '/pilotos/candidatos',
+    auth: 'usuario',
+    papeis: ['gestor_pricing', 'leitura', 'admin'],
+    async handler(r) {
+      const { tx, ator } = r;
+      const vendedor = await tx`
+        select distinct u.id, u.nome from public.usuarios u join public.usuario_papel up on up.usuario_id = u.id
+        where u.org_id = ${ator.orgId} and u.status = 'ativo' and up.papel = 'vendedor' order by u.nome`;
+      const canal = await tx`select id, nome from public.canais where org_id = ${ator.orgId} and ativo order by nome`;
+      const unidade = await tx`select id, nome from public.unidades where org_id = ${ator.orgId} and ativo order by nome`;
+      return { corpo: { vendedor, canal, unidade } };
+    },
+  },
+  {
     metodo: 'POST',
     caminho: '/pilotos',
     auth: 'usuario',

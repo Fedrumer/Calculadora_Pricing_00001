@@ -38,27 +38,19 @@ export default function Pilotos() {
 
   const { dados, erro, recarregar } = useDados(async () => {
     const sb = supabase();
-    const [p, t, po, u, up, c, un] = await Promise.all([
+    const [p, t, po, candidatos] = await Promise.all([
       sb.from('pilotos').select('*').order('criado_em', { ascending: false }),
       sb.from('tabelas_preco').select('id, nome, versao, status').in('status', ['rascunho', 'publicada', 'piloto']).order('versao', { ascending: false }),
       sb.from('politicas').select('id, versao, status').in('status', ['rascunho', 'publicada', 'piloto']).order('versao', { ascending: false }),
-      sb.from('usuarios').select('id, nome, status').order('nome'),
-      sb.from('usuario_papel').select('usuario_id, papel'),
-      sb.from('canais').select('id, nome, ativo').order('nome'),
-      sb.from('unidades').select('id, nome').order('nome'),
+      api<Record<Criterio, { id: string; nome: string }[]>>('GET', '/pilotos/candidatos'),
     ]);
-    const papeis = ou(up) as { usuario_id: string; papel: string }[];
-    const vendedores = (ou(u) as { id: string; nome: string; status: string }[]).filter((x) => x.status === 'ativo' && papeis.some((p) => p.usuario_id === x.id && p.papel === 'vendedor'));
+    const pessoas = ou(await sb.from('v_pessoas').select('id, nome')) as { id: string; nome: string }[];
     return {
       pilotos: ou(p) as Record<string, any>[],
       tabelas: ou(t) as { id: string; nome: string; versao: number; status: string }[],
       politicas: ou(po) as { id: string; versao: number; status: string }[],
-      membros: {
-        vendedor: vendedores.map((v) => ({ id: v.id, nome: v.nome })),
-        canal: (ou(c) as { id: string; nome: string; ativo: boolean }[]).filter((x) => x.ativo).map((x) => ({ id: x.id, nome: x.nome })),
-        unidade: ou(un) as { id: string; nome: string }[],
-      } as Record<Criterio, { id: string; nome: string }[]>,
-      nomes: new Map<string, string>([...(ou(u) as { id: string; nome: string }[]), ...(ou(c) as { id: string; nome: string }[]), ...(ou(un) as { id: string; nome: string }[])].map((x) => [x.id, x.nome])),
+      membros: candidatos,
+      nomes: new Map<string, string>([...pessoas, ...candidatos.canal, ...candidatos.unidade].map((x) => [x.id, x.nome])),
     };
   });
 
