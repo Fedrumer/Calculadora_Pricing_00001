@@ -1,0 +1,16 @@
+{
+  "name": "@diagnostico/simulacao",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Serviço de simulação de Monte Carlo do diagnóstico: TypeScript puro, sem banco, relógio ou rede no núcleo.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "empacotar": "node empacotar.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "typescript": "^5.9.3"
+  }
+}

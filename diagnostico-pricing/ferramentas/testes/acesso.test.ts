@@ -92,7 +92,9 @@ test('publicado: o leitor vê o painel do próprio cliente e só ele', async () 
 
 test('perfis do cliente não leem a base, o resultado bruto nem o catálogo direto nas tabelas', async () => {
   for (const u of [leitor, editor, leitorOutro]) {
-    for (const t of ['transacoes', 'custos', 'contas', 'metricas_resultado', 'achados', 'cenario_resultado', 'regras_achado', 'auditoria']) {
+    for (const t of ['transacoes', 'custos', 'contas', 'metricas_resultado', 'achados', 'cenario_resultado', 'regras_achado', 'auditoria',
+                     // P2: simulação, premissas com distribuição e capacidade
+                     'capacidade', 'premissas_distribuicao', 'premissas_correlacao', 'simulacoes', 'simulacao_resultado', 'simulacao_sensibilidade', 'simulacao_varreduras']) {
       assert.equal((await ler(u, `select count(*)::int as n from public.${t}`))[0].n, 0, `${t}`);
     }
   }
@@ -109,6 +111,8 @@ test('ninguém escreve direto nas tabelas, nem o consultor', async () => {
   await negado(ler(consultor, `delete from public.auditoria`));
   await negado(ler(leitor, `insert into public.clientes (nome) values ('x')`));
   await negado(ler(consultor, `select * from motor.fato limit 1`));
+  await negado(ler(consultor, `insert into public.simulacoes (cliente_id, modelo, semente, sorteios, versao_servico, premissas, opcoes) values ('${cliente}', 'x', 1, 100, 'x', '[]', '[]')`));
+  await negado(ler(consultor, `update public.premissas_distribuicao set p50 = 0`));
 });
 
 test('perfis do cliente não carregam, calculam, simulam nem publicam', async () => {
@@ -116,6 +120,8 @@ test('perfis do cliente não carregam, calculam, simulam nem publicam', async ()
     await negado(chamar(sql, claims(u), 'calcular_diagnostico', { p_diagnostico: diag }));
     await negado(chamar(sql, claims(u), 'iniciar_upload', { p_diagnostico: diag, p_bloco: 'custos', p_nome_arquivo: 'x.csv' }));
     await negado(chamar(sql, claims(u), 'simular', { p_diagnostico: diag, p_premissas: {} }));
+    await negado(chamar(sql, claims(u), 'base_simulacao', { p_diagnostico: diag }));
+    await negado(chamar(sql, claims(u), 'gravar_simulacao', { p_diagnostico: diag, p_dados: {} }));
     await negado(chamar(sql, claims(u), 'publicar_diagnostico', { p_diagnostico: diag }));
     await negado(chamar(sql, claims(u), 'criar_cliente', { p_nome: 'x' }));
   }

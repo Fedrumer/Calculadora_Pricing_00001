@@ -37,7 +37,7 @@ export const SEGMENTOS_TURISMO = ['operadora', 'consolidadora'];
 export const ROTULO_CENARIO: Record<string, string> = { conservador: 'Conservador', base: 'Base', agressivo: 'Agressivo' };
 export const ROTULO_BLOCO: Record<string, string> = {
   transacoes: 'Transações', custos: 'Custos', produtos: 'Cadastro de produtos', contas: 'Cadastro de clientes',
-  custos_servir: 'Custos de servir', descontos_fora_fatura: 'Descontos fora da fatura', bloqueios: 'Bloqueios',
+  custos_servir: 'Custos de servir', descontos_fora_fatura: 'Descontos fora da fatura', bloqueios: 'Bloqueios', capacidade: 'Capacidade',
 };
 export const ROTULO_RECORTE: Record<string, string> = { canal: 'Canal', segmento: 'Segmento', categoria: 'Categoria', regiao: 'Região', vendedor: 'Vendedor', produto: 'Produto', conta: 'Conta', fornecedor: 'Fornecedor' };
 export const ROTULO_PREMISSA: Record<string, { rotulo: string; dica: string }> = {

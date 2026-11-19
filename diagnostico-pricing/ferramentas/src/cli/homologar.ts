@@ -6,6 +6,7 @@
 // Precisa de dois usuários já criados no Auth: consultor@demo.local (registrado como consultor)
 // e cliente@demo.local (o script o liga ao cliente da demonstração). Na primeira execução instala
 // a empresa fictícia; nas seguintes reaproveita o que existe. Cada conferência que falha encerra com erro.
+import { atender as simularLocal } from '@diagnostico/simulacao';
 import { type Demo, NOMES_ARQUIVO, PERIODO, gerarDemo } from '../demo.ts';
 import { type DemoTurismo, NOMES_ARQUIVO_TURISMO, PERIODO_TURISMO, gerarDemoTurismo } from '../demo-turismo.ts';
 
@@ -96,6 +97,26 @@ const escrita = await fetch(`${URL_BASE}/rest/v1/metricas_resultado?diagnostico_
 });
 conferir(escrita.status === 403, 'nem o consultor escreve direto em tabela');
 
+console.log('Simulação (P2): Edge Function simular');
+async function funcao(token: string | null, nome: string, corpo: unknown) {
+  const r = await fetch(`${URL_BASE}/functions/v1/${nome}`, {
+    method: 'POST', headers: { apikey: CHAVE, 'content-type': 'application/json', authorization: `Bearer ${token ?? CHAVE}` }, body: JSON.stringify(corpo),
+  });
+  return { status: r.status, dados: (await r.json().catch(() => null)) as any };
+}
+const pedido = { diagnostico_id: diag, semente: 20261119, sorteios: 10000 };
+const t0 = Date.now();
+const remoto = await funcao(consultor, 'simular', pedido);
+conferir(remoto.status === 200, `a função simula 10.000 cenários no projeto (${remoto.dados?.duracao_ms} ms de cálculo, ${Date.now() - t0} ms de ida e volta)`);
+// o mesmo pedido no pacote do repositório, com a base lida do projeto: o código publicado é o do repositório
+const local = (await simularLocal(pedido, { rpc: (f, a) => (f === 'gravar_simulacao' ? Promise.resolve('local') : ok(consultor, f, a)), agora: () => performance.now() })) as { corpo: any };
+const m = (r: any) => r.resultado.opcoes[0].medidas.margem;
+conferir(m(remoto.dados).p50 === m(local.corpo).p50 && m(remoto.dados).p10 === m(local.corpo).p10, `mesmo resultado da função publicada e do pacote local (P50 de R$ ${Math.round(m(local.corpo).p50)})`);
+const gravada = await ok(consultor, 'simulacao_do_diagnostico', { p_diagnostico: diag });
+conferir(gravada.id === remoto.dados.id && gravada.sensibilidade.length === 8, 'a simulação ficou gravada, com o tornado das oito premissas');
+const ganhosBase = painel.cenarios.find((c: any) => c.codigo === 'base').alavancas;
+conferir(m(local.corpo).p50 > ganhos[0] && m(local.corpo).p50 < ganhos[2] && ganhosBase.length === 2, 'o P50 fica entre os cenários conservador e agressivo');
+
 const versao = await ok<number>(consultor, 'publicar_diagnostico', { p_diagnostico: diag });
 conferir(versao >= 1, `publicado como versão ${versao}`);
 await ok(consultor, 'definir_usuario', { p_email: CLIENTE, p_nome: 'Diretora comercial (cliente)', p_perfil: 'cliente_leitor', p_cliente: idCliente });
@@ -134,6 +155,9 @@ conferir(publicado.publicacao.versao === versao && publicado.cenarios.length ===
 for (const t of ['transacoes', 'custos', 'metricas_resultado', 'achados', 'regras_achado', 'auditoria']) {
   conferir((await tabela(cliente, t)).linhas === 0, `não lê ${t}`);
 }
+conferir((await funcao(cliente, 'simular', { diagnostico_id: diag })).status === 403, 'não executa a função simular');
+conferir((await funcao(null, 'simular', { diagnostico_id: diag })).status === 401, 'visitante sem sessão não chama a função simular');
+for (const t of ['simulacoes', 'simulacao_resultado', 'premissas_distribuicao', 'capacidade']) conferir((await tabela(cliente, t)).linhas === 0, `não lê ${t}`);
 for (const [f, args] of [['calcular_diagnostico', { p_diagnostico: diag }], ['publicar_diagnostico', { p_diagnostico: diag }], ['simular', { p_diagnostico: diag, p_premissas: {} }], ['criar_cliente', { p_nome: 'x' }]] as const) {
   conferir((await rpc(cliente, f, args)).status === 403, `não executa ${f}`);
 }

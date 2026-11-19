@@ -1,6 +1,7 @@
 packages:
   - apps/web
   - ferramentas
+  - servicos/*
 onlyBuiltDependencies:
   - esbuild
   - sharp

@@ -38,6 +38,9 @@ importers:
 
   ferramentas:
     dependencies:
+      '@diagnostico/simulacao':
+        specifier: workspace:*
+        version: link:../servicos/simulacao
       postgres:
         specifier: 3.4.7
         version: 3.4.7
@@ -48,6 +51,15 @@ importers:
       tsx:
         specifier: ^4.20.6
         version: 4.23.15
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  servicos/simulacao:
+    devDependencies:
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

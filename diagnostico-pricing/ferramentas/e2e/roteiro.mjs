@@ -29,6 +29,7 @@ const navegador = await chromium.launch();
 const pagina = await navegador.newPage({ viewport: { width: 1360, height: 900 }, deviceScaleFactor: Number(process.env.ESCALA ?? 1) });
 const erros = [];
 pagina.on('pageerror', (e) => erros.push(e.message));
+if (process.env.DEPURAR) pagina.on('console', (m) => m.type() === 'error' && console.log('[console]', m.text().slice(0, 400)));
 const foto = (nome) => pagina.screenshot({ path: join(capturas, `${nome}.png`), fullPage: true });
 const texto = (t) => pagina.getByText(t, { exact: false }).first();
 const aba = (nome) => pagina.getByRole('tab', { name: nome }).click();
@@ -76,6 +77,12 @@ try {
   await aba('Oportunidades');
   conferir(await texto('Contenção de descontos').isVisible() && await texto('Reajuste seletivo').isVisible(), 'as duas alavancas aparecem');
   conferir((await pagina.locator('.barra-cenario').count()) === 6, 'cada alavanca tem os três cenários');
+  // P2: faixa de ganho por 10.000 cenários, pelo serviço de simulação
+  await pagina.locator('button:has-text("Simular 10.000 cenários"), button:has-text("Simular de novo")').first().click();
+  await pagina.locator('[data-teste="p50-simulado"]').waitFor({ timeout: 60000 });
+  const p50 = await pagina.locator('[data-teste="p50-simulado"]').innerText();
+  conferir(/R\$/.test(p50) && await texto('de cada 100 cenários').first().isVisible(), `a faixa de 10.000 cenários aparece com P50 de ${p50} e a frase em frequência natural`);
+  conferir(await texto('Acompanhe').first().isVisible(), 'as premissas que mais mexem no resultado aparecem para acompanhar');
   await pagina.click('.achado button:has-text("Ver evidência")');
   conferir((await pagina.locator('.achado table tbody tr').count()) > 0, 'o achado abre a evidência com exemplos');
   await foto('03-oportunidades');
@@ -179,6 +186,7 @@ try {
   conferir((await pagina.locator('button:has-text("Recalcular"), button:has-text("Publicar")').count()) === 0, 'o cliente não recalcula nem publica');
   await aba('Oportunidades');
   conferir((await pagina.locator('button:has-text("Salvar e recalcular")').count()) === 0, 'o cliente não altera premissas');
+  conferir((await pagina.locator('[data-teste="faixa-simulada"]').count()) === 0, 'o cliente não simula nesta fase');
   await aba('Dados e premissas');
   conferir((await pagina.locator('button:has-text("Substituir")').count()) === 0, 'o cliente não envia arquivo');
   await foto('06-cliente');

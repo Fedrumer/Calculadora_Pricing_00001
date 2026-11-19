@@ -1,15 +1,128 @@
 # O que foi verificado e o que falta
 
-O plano de ajuste ao v3 está em `docs/ajustamento-v3.md` (dez pacotes, P0 a P9). Esta página registra, por pacote,
-o que foi feito, o que foi verificado e o que não foi.
+O plano de ajuste ao v3 está em `docs/ajustamento-v3.md` (treze pacotes, P0 a P12, com as seções 13 e 14). Esta
+página registra, por pacote, o que foi feito, o que foi verificado e o que não foi.
 
 ## Andamento do plano v3
 
 | Pacote | Situação |
 | --- | --- |
-| P0 Preparação | Parcial: documento salvo, de-para das migrações em `docs/migracoes.md`, RLS ligado em `app.segredos_demo`. Faltam os repositórios privados, que dependem de você |
+| P0 Preparação | Feito. Os repositórios privados deixaram de ser pré-requisito pela decisão de 19/11/2026 (regra 8 revista: o repositório fica público durante os testes, sem dado real de cliente) |
 | P1 Turismo na base | Feito, aplicado no projeto Supabase e homologado (19/11/2026) |
-| P2 a P9 | Não começados. O P2 (simulação) espera os repositórios privados, como manda a regra 8 do plano |
+| P2 Simulação | Feito, aplicado no projeto e com a Edge Function `simular` publicada (19/11/2026). Ver abaixo o que falta homologar |
+| P3 a P12 | Não começados. Ordem: P3; P4, P5 e P10; P6, P7, P8 e P11; P9 e P12 |
+
+## Padrões provisórios das pendências da seção 12
+
+Cada pendência abaixo segue a coluna "Enquanto não decide" do plano até você decidir. Todos são provisórios.
+
+| Pendência | Padrão provisório em uso | Pacote |
+| --- | --- | --- |
+| Limiares e pesos de turismo e MGAs | Métricas informativas, nota geral parcial | P1 (em uso) |
+| Definição de ganho da garantia | Margem de contribuição anual depois do custo de servir, 12 meses, captura padrão | P4 |
+| Licença da curva de câmbio futuro da B3 | Focus; forward do banco do cliente como premissa informada | P3 |
+| Onde fica o motor de análise depois da customização | Ambiente da consultoria | P6 |
+| Percentual e teto da parcela variável | Cálculo pronto, parâmetros por contrato | P7 |
+| Sinistralidade que a MGA pode compartilhar | Métrica de comissão de performance fora do catálogo de MGAs | P5 |
+| 16 sugestões pendentes no documento de arquitetura | Nenhum pacote depende; o código segue as da Fase 1 | — |
+| Acessos `consultor@demo.local` e `cliente@demo.local` | Trocar a senha ou remover antes do primeiro cliente | — |
+| Correlações iniciais das Notas nº 01 e nº 02 | 0,5 entre adesão e pedidos a mais como padrão do tipo `servico_adicional`, origem informada. A Nota nº 01 refeita usa 0, porque a Nota original sorteia as premissas de forma independente (conferido no código dela); com 0,5 a chance da taxa cai de 76 para 72 em 100, fora da tolerância de 2 pontos | P2, P3 |
+| Limite de risco padrão da regra de escolha | 10% de chance de prejuízo (`LIMITE_RISCO_PADRAO`) | P2 (em uso) |
+| Rodadas e níveis do simulador do cliente | 50 rodadas por dia, todos os níveis | P3 |
+| Cortes da curva ABC e da matriz; mínimos da cesta; taxa do prazo | 80% e 95%, medianas, 30 pedidos e lift 1,2, Selic projetada; métricas informativas | P10 |
+| Janela e mínimo de eventos da reação da concorrência; variação mínima de preço | 30 dias e 5 eventos; regra de variação no catálogo | P11 |
+| Estrutura de custo da operadora fictícia | As duas ficam como casos de aceite (testadas no P2: +224% e +538%) | P2, P3 |
+| Faixas iniciais das premissas sem histórico | Origem informada e faixa larga | P5 |
+| Mínimo de respondentes da pesquisa de disposição a pagar | 50 por segmento | P9 |
+| Números e fontes dos slides | Padronizar pelos números do sistema depois do P3 | P3 |
+
+## P2 Simulação (19/11/2026)
+
+### Feito
+
+- **Serviço `servicos/simulacao`** (TypeScript puro, sem banco, relógio ou rede no núcleo): gerador xoshiro128** com
+  semente; distribuições por quantis (P10, P50 e P90 interpolados, com a reta estendida fora deles), triangular,
+  lognormal (câmbio, média preservada), discreta e reação da concorrência; cópula gaussiana com Cholesky e
+  r = 2 sen(π ρs ÷ 6), que recusa matriz incoerente apontando o par; sorteios comuns a todas as opções; saídas por
+  opção e medida (margem, faturamento, volume): média, P10, P50, P90, chance de ganho e de prejuízo, chance de
+  atingir a meta, frase em frequência natural e histograma de 20 faixas; contribuição média por alavanca; tornado;
+  as quatro regras de escolha de 13.3 com o que cada uma escolheria; grade de opções; varredura com ponto de virada;
+  capacidade no sorteio (13.4); elasticidade de forma constante e linear (13.10).
+- **Modelos**: `diagnostico` (porte fiel de `motor.simular`, forma linear), `servico_adicional` (Nota nº 01),
+  `bloqueio_cambio` (Nota nº 02) e `preco` (reajuste e desconto, com custos proporcionais ao preço). As premissas
+  das duas Notas estão em `src/notas.ts`, como nas Notas originais.
+- **Migração `20261119000100_simulacao.sql`**: `motor.base_simulacao`; `premissas_distribuicao` (P10 conservador,
+  P50 base, P90 agressivo, nas versões 1 e 2 do catálogo); `premissas_correlacao`; `simulacoes`,
+  `simulacao_resultado` (com `medida`), `simulacao_sensibilidade` e `simulacao_varreduras`; bloco de carga
+  `capacidade`; registro `blocos_carga`, para os próximos pacotes acrescentarem blocos sem trocar a restrição.
+  Funções `base_simulacao`, `gravar_simulacao` e `simulacao_do_diagnostico`, só para o consultor. RLS em todas.
+- **Edge Function `simular`** (`supabase/functions/simular/index.js`, gerada por `pnpm --filter @diagnostico/simulacao
+  empacotar`): roda com o JWT de quem chama, lê a base e grava o resultado pelas funções do banco, que conferem o
+  perfil. O emulador local atende `/functions/v1/simular` com o mesmo código.
+- **Tela**: em Oportunidades, o consultor vê a faixa de 10.000 cenários (P10, P50, P90, frase, contribuição por
+  alavanca e as três premissas que mais mexem no resultado) e pode simular de novo. O cliente não vê nesta fase.
+  Os três cenários continuam calculados por `motor.rodar_cenarios` e o painel publicado não muda.
+
+### Verificado
+
+- **48 testes** (eram 30): os 18 novos estão em `ferramentas/testes/simulacao.test.ts`, com os casos à mão no cabeçalho.
+  - Paridade: com P10 = P50 = P90, o serviço dá o ganho de `motor.simular` ao centavo, por alavanca, nos três
+    cenários; o painel continua com R$ 18.031, R$ 52.147 e R$ 108.883 e nota 66,4.
+  - Mesma semente, mesmo resultado; outra semente, P50 a menos de 1%; soma das contribuições igual à média do total.
+  - **Tempo de 10.000 sorteios na base de demonstração (4.621 pares conta e produto): cerca de 1,0 s** no
+    ambiente local (Node 22); o P3 pode rodar 10.000 sorteios no simulador do cliente (limite de 3 s, seção 13.5).
+  - 13.1: ρs = 0 dá o mesmo resultado da simulação sem correlação; ρs = 0,8 dá Spearman entre 0,77 e 0,83; P10, P50
+    e P90 amostrais a menos de 1% dos informados; matriz incoerente recusada com o par apontado.
+  - 13.2 e 13.3: Nota nº 01 refeita com chance de ganho a até 2 pontos da original nas quatro chances de reação
+    (30,5 e 76,4 contra 32 e 76; 39 e 61 contra 39 e 60; 48 e 46 contra 48 e 45; 57 e 31 contra 57 e 30) e virada
+    em 38%, entre 30% e 40%. Nota nº 02: a regra com risco de até 10% escolhe 100 lugares com câmbio travado;
+    140 lugares têm P50 negativo.
+  - 13.4: sem custo extra, nenhum sorteio vende além da capacidade livre; com custo extra, a margem cai por ele.
+  - 13.10 e casos de equilíbrio de 13.6: −3,49%, −2,41%, −5,69% e −9,30%; +20%, +50%, −14,3%, 250 vendas;
+    Nota nº 02 com R$ 587 → R$ 181,10 e +224%, e com custos fixos R$ 92 e +538%.
+  - Acesso: o cliente não chama `base_simulacao`, `gravar_simulacao` nem a função, e não lê nenhuma tabela nova;
+    ninguém escreve direto nas tabelas.
+- `pnpm typecheck` nos três pacotes e o **roteiro do navegador com 40 conferências** (eram 37), com a faixa simulada
+  pela tela do consultor e a ausência dela na tela do cliente.
+- **No projeto `diagnostico_pricing`**: migração aplicada em três partes (ver `docs/migracoes.md`) e função
+  publicada. Pelo SQL, com a sessão de cada perfil: a base tem os mesmos 4.621 pares do ambiente local, o
+  consultor lê as 16 linhas de premissas, o cliente leitor é recusado e não lê `premissas_distribuicao` nem
+  `simulacoes`. Pela função publicada, sem sessão de usuário: recusa (403). Verificador de segurança: só os itens
+  intencionais já registrados.
+
+### Não verificado
+
+- **`pnpm homologar` contra o projeto real.** O login de `consultor@demo.local` foi recusado com a senha do ambiente
+  local; a senha dos acessos de demonstração do projeto não está neste ambiente. A homologação ganhou as conferências
+  do P2 (a função publicada e o pacote local dão o mesmo P50 com a mesma semente, a simulação fica gravada, o cliente
+  não chama a função) e roda assim que houver a senha: `SENHA=... pnpm homologar`.
+- **Limite de execução da Edge Function com 10.000 sorteios** na base de demonstração: não medido no projeto, pelo
+  mesmo motivo. Localmente leva cerca de 1 s.
+
+### Contradições entre o plano e o código, e a saída adotada
+
+1. **Ponto de virada da Nota nº 02 (13.2).** O plano pede a troca de 100 para 90 lugares entre 30% e 35% de chance
+   de reação. O cruzamento exato fica em 29,5%: com 100 lugares e câmbio travado há prejuízo quando se vendem 81
+   ou menos, o que acontece com 4,2% de chance sem reação e 23,8% com reação; o limite de 10% é atingido em
+   (0,10 − 0,042) ÷ (0,238 − 0,042) = 29,5%. Com 100 mil sorteios, a chance de prejuízo a 30% é 10,09%. A Nota
+   original chega a 9,9% em 30% pelo acaso dos sorteios dela; com 10.000 sorteios, a troca cai entre 25% e 30% ou
+   entre 30% e 35% conforme a semente. O sistema interpola o ponto de virada pela chance de prejuízo e dá 29% a 31%
+   ("cerca de 30%", como diz a Nota original); o teste confere esse intervalo.
+2. **Correlação inicial de 0,5 na Nota nº 01** (13.1 e seção 12): ver a tabela de padrões acima.
+3. **Distribuições das Notas.** O plano descreve premissas por P10, P50 e P90; as Notas originais usam triangulares
+   (mínimo, provável, máximo) e a volatilidade do câmbio. O serviço aceita os dois formatos, e as Notas refeitas
+   usam o formato original, para os números baterem.
+4. **Limites de domínio.** Elasticidade até 0 e captura e fechamento entre 0 e 1 são limites aplicados a cada
+   sorteio, não o mínimo e o máximo da distribuição; por isso `premissas_distribuicao.minimo` e `maximo` ficam nulos
+   nas oito chaves atuais. Com eles preenchidos, P10 = P50 = P90 deixaria de ser um valor fixo.
+
+### Definições adotadas (para revisar)
+
+- Semente padrão da simulação do diagnóstico: 20261119; regra padrão: maior P50 com até 10% de chance de prejuízo.
+- Na contenção de descontos, a variação de faturamento usa o preço e o volume já ajustados pela captura, como
+  `motor.simular` faz para encadear a segunda alavanca.
+- A Edge Function aceita qualquer chave do projeto no cabeçalho, mas a leitura e a gravação passam pelas funções do
+  banco com o JWT de quem chamou; sem sessão de consultor, nada é lido nem gravado.
 
 ## P0 Preparação (18/11/2026)
 

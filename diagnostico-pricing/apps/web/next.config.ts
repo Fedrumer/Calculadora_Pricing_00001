@@ -26,6 +26,7 @@ const config: NextConfig = {
   // trailingSlash: cada rota vira pasta/index.html, que é como o GitHub Pages resolve um caminho que também é pasta
   ...(estatico ? { output: 'export' as const, trailingSlash: true, basePath: process.env.NEXT_PUBLIC_BASE_PATH || undefined, images: { unoptimized: true } } : {}),
   reactStrictMode: true,
+  devIndicators: false,
   poweredByHeader: false,
   outputFileTracingRoot: new URL('../../', import.meta.url).pathname,
   // em hospedagem estática os cabeçalhos são os do provedor

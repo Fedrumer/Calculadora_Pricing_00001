@@ -13,6 +13,7 @@
     "migrar": "tsx src/cli/migrar.ts"
   },
   "dependencies": {
+    "@diagnostico/simulacao": "workspace:*",
     "postgres": "3.4.7"
   },
   "devDependencies": {

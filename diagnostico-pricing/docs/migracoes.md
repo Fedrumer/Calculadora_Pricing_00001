@@ -20,6 +20,11 @@ isso não for feito, continue aplicando pelo conector e registrando aqui.
 | `20261118000100_turismo.sql` (validação: linhas 98 a 283) | `20261119004416` | `turismo_validacao` |
 | `20261118000100_turismo.sql` (base de cálculo e métricas de turismo: linhas 284 a 490) | `20261119004543` | `turismo_base_e_metricas` |
 | `20261118000100_turismo.sql` (pontuação, painel, API e acesso: linhas 491 em diante) | `20261119004652` | `turismo_pontuacao_api_e_acesso` |
+| `20261119000100_simulacao.sql` (tabelas, catálogo de distribuições e RLS) | `20261119173253` | `simulacao_tabelas` |
+| `20261119000100_simulacao.sql` (base da simulação, gravação e leitura) | `20261119173339` | `simulacao_base_e_gravacao` |
+| `20261119000100_simulacao.sql` (carga do bloco capacidade e permissões das funções) | `20261119173440` | `simulacao_carga_e_acesso` |
+
+Edge Functions publicadas: `simular` (P2), a partir de `supabase/functions/simular/index.js`, com verificação de JWT.
 
 Arquivos grandes foram aplicados em partes; o conteúdo somado é o do arquivo, conferido por hash do corpo de
 cada função (37 funções idênticas ao banco local dos testes em 19/11/2026).

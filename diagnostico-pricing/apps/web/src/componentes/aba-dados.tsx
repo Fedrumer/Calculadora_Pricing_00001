@@ -15,6 +15,7 @@ const BLOCOS: { bloco: string; obrigatorio: boolean; descricao: string; turismo?
   { bloco: 'custos_servir', obrigatorio: false, descricao: 'Frete, comissão, prazo e outros, em % do faturado, por canal ou por cliente. Sem ele, o pocket price ignora o custo de servir.' },
   { bloco: 'descontos_fora_fatura', obrigatorio: false, descricao: 'Rebates, bonificações e verbas por cliente e mês. Sem ele, a cascata para no preço faturado.' },
   { bloco: 'bloqueios', obrigatorio: false, turismo: true, descricao: 'Lugares contratados com o fornecedor por saída, vendidos, prazo de devolução e multa ou custo do lugar. Sem ele, não há ocupação nem custo de lugar não vendido.' },
+  { bloco: 'capacidade', obrigatorio: false, descricao: 'Capacidade por mês de cada recurso (equipe, frota, estoque), uso por venda e custo da unidade extra. Entra na simulação: acima da capacidade, a venda não acontece ou paga o custo extra.' },
 ];
 
 const DESCRICAO_TURISMO: Record<string, string> = {
