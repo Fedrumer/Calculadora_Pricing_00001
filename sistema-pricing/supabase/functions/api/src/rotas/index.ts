@@ -1,5 +1,6 @@
 import type { Rota } from '../app.ts';
 import { rotasAdministracao } from './administracao.ts';
+import { rotasAlertas } from './alertas.ts';
 import { rotasAutomacao } from './automacao.ts';
 import { rotasCanal, rotasCotacoes } from './cotacoes.ts';
 import { rotasDemo } from './demo.ts';
@@ -16,6 +17,7 @@ export const rotas: Rota[] = [
   ...rotasAdministracao,
   ...rotasIA,
   ...rotasAutomacao,
+  ...rotasAlertas,
   ...rotasEnvioDiagnostico,
   ...rotasDemo,
 ];

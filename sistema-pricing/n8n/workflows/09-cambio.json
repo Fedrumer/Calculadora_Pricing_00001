@@ -1,0 +1,272 @@
+{
+  "name": "Pricing 09: câmbio de mercado (PTAX)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Câmbio de mercado (A8)\nEm dias úteis, depois do boletim de fechamento, busca a PTAX de venda de cada moeda usada nos custos da política (API PTAX do Banco Central, recurso CotacaoMoedaDia) e grava pela API do sistema. A API avisa o gestor quando a PTAX passa o câmbio de referência mais a folga mínima, ou quando cotações aceitas ficam sem margem a ela.\n\nA PTAX nunca muda preço sozinha: quem publica câmbio de referência é o gestor, na tela Política.\nSem boletim de fechamento (feriado ou ainda não publicado), não grava nada.",
+        "height": 280,
+        "width": 520
+      },
+      "id": "b7a19d2d-e54e-487d-8f0f-afea5bd0b455",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -760,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 14 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "f52e9c5b-ed90-4cf2-a002-46a9017fbd77",
+      "name": "Dias úteis às 14h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -700,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/cambios-mercado",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "60fb41bb-0328-4f9f-a402-4d7ac64e7797",
+      "name": "Moedas em uso",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -480,
+        60
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst [a, m, dia] = d.data.split('-');\n// a API PTAX pede a data no formato MM-DD-AAAA\nreturn (d.moedas ?? []).map((moeda) => ({ json: { moeda, data: d.data, dataPtax: `${m}-${dia}-${a}` } }));"
+      },
+      "id": "88483e45-8604-484d-ae18-ce45ca661bf0",
+      "name": "Uma consulta por moeda",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoMoedaDia(moeda=@moeda,dataCotacao=@dataCotacao)?@moeda='{{ $json.moeda }}'&@dataCotacao='{{ $json.dataPtax }}'&$format=json&$select=cotacaoCompra,cotacaoVenda,dataHoraCotacao,tipoBoletim",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "5f1fe25a-9f10-4f72-8704-734235b167da",
+      "name": "PTAX do dia (Banco Central)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -40,
+        60
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 30000
+    },
+    {
+      "parameters": {
+        "jsCode": "const pedidos = $('Uma consulta por moeda').all();\nconst cotacoes = [];\n$input.all().forEach((item, i) => {\n  const boletins = item.json.value ?? [];\n  // só o boletim de fechamento vale como PTAX do dia\n  const f = boletins.filter((b) => String(b.tipoBoletim ?? '').toLowerCase().startsWith('fechamento')).pop();\n  if (!f) return;\n  cotacoes.push({ moeda: pedidos[i].json.moeda, data: pedidos[i].json.data, boletim: 'fechamento', taxaCompra: f.cotacaoCompra, taxaVenda: f.cotacaoVenda });\n});\nif (cotacoes.length === 0) return [];\nreturn [{ json: { cotacoes } }];"
+      },
+      "id": "3307a608-6875-4eee-a8fc-e4b7c5f03477",
+      "name": "Boletim de fechamento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/cambios-mercado",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ cotacoes: $json.cotacoes }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "e3290de1-b0fa-480a-a8b9-baf4c8137d1d",
+      "name": "Gravar e avaliar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        60
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n// sem alerta novo hoje: nada a enviar (cada alerta sai uma vez por dia)\nif (!d.alertas || d.alertas.length === 0 || !d.para || d.para.length === 0) return [];\nreturn [{ json: { para: d.para.join(','), assunto: `Pricing: câmbio de mercado (${d.alertas.length})`, texto: [...d.alertas.map((a) => '- ' + a.mensagem), '', 'Alerta automático do sistema de pricing. A PTAX e os indicadores nunca mudam preço sozinhos: a decisão é do gestor.'].join('\\n') } }];"
+      },
+      "id": "17797ce6-f34d-45c9-a621-ac47f170268b",
+      "name": "Precisa avisar?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.PRICING_EMAIL_REMETENTE }}",
+        "toEmail": "={{ $json.para }}",
+        "subject": "={{ $json.assunto }}",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {}
+      },
+      "id": "23549a76-dd8d-49e2-8ce7-fe7ba4a21e09",
+      "name": "Avisar o gestor",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        840,
+        60
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE",
+          "name": "SMTP do cliente"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dias úteis às 14h": {
+      "main": [
+        [
+          {
+            "node": "Moedas em uso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Moedas em uso": {
+      "main": [
+        [
+          {
+            "node": "Uma consulta por moeda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Uma consulta por moeda": {
+      "main": [
+        [
+          {
+            "node": "PTAX do dia (Banco Central)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PTAX do dia (Banco Central)": {
+      "main": [
+        [
+          {
+            "node": "Boletim de fechamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Boletim de fechamento": {
+      "main": [
+        [
+          {
+            "node": "Gravar e avaliar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar e avaliar": {
+      "main": [
+        [
+          {
+            "node": "Precisa avisar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precisa avisar?": {
+      "main": [
+        [
+          {
+            "node": "Avisar o gestor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "pricing"
+    }
+  ]
+}
