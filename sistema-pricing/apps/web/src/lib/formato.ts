@@ -28,6 +28,7 @@ export const ROTULO_STATUS: Record<string, string> = {
   expirada: 'Expirada',
   cancelada: 'Cancelada',
   publicada: 'Publicada',
+  piloto: 'Em piloto',
   arquivada: 'Arquivada',
   pendente: 'Pendente',
   ativo: 'Ativo',

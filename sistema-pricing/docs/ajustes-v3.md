@@ -286,7 +286,7 @@ Pela LGPD, dado pseudonimizado continua sendo dado pessoal: só deixa de ser ass
 | `produtos.csv` | Código, descrição, categoria, linha | Bloco `produtos` |
 | `contas.csv` | Conta, segmento, porte e região (quando configurados), vendedor | Bloco `contas` |
 | `custos_servir.csv` | Comissão efetiva de cada canal e custos variáveis, em % do faturado | Bloco `custos_servir` |
-| `cotacoes.csv` | Todas as emitidas no mês, inclusive perdidas e expiradas: desconto, margem, comissão do vendedor, status, categoria de perda, preço do concorrente, câmbio usado e de equilíbrio, veredito, alçada, piloto e braço | Guardado até o diagnóstico ter as tabelas de ganhas e perdidas e de medição (P5 e P7) |
+| `cotacoes.csv` | Todas as emitidas no mês, inclusive perdidas e expiradas: desconto, margem, comissão do vendedor, status, categoria de perda, preço do concorrente, câmbio usado e de equilíbrio, veredito, alçada, piloto e braço | Bloco `propostas` do P5, por mapeamento fixo; piloto e braço vão para a medição (P7) |
 
 O código de produto do pacote junta o produto com os valores das dimensões de categoria (por exemplo, `LISBOA|ALTA|DUPLO`), para o custo ficar estável no mês; dimensões numéricas, como passageiros, viram quantidade.
 
@@ -304,7 +304,7 @@ O código de produto do pacote junta o produto com os valores das dimensões de 
 - **Configuração:** `organizacao.config.envioDiagnostico` com `ativo`, `destino`, `modoConta` (`pseudonimo` ou `agregado`) e `diaDoMes`; segredos `CHAVE_ENVIO_DIAGNOSTICO` e `SEGREDO_PSEUDONIMO` no cofre da função.
 - **Desligado por padrão:** nada sai até o administrador do cliente ligar o envio, e o ato fica registrado.
 
-**Lado do diagnóstico (alinhar com o pacote P6 do outro documento):**
+**Lado do diagnóstico (especificado no P6 revisto do outro documento):**
 
 - Função `receber-pacote`: aceita só chave de envio válida, que deposita pacotes de um único cliente e não lê nada; confere versão do contrato, hashes e contagens; guarda o ZIP em armazenamento privado e registra em `extratos_cliente`; devolve recibo.
 - Mesmo hash na mesma competência não muda nada; hash novo vira nova versão, e a anterior fica marcada como substituída.

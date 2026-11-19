@@ -35,6 +35,10 @@ Tudo em `config/clientes/<cliente>.json`, carregado por `pnpm instalar`, e depoi
 | Motivos de perda | `organizacao.config.motivosPerda`: lista de `{ codigo, nome, pedeTexto, pedeConcorrente, ativo }`; sem ela vale a lista padrão (preço do concorrente, prazo, escopo, desistiu, sem resposta, outro) |
 | Faixas de desconto do painel | `organizacao.config.painel.faixasDesconto` (padrão `[2, 5, 10]`: sem desconto, até 2%, 2 a 5%, 5 a 10%, acima de 10%) |
 | Envio ao diagnóstico | `organizacao.config.envioDiagnostico`: `{ "ativo": false, "destino": null, "modoConta": "pseudonimo" ou "agregado", "diaDoMes": 2 }`. Desligado por padrão; ligar fica na auditoria. Segredos `SEGREDO_PSEUDONIMO` e `CHAVE_ENVIO_DIAGNOSTICO` no cofre da função |
+| Linha de base do diagnóstico (alerta de desconto) | `organizacao.config.linhaDeBase.descontoMedioPct`: acima dela, o gestor recebe aviso uma vez por dia (fluxo 03) |
+| Meta de margem (alerta de margem) | `politica.limites.margemMetaPct`: com as aceitas do mês abaixo dela, o gestor recebe aviso uma vez por dia |
+| Câmbio de mercado | Nada a configurar: o fluxo 09 busca a PTAX das moedas usadas nos custos da política vigente. Ligado, o painel compara a exposição cambial com a PTAX |
+| Pilotos | Pela tela Pilotos (gestor de pricing): período, Nota de Decisão, regra alternativa (tabela, política ou as duas), critério (vendedor, canal ou unidade) e os dois grupos. Combine o critério com o gestor antes |
 | Dados sintéticos da demonstração | `demo` (reajuste, trajetória do câmbio, sazonalidade, probabilidade de canal) e `usuarios[].demo.perfilDesconto` (`baixo`, `medio`, `alto`). Só a carga sintética lê esses campos |
 
 A demonstração usa a operadora de turismo fictícia (`demo-turismo.json`): custos de aéreo e hotel em euro,

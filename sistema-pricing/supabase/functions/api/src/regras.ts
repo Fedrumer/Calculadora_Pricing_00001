@@ -9,6 +9,16 @@ export interface RegrasCarregadas {
   /** código do canal -> id, e o inverso, para traduzir o pedido */
   canais: { id: string; codigo: string; nome: string; ativo: boolean }[];
   produtoIds: Record<string, string>;
+  /** A9: piloto em que a cotação cai, com o braço; nulo fora de piloto. */
+  piloto: { id: string; braco: 'tratamento' | 'controle' } | null;
+}
+
+/** Quem está cotando: decide se a cotação cai em um piloto ativo (A9). */
+export interface ContextoCotacao {
+  vendedorId?: string | null;
+  canalId?: string | null;
+  canalCodigo?: string | null;
+  unidadeId?: string | null;
 }
 
 export interface OpcoesRegras {
@@ -17,14 +27,47 @@ export interface OpcoesRegras {
   politicaId?: string;
   /** Substitui o câmbio de referência de uma moeda (simulação de impacto antes de publicar). */
   cambio?: { moeda: string; taxa: number };
+  /** Contexto da cotação, para resolver o piloto (A9). Sem ele, vale a regra vigente para todos. */
+  contexto?: ContextoCotacao;
+}
+
+/**
+ * Piloto ativo na data em que a cotação cai, pelo vendedor, canal ou unidade.
+ * Se mais de um critério casar (em pilotos diferentes), vale o mais específico:
+ * vendedor, depois canal, depois unidade.
+ */
+export async function resolverPiloto(db: Db, orgId: string, data: string, ctx: ContextoCotacao) {
+  let canalId = ctx.canalId ?? null;
+  if (!canalId && ctx.canalCodigo) {
+    const [c] = await db<{ id: string }[]>`select id from public.canais where org_id = ${orgId} and codigo = ${ctx.canalCodigo}`;
+    canalId = c?.id ?? null;
+  }
+  const candidatos = [
+    ['vendedor', ctx.vendedorId ?? null],
+    ['canal', canalId],
+    ['unidade', ctx.unidadeId ?? null],
+  ].filter((x): x is [string, string] => !!x[1]);
+  for (const [criterio, membro] of candidatos) {
+    const [p] = await db<{ id: string; braco: 'tratamento' | 'controle'; tabela_id: string | null; politica_id: string | null }[]>`
+      select p.id, m.braco, p.tabela_id, p.politica_id
+      from public.piloto_membros m join public.pilotos p on p.id = m.piloto_id
+      where m.org_id = ${orgId} and m.ativo and m.criterio = ${criterio} and m.membro_id = ${membro}
+        and p.status = 'ativo' and ${data}::date between p.inicio and p.fim
+      limit 1`;
+    if (p) return p;
+  }
+  return null;
 }
 
 /** Monta o conjunto de regras que o motor recebe, a partir do banco. */
 export async function carregarRegras(db: Db, orgId: string, data: string, opcoes: OpcoesRegras = {}): Promise<RegrasCarregadas> {
   const [vig] = await db<{ tabela: string | null; politica: string | null }[]>`
     select app.tabela_vigente(${orgId}, ${data}::date) as tabela, app.politica_vigente(${orgId}, ${data}::date) as politica`;
-  const tabelaId = opcoes.tabelaId ?? vig?.tabela;
-  const politicaId = opcoes.politicaId ?? vig?.politica;
+  // A9: o tratamento de um piloto cota com a regra alternativa; o controle, com a vigente
+  const piloto = opcoes.contexto && !opcoes.tabelaId && !opcoes.politicaId ? await resolverPiloto(db, orgId, data, opcoes.contexto) : null;
+  const alternativa = piloto?.braco === 'tratamento' ? piloto : null;
+  const tabelaId = opcoes.tabelaId ?? alternativa?.tabela_id ?? vig?.tabela;
+  const politicaId = opcoes.politicaId ?? alternativa?.politica_id ?? vig?.politica;
   if (!tabelaId) throw new ErroHttp(409, 'SEM_TABELA_VIGENTE', `Não há tabela de preço publicada vigente em ${data}.`);
   if (!politicaId) throw new ErroHttp(409, 'SEM_POLITICA_VIGENTE', `Não há política comercial publicada vigente em ${data}.`);
 
@@ -145,5 +188,6 @@ export async function carregarRegras(db: Db, orgId: string, data: string, opcoes
     politicaId: politica.id,
     canais: [...canais],
     produtoIds: Object.fromEntries(produtos.map((p) => [p.codigo, p.id])),
+    piloto: piloto ? { id: piloto.id, braco: piloto.braco } : null,
   };
 }

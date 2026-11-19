@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Rotina diária\nExpira cotações com validade vencida, suspende contas sem acesso pelo prazo configurado (padrão 90 dias) e anonimiza o dado pessoal de cotações perdidas ao fim da retenção.",
+        "content": "## Rotina diária\nExpira cotações com validade vencida, suspende contas sem acesso pelo prazo configurado (padrão 90 dias) e anonimiza o dado pessoal de cotações perdidas ao fim da retenção.\nDepois, avisa o gestor por e-mail quando a margem das aceitas do mês fica abaixo da meta da política ou o desconto médio passa a linha de base do diagnóstico (A8), no máximo uma vez por dia.",
         "height": 200,
         "width": 420
       },
@@ -129,6 +129,74 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PRICING_API_URL }}/automacao/alertas-negocio",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {} }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "1e4c0b4e-7768-45cc-9add-4d9d934c2cfe",
+      "name": "Alertas de margem e desconto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE",
+          "name": "Pricing: segredo de automação"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n// sem alerta novo hoje: nada a enviar (cada alerta sai uma vez por dia)\nif (!d.alertas || d.alertas.length === 0 || !d.para || d.para.length === 0) return [];\nreturn [{ json: { para: d.para.join(','), assunto: `Pricing: margem e desconto do mês (${d.alertas.length})`, texto: [...d.alertas.map((a) => '- ' + a.mensagem), '', 'Alerta automático do sistema de pricing. A PTAX e os indicadores nunca mudam preço sozinhos: a decisão é do gestor.'].join('\\n') } }];"
+      },
+      "id": "2ad7a52e-2e8b-41ee-81fd-103b00cb4ab7",
+      "name": "Precisa avisar?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.PRICING_EMAIL_REMETENTE }}",
+        "toEmail": "={{ $json.para }}",
+        "subject": "={{ $json.assunto }}",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {}
+      },
+      "id": "651425de-857f-4c2c-b2af-ece114f31389",
+      "name": "Avisar o gestor",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        860,
+        0
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE",
+          "name": "SMTP do cliente"
+        }
+      }
     }
   ],
   "connections": {
@@ -159,6 +227,39 @@
         [
           {
             "node": "Aplicar retenção",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aplicar retenção": {
+      "main": [
+        [
+          {
+            "node": "Alertas de margem e desconto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alertas de margem e desconto": {
+      "main": [
+        [
+          {
+            "node": "Precisa avisar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precisa avisar?": {
+      "main": [
+        [
+          {
+            "node": "Avisar o gestor",
             "type": "main",
             "index": 0
           }

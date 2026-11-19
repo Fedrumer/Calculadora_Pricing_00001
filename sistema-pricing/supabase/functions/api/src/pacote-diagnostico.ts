@@ -91,6 +91,8 @@ interface LinhaCotacao {
   motor_versao: string;
   identificacao_nome: string;
   identificacao_documento: string | null;
+  piloto_id: string | null;
+  braco: string | null;
 }
 
 interface ProdutoPacote {
@@ -139,7 +141,7 @@ export async function montarPacote(sql: Sql | Tx, o: OpcoesPacote): Promise<Paco
     select id, numero, data::text as data, status, dono_id, desfecho_categoria, concorrente_preco, produto, canal, dimensoes,
            quantidade, preco_base, preco_final, desconto_pct, desconto_valor, campanha_valor, comissao_pct, comissao_valor,
            margem_valor, margem_pct, veredito, nivel_alcada, comissao_vendedor_valor, comissao_vendedor_deduzida, detalhamento,
-           cambios, motor_versao, identificacao_nome, identificacao_documento
+           cambios, motor_versao, identificacao_nome, identificacao_documento, piloto_id, braco
     from app.v_pacote_cotacoes
     where org_id = ${o.orgId} and criado_em >= ${inicio}::date and criado_em < ${fim}::date + 1
     order by criado_em, numero`;
@@ -209,7 +211,8 @@ export async function montarPacote(sql: Sql | Tx, o: OpcoesPacote): Promise<Paco
       cambios.map((x) => x.moeda).join('|') || null, cambios.map((x) => num(n(x.taxa))).join('|') || null,
       cambios.map((x) => (x.cambioEquilibrio === null ? '' : num(n(x.cambioEquilibrio)))).join('|') || null,
       cambios.map((x) => (x.folgaPct === null ? '' : num(n(x.folgaPct), 2))).join('|') || null,
-      c.motor_versao, null, null,
+      // piloto sai pelo identificador, nunca pelo nome (texto livre do gestor)
+      c.motor_versao, c.piloto_id, c.braco,
     ]);
 
     if (c.status !== 'aceita') continue;

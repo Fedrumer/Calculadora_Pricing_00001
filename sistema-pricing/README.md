@@ -24,6 +24,10 @@ publica repositório privado. Antes de fechar o repositório, decida onde as tel
 - Painel com desconto por vendedor, conversão por faixa de desconto, perdas por categoria e exposição cambial.
 - Envio mensal ao diagnóstico de um pacote pseudonimizado (sem nome, e-mail, documento nem texto livre), desligado por padrão.
 - A demonstração passou a ser a Operadora Exemplo Turismo (fictícia).
+- Simulador da regra de comissão do vendedor (atual contra proposta) sobre o histórico, com exportação em CSV.
+- Alertas ao gestor: margem do mês abaixo da meta, desconto acima da linha de base e câmbio de mercado (PTAX do
+  Banco Central) acima da referência ou deixando cotações aceitas sem margem.
+- Piloto com grupo de controle: parte da equipe cota com uma regra alternativa e o painel compara os dois grupos.
 
 ## O que tem aqui
 
@@ -34,7 +38,7 @@ publica repositório privado. Antes de fechar o repositório, decida onde as tel
 | `supabase/functions/api` | API de negócio (Edge Function): a única que chama o motor e grava. |
 | `supabase/functions/_shared/extensoes` | Ponto de extensão para regra de cálculo que não cabe nas etapas padrão. |
 | `apps/web` | Aplicação web em Next.js. Não contém regra de preço. |
-| `n8n/workflows` | Nove fluxos: avisos, lembretes, rotina diária, importação, relatório, cópia externa, saúde, revisão de acessos e envio ao diagnóstico. |
+| `n8n/workflows` | Dez fluxos: avisos, lembretes, rotina diária (com alertas de margem), importação, relatório, cópia externa, saúde, revisão de acessos, câmbio de mercado (PTAX) e envio ao diagnóstico. |
 | `config/clientes` | Uma configuração por cliente. Vêm três empresas fictícias: a operadora de turismo da demonstração, assistência e distribuidor B2B. |
 | `ferramentas` | Instalação por configuração, dados sintéticos, ambiente local sem Docker, cópia externa, teste de restauração, exportação de saída, roteiro de demonstração automatizado. |
 | `publicacao` | A função `api` pronta para publicar com o código dentro (ver `publicacao/LEIA-ME.md`). |
@@ -49,7 +53,7 @@ pnpm install
 # uma vez: usuário e permissão no Postgres local
 psql -U postgres -c "create role pricing superuser login password 'pricing'"
 
-pnpm test                 # motor (52) + API e RLS (99)
+pnpm test                 # motor (52) + API e RLS (122)
 pnpm local                # banco, emulador do Supabase, operadora de turismo fictícia, 12 meses de dados, cópia e restauração
 # em outro terminal, com as três variáveis NEXT_PUBLIC_* que o comando acima imprime em apps/web/.env.local:
 pnpm dev:web              # http://localhost:3000
