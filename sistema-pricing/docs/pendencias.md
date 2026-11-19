@@ -7,7 +7,7 @@
   calibração da Nota nº 02 centavo a centavo (Lisboa R$ 9.900, margem R$ 587,00, câmbio que zera a margem
   R$ 6,59, comissão do vendedor R$ 58,70; com 5%, margem R$ 181,10 e comissão R$ 18,11, aprovação do gerente).
 - Configurações sem os campos novos calculam exatamente como antes: os casos de referência antigos passam sem mudança.
-- API e banco: 99 testes de integração contra Postgres 16 (os 65 anteriores, sem alteração, e 34 novos),
+- API e banco: 122 testes de integração contra Postgres 16 (os 65 anteriores, sem alteração, e 57 novos),
   incluindo RLS e API para os campos internos: o canal não recebe câmbio, exposição cambial nem comissão do
   vendedor, nem pela API nem lendo o banco.
 - Pacote ao diagnóstico: teste que procura dentro do ZIP todos os nomes, e-mails, documentos e textos livres do
@@ -18,6 +18,22 @@
   real, este pela primeira vez no navegador (telas rodando localmente apontadas para o projeto), incluindo o
   cadastro do segundo fator pelo Supabase Auth.
 - Cópia externa e teste de restauração executados de verdade no ambiente local.
+
+## Ajustes do primeiro cliente: A7, A8 e A9 (19/11/2026)
+
+- **A7, simulador da comissão do vendedor:** função `simular_comissao_vendedor` (migração 0500) e o cartão
+  "Comparar regras de comissão" na Política, com exportação em CSV. A regra A igual à da política reproduz a
+  comissão gravada em cada cotação (teste). Só gestor, administrador e leitura, com segundo fator.
+- **A8, alertas:** margem das aceitas do mês abaixo da meta e desconto médio acima da linha de base (rotina diária,
+  fluxo 03); PTAX de fechamento gravada pelo fluxo 09 e aviso quando passa a referência mais a folga ou quando
+  aceitas ficam sem margem a ela. Cada alerta sai uma vez por dia. O trecho que busca a PTAX foi executado num n8n
+  de verdade (boletim de fechamento de 18/11/2026: EUR 6,3720, USD 5,8102); a rota recebeu essa PTAX no projeto
+  Supabase e avisou que 9 cotações aceitas ficam sem margem a ela. O painel passa a comparar a exposição com a PTAX.
+- **A9, piloto com grupo de controle:** migração 0600, rotas e tela Pilotos, e o bloco do painel. Teste: Vera
+  (tratamento) e Rui (controle) cotam o mesmo pedido com preços diferentes (R$ 9.405 e R$ 9.900), cada um com o braço
+  gravado; um vendedor não entra em dois pilotos ativos. Piloto e braço saem no `cotacoes.csv` (migração 0800).
+- No navegador (ambiente local): simulador, criação e ativação de piloto pela tela e o bloco do painel, sem erro.
+- No projeto Supabase: migrações 0500, 0600 e 0800 aplicadas e a função republicada.
 
 ## Homologação no projeto Supabase (18/11/2026)
 
@@ -58,8 +74,10 @@ segmento; e um mês de histórico em vez de doze) e o diagnóstico foi calculado
 - O lado do diagnóstico que recebe o pacote (`receber-pacote`) não existe ainda; por isso o envio automático fica
   desligado e o pacote é baixado.
 - A publicação pela CLI (`supabase functions deploy`) e pelo fluxo de `.github-modelo/ci.yml`.
-- Os fluxos do n8n (inclusive o 10, envio ao diagnóstico) foram escritos no formato de exportação e não foram
-  importados nem executados em um n8n.
+- Os fluxos do n8n foram escritos no formato de exportação. Do fluxo 09, o trecho da PTAX rodou num n8n de verdade;
+  a gravação pela API e o e-mail de aviso não rodaram no n8n (a credencial de automação não foi posta no n8n). Os
+  demais fluxos não foram importados nem executados.
+- Os alertas de A8 por e-mail dependem do SMTP configurado no n8n do cliente.
 - A camada de IA foi testada com um serviço simulado; nenhuma chamada real à API da Anthropic foi feita.
 - Envio de e-mail (convites, avisos) depende do n8n; a tela mostra o link do convite para o administrador copiar.
 - SSO (SAML) e a redefinição de senha por e-mail.
@@ -85,6 +103,20 @@ segmento; e um mês de histórico em vez de doze) e o diagnóstico foi calculado
 - Decisões tomadas nos ajustes da v3 e que não estavam no documento: ver "Decisões da v3" abaixo.
 
 ## Decisões da v3 que não estavam no documento
+
+- **A7:** a margem de partida do simulador é a de antes da comissão do vendedor (quando a política a deduzia,
+  ela volta); arredondamento a centavos por cotação. Sem regra na política, a regra A começa em 2% da receita.
+- **A8:** o último aviso de cada tipo fica na caixa de saída (`eventos_saida`), sem tabela nova; "PTAX acima da
+  referência" é PTAX de venda maior que a referência × (1 + folga mínima). O fluxo 09 roda às 14h, depois do
+  boletim de fechamento (por volta das 13h10); sem boletim (feriado), não grava nada.
+- **A9:** a regra alternativa pode estar em rascunho; ao ativar o piloto ela é congelada com o status `piloto`
+  (imutável e fora da escolha da regra vigente), porque publicá-la a teria tornado a vigente de todos. Se o mesmo
+  vendedor casar com pilotos de critérios diferentes, vale vendedor, depois canal, depois unidade. A nova versão de
+  uma cotação segue o dono e a unidade da cotação. O "antes" do painel tem o mesmo número de dias do "durante".
+  Os três critérios ficaram disponíveis; qual usar se combina com o gestor do cliente.
+- **Migrações:** a troca da referência do painel pela PTAX (A8) entrou na 0600, junto com a nova versão de
+  `app.indicadores` do piloto; piloto e braço no pacote entraram numa migração extra, 0800, porque a visão do pacote
+  é criada pela 0700, que vem depois da 0600 na ordem dos arquivos.
 
 - **Câmbio pela data do pedido:** o motor recebe o histórico de câmbios até a data e usa o vigente na data do
   pedido (o caso de referência de 2025 usa o câmbio de 2025). Custo em percentual não aceita moeda.
